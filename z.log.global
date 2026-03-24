@@ -1,0 +1,11 @@
+** compiled at:     Feb 24 2026 19:50:30
+** execution start: 2026-03-24 15:46:57:273021
+graph.cpp:initParameters:1782(3) opening config file 'rai.cfg'
+graph.cpp:initParameters:1789(3)  - failed
+graph.cpp:initParameters:1795(3) opening base config file '/root/local/rai/../rai-robotModels/../local.cfg'
+graph.cpp:initParameters:1801(3)  - failed
+** execution stop: 2026-03-24 15:47:22:362339
+** real time: 25.0893sec
+** CPU time: 2.72649
+
+** set+queried params:
