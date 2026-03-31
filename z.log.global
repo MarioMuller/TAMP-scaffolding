@@ -1,7 +1,52 @@
 ** compiled at:     Feb 24 2026 19:50:30
-** execution start: 2026-03-26 10:14:23:693092
+** execution start: 2026-03-31 10:16:23:512794
 graph.cpp:initParameters:1782(3) opening config file 'rai.cfg'
 graph.cpp:initParameters:1789(3)  - failed
 graph.cpp:initParameters:1795(3) opening base config file '/root/local/rai/../rai-robotModels/../local.cfg'
 graph.cpp:initParameters:1801(3)  - failed
-kin.cpp:addFrame:145(-1) frame 'rod_1' already exists! returning existing without modifications!
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda' from '/home/mario/TAMP-scaffolding'
+util.cpp:getIs:1104(3) opening input file 'panda.g'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'panda_arm_hand_conv.yml'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link0.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link1.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link2.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link3.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link4.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link5.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link6.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'link7.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'hand.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_file:1077(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda/meshes' from '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:getIs:1104(3) opening input file 'finger.h5'
+util.cpp:cd_base:1068(3) entering path '/home/mario/venv/lib/python3.12/site-packages/robotic/rai-robotModels/panda'
+util.cpp:cd_base:1068(3) entering path '/home/mario/TAMP-scaffolding'
+kin.cpp:getFrame:481(-1) cannot find frame named 'rod_29_target'
+kin.cpp:getFrame:481(-1) cannot find frame named 'rod_28_target'
+kin.cpp:getFrame:481(-1) cannot find frame named 'rod_27_target'
+kin.cpp:getFrame:481(-1) cannot find frame named 'rod_22_target'
+kin.cpp:getFrame:481(-1) cannot find frame named 'rod_21_target'
+** execution stop: 2026-03-31 10:16:36:131134
+** real time: 12.6184sec
+** CPU time: 2.88852
+
+** set+queried params:

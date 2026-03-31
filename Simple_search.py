@@ -182,13 +182,10 @@ def export_assembly_video(
 
 if __name__ == "__main__":
     truss = Truss.from_json("JSON/long_beam_test.json")
-
     searcher = TrussSearch(truss)
 
     removal_sequence = searcher.backward_search()
     assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
-
-    print("Removal:", removal_sequence)
     print("Assembly:", assembly_sequence)
 
     if assembly_sequence:
