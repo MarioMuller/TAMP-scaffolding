@@ -11,24 +11,20 @@ assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else No
 print("Assembly:", assembly_sequence)
 
 # Create start environment
-builder = RaiTrussBuilder(truss)
-builder.import_panda()
+builder = RaiTrussBuilder(truss, radius=0.003)
+builder.import_ur5()
 
 # Loop over the assembly_sequence and execute the required steps to build Truss
+first_rod = True
 for rod_id in assembly_sequence:
 
-    # rod_id = 14
     builder.create_rod(rod_id)
-    # builder.show_target(rod_id)
-    # builder.grab_rod(rod_id)
 
-    builder.place_rod(rod_id)
-    # builder.pick_and_place_rod(rod_id)
-
-print(rod_id)
-
+    if not first_rod:
+        builder.prepare_next_grab(rod_id)
+        
+    first_rod = False
+    builder.pick_and_place_rod(rod_id)
 
 
-    # builder.C.view()
-    # input("Press Enter to close...")
-    
+print("Finished all rods palced in desired target location")
