@@ -1,5 +1,5 @@
 ** compiled at:     Nov 26 2024 16:46:14
-** execution start: 2026-04-13 16:48:13:689497
+** execution start: 2026-04-14 10:39:34:307477
 graph.cpp:initParameters:1512(3) opening config file 'rai.cfg'
 graph.cpp:initParameters:1519(3)  - failed
 graph.cpp:initParameters:1525(3) opening base config file '/root/local/rai/../local.cfg'
@@ -82,13 +82,8 @@ kin.cpp:getFrame:415(-1) cannot find frame named 'rod_25_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_19_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_7_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_8_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_9_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_14_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_23_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_17_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_2_target'
-** execution stop: 2026-04-13 16:50:02:16232
-** real time: 108.327sec
-** CPU time: 20.0616
+** execution stop: 2026-04-14 10:41:39:4754
+** real time: 124.697sec
+** CPU time: 42.1659
 
 ** set+queried params:

@@ -84,18 +84,18 @@ class RaiTrussBuilder:
         if length < 1e-10:
             raise ValueError(f"Rod {rod_id} has zero length")
 
-        self.C.addFrame(f"rod_{rod_id}") .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition([0.1,-0.4,0.1]) .setQuaternion([0.7070, 1, 0, 0.7070]) #.setContact(1)
+        self.C.addFrame(f"rod_{rod_id}") .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition([-0.4,-0.05,0.2]) .setQuaternion([0.7070, 1, 0, 0.7070]) .setContact(1)
         self.C.view()
         # input("Press Enter to close...")
         return
     
     def import_ur5(self):
-        self.C.addFile("/home/mario/TAMP-scaffolding/src/models/ur5/ur5.g") .setPosition([0.5,0,0])
+        self.C.addFile("/home/mario/TAMP-scaffolding/src/models/ur5/ur5.g") .setPosition([0.0,0.55,0])
         print(self.C.getFrameNames())
 
         self.qHome = self.C.getJointState().copy()
         self.C.view()
-        return  
+        return
 
     def show_target(self, rod_id):
         goal_center, goal_quat = self.get_goal_pose(rod_id)
@@ -125,12 +125,12 @@ class RaiTrussBuilder:
         self.C.getFrame(target_name).setPosition(goal_center)
         self.C.getFrame(target_name).setQuaternion(goal_quat)
         
-        komo = ry.KOMO(self.C, phases=2, slicesPerPhase=10, kOrder=2, enableCollisions=True)
+        komo = ry.KOMO(self.C, phases=3, slicesPerPhase=10, kOrder=2, enableCollisions=True)
 
         komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
         komo.addControlObjective([], 2, 1e0)
 
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
 
         # grab the rod in spawning position
@@ -139,16 +139,51 @@ class RaiTrussBuilder:
         komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
         komo.addModeSwitch([1.,-1], ry.SY.stable, ['ur_gripper_center', f"rod_{rod_id}"], True)
 
-        komo.addObjective([2.], ry.FS.positionDiff, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1])
-        komo.addObjective([2.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-        komo.addObjective([2.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
+        goal_center_up = goal_center.copy()
+        goal_center_up[2] += 0.10   # move 20 cm up in world z
+        komo.addObjective([2.], ry.FS.position, [f"rod_{rod_id}"], ry.OT.eq, [1e1], goal_center_up)
+        komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
+
+        komo.addObjective([3.], ry.FS.positionDiff, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1])
+        komo.addObjective([3.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
+        komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
 
         ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
         print(ret)
 
         if not ret.feasible:
-            komo.view(True, "IK solution")
-            raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
+
+            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=10, kOrder=2, enableCollisions=True)
+
+            komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
+            komo.addControlObjective([], 2, 1e0)
+
+            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
+            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+
+            # grab the rod in spawning position
+            komo.addObjective([1.], ry.FS.positionDiff, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) # an equality constraint on the 3D position difference between ur_gripper_center and box
+            komo.addObjective([1.], ry.FS.scalarProductXZ, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [1.0])
+            komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
+            komo.addModeSwitch([1.,-1], ry.SY.stable, ['ur_gripper_center', f"rod_{rod_id}"], True)
+
+            goal_center_up = goal_center.copy()
+            goal_center_up[2] += 0.10   # move 20 cm up in world z
+            komo.addObjective([2.], ry.FS.position, [f"rod_{rod_id}"], ry.OT.eq, [1e1], goal_center_up)
+            komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [-1.0])
+
+            komo.addObjective([3.], ry.FS.positionDiff, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1])
+            komo.addObjective([3.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
+            komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [-1.0])
+
+            ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
+            print(ret)
+
+
+            if not ret.feasible:
+
+                komo.view(True, "IK solution")
+                raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
 
         # komo.view(True, "IK solution")
         q = komo.getPath()
@@ -181,7 +216,7 @@ class RaiTrussBuilder:
 
         tool_pos = np.array(self.C.getFrame('ur_gripper_center').getPosition())
         tool_pos_up = tool_pos.copy()
-        tool_pos_up[2] += 0.20   # move 10 cm up in world z
+        tool_pos_up[2] += 0.10   # move 10 cm up in world z
 
         komo.addObjective([1.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], tool_pos_up)
 
@@ -194,10 +229,37 @@ class RaiTrussBuilder:
 
         ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
         print(ret)
+        print(komo.report())
 
         if not ret.feasible:
-            komo.view(True, "IK solution")
-            raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
+            komo = ry.KOMO(self.C, phases=2, slicesPerPhase=10, kOrder=2, enableCollisions=True)
+
+            komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
+            komo.addControlObjective([], 2, 1e0)
+
+            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+
+            tool_pos = np.array(self.C.getFrame('ur_gripper_center').getPosition())
+            tool_pos_up = tool_pos.copy()
+            tool_pos_up[2] += 0.10   # move 10 cm up in world z
+
+            komo.addObjective([1.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], tool_pos_up)
+
+            rod_center = np.array(self.C.getFrame(f"rod_{rod_id}").getPosition())
+            rod_center_up = rod_center.copy()
+            rod_center_up[2] += 0.10   # move 20 cm up in world z
+            komo.addObjective([2.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], rod_center_up)
+            komo.addObjective([2.], ry.FS.scalarProductXZ, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [-1.0])
+            komo.addObjective([2.], ry.FS.scalarProductZZ, ['ur_gripper', 'world'], ry.OT.eq,[1e1],[-1.])
+
+            ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
+            print(ret)
+            print(komo.report())
+
+            if not ret.feasible:
+                komo.view(True, "IK solution")
+                raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
 
         # komo.view(True, "IK solution")
         q = komo.getPath()

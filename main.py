@@ -1,6 +1,7 @@
 from json_import import Truss
 from Simple_search import TrussSearch
-from json_to_rai_conversion import RaiTrussBuilder
+from RAI_scaffold_sample import RaiTrussBuilder
+import time
 
 # run the backward search to find the assembly sequence
 truss = Truss.from_json("JSON/long_beam_test.json")
