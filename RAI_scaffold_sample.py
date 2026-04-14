@@ -2,6 +2,7 @@ from json_import import Truss
 import numpy as np
 import robotic as ry
 import time
+import os
 
 class RaiTrussBuilder:
 
@@ -96,20 +97,128 @@ class RaiTrussBuilder:
         self.qHome = self.C.getJointState().copy()
         self.C.view()
         return
+    
+    def import_husky(self):
 
-    def show_target(self, rod_id):
-        goal_center, goal_quat = self.get_goal_pose(rod_id)
+        # adapted from Valentins example
 
-        name = f"rod_{rod_id}_target"
-        if self.C.getFrame(name) is None:
-            self.C.addFrame(name, "world")
+        table = self.C.addFrame("table").setPosition([0, 0, 0.0]).setShape(
+            ry.ST.box, size=[20, 20, 0.02, 0.005]
+        ).setColor([0.9, 0.9, 0.9]).setContact(1)
 
-        self.C.getFrame(name).setShape(ry.ST.marker, [0.1])
-        self.C.getFrame(name).setColor([1, 0, 0])
-        self.C.getFrame(name).setPosition(goal_center)
-        self.C.getFrame(name).setQuaternion(goal_quat)
+        husky_path = os.path.join(os.path.dirname(__file__), "src/models/husky/husky.g")
+        print(husky_path)
+
+        pre_husky_frame = (
+            self.C.addFrame("pre_husky_frame")
+            .setParent(table)
+            # .setPosition(table.getPosition() + [0.0, -0.5, 0.07])
+            .setPosition(table.getPosition() + [0.0, 0.0, 0.0])
+            .setShape(ry.ST.marker, size=[0.05])
+            .setColor([1, 0.5, 0])
+            .setContact(0)
+            .setJoint(ry.JT.rigid)
+        )
+
+        self.C.addFrame("a1_base_joint").setParent(pre_husky_frame).setJoint(
+            ry.JT.transXYPhi, limits=np.array([-3, 3, -3, 3, -3.14, 3.14])
+        ).setJointState([0., 0, 0])
+
+        self.C.addFile(husky_path, namePrefix="husky_coll_").setParent(
+            self.C.getFrame("a1_base_joint")
+        ).setRelativePosition([0, 0.0, 0.16])
+
+        robot_path = os.path.join(os.path.dirname(__file__), "src/models/ur5/ur5.g")
+
+        relative_pos = self.C.getFrame("husky_coll_right_arm_bulkhead_joint").getPosition()
+        relative_quat = self.C.getFrame("husky_coll_right_arm_bulkhead_joint").getQuaternion()
+
+        # relative_pos[2] -= 0.16
+
+        self.C.addFile(robot_path, namePrefix="a1_").setParent(
+            self.C.getFrame("a1_base_joint")
+        ).setRelativePosition(relative_pos).setRelativeQuaternion(
+            relative_quat
+        )
+
+        pre_husky_frame = (
+            self.C.addFrame("pre_husky_frame_2")
+            .setParent(table)
+            # .setPosition(table.getPosition() + [0.0, -0.5, 0.07])
+            .setPosition(table.getPosition() + [0.0, 0.0, 0.0])
+            .setShape(ry.ST.marker, size=[0.05])
+            .setColor([1, 0.5, 0])
+            .setContact(0)
+            .setJoint(ry.JT.rigid)
+        )
+
+        self.C.addFrame("a2_base_joint").setParent(pre_husky_frame).setJoint(
+            ry.JT.transXYPhi, limits=np.array([-3, 3, -3, 3, -3.14, 3.14])
+        ).setJointState([0., 0, 0])
+
+        relative_pos = self.C.getFrame("husky_coll_left_arm_bulkhead_joint").getPosition()
+        relative_quat = self.C.getFrame("husky_coll_left_arm_bulkhead_joint").getQuaternion()
+
+        # relative_pos[2] -= 0.16
+        self.C.addFile(robot_path, namePrefix="a2_").setParent(
+            self.C.getFrame("a2_base_joint")
+        ).setRelativePosition(relative_pos).setRelativeQuaternion(
+            relative_quat
+        )
 
         self.C.view()
+        time.sleep(10)
+
+        self.C.getFrame("a1_ur_coll0").setContact(0)
+        self.C.getFrame("a2_ur_coll0").setContact(0)
+
+        return
+
+    #     print("joint state:", self.C.getJointState())
+    #     print("nr dofs:", len(self.C.getJointState()))
+    #     print("joint names:", self.C.getJointNames())
+
+    #     komo = ry.KOMO(self.C, phases=1, slicesPerPhase=10, kOrder=2, enableCollisions=True)
+
+    #     komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
+    #     komo.addControlObjective([], 2, 1e0)
+
+    #     komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
+    #     komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+
+    #     start_pos = np.array(self.C.getFrame('base_link').getPosition())
+
+    #     target_pos = start_pos + np.array([2.0, 2.0, 0.0])  # forward + left
+
+    #     komo.addObjective([1.], ry.FS.position,['base_link'],ry.OT.eq,[1e1],target_pos)
+        
+    #     ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
+    #     print(ret)
+
+    #     q = komo.getPath()
+
+    #     print('size of path:', q.shape)
+
+    #     for t in range(q.shape[0]):
+    #         self.C.setJointState(q[t])
+    #         self.C.view(False, f'place waypoint {t}')
+    #         time.sleep(.1)
+
+    #     return
+
+    # def show_target(self, rod_id):
+    #     goal_center, goal_quat = self.get_goal_pose(rod_id)
+
+    #     name = f"rod_{rod_id}_target"
+    #     if self.C.getFrame(name) is None:
+    #         self.C.addFrame(name, "world")
+
+    #     self.C.getFrame(name).setShape(ry.ST.marker, [0.1])
+    #     self.C.getFrame(name).setColor([1, 0, 0])
+    #     self.C.getFrame(name).setPosition(goal_center)
+    #     self.C.getFrame(name).setQuaternion(goal_quat)
+
+    #     self.C.view()
 
         return
 
@@ -354,8 +463,4 @@ if __name__ == "__main__":
 
     # build_entire_truss_in_rai(radius, node_positions, rods, C)
     builder = RaiTrussBuilder(truss, radius=0.0015)
-    builder.import_ur10()
-    builder.create_rod(4)
-    builder.check_end_configuration()
-    builder.grab_rod(3)
-    
+    builder.import_husky()
