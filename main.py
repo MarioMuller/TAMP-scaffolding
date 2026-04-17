@@ -35,6 +35,7 @@ if run == "ur5":
 
 elif run == "husky":
     # run the backward search to find the assembly sequence
+    # truss = Truss.from_json("JSON/long_beam_test.json")
     truss = Truss.from_json("JSON/scaffold_test.json")
     searcher = TrussSearch(truss)
 
@@ -43,23 +44,29 @@ elif run == "husky":
     print("Assembly:", assembly_sequence)
 
     # Create start environment
-    builder = RaiTrussBuilder(truss, radius=0.005)
+    builder = RaiTrussBuilder(truss, radius=0.005, scale=0.001) #scale = 0.0005
     builder.import_husky()
-    time.sleep(10)
 
     # Loop over the assembly_sequence and execute the required steps to build Truss
-    # first_rod = True
-    # for rod_id in assembly_sequence:
+    first_rod = True
+    for rod_id in assembly_sequence:
 
-    #     builder.create_rod(rod_id)
+        builder.create_rod(rod_id, pos=[-3, -1, 1.0], ori= [0.5, 0.0, 0.5, 0.70710678])
 
-    #     if not first_rod:
-    #         builder.prepare_next_grab(rod_id)
+        # # if not first_rod:
+        # #     builder.prepare_next_grab(rod_id)
             
-    #     first_rod = False
-    #     builder.pick_and_place_rod(rod_id)
+        # first_rod = False
+        # builder.pick_and_place_husky(rod_id)
+        
+        # builder.pick_and_place_using_keyframes(rod_id)
+        
+        builder.get_keyframes(rod_id)
+        builder.set_to_end_position(rod_id)
 
-    # print("Finished all rods palced in desired target location")
+    # builder.husky_simple_move_test()
+
+    print("Finished all rods palced in desired target location")
 
 else:
-    print("Invalid name")
+    print("Please use a valid name")
