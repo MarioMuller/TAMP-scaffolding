@@ -1,5 +1,5 @@
 ** compiled at:     Nov 26 2024 16:46:14
-** execution start: 2026-04-21 09:34:02:12076
+** execution start: 2026-04-21 11:17:32:763021
 graph.cpp:initParameters:1512(3) opening config file 'rai.cfg'
 graph.cpp:initParameters:1519(3)  - failed
 graph.cpp:initParameters:1525(3) opening base config file '/root/local/rai/../local.cfg'
@@ -144,44 +144,26 @@ util.cpp:cd_file:1042(3) entering path 'meshes/visual' from '/home/mario/TAMP-sc
 util.cpp:getIs:1071(3) opening input file 'robotiq_ft300.ply'
 util.cpp:cd_start:1034(3) entering path '/home/mario/TAMP-scaffolding/src/models/robotiq'
 util.cpp:cd_start:1034(3) entering path '/home/mario/TAMP-scaffolding'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_29_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_28_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_27_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_22_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_21_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_12_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_15_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_26_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_18_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_11_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_10_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_0_target'
+kin.cpp:getFrame:415(-1) cannot find frame named 'rod_14_target'
 RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
 RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_13_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_25_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_19_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_7_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_8_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_9_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_14_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_23_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_17_target'
 RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
 RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_2_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_1_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_3_target'
-RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
-RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_24_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_16_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_20_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_6_target'
+kin.cpp:getFrame:415(-1) cannot find frame named 'rod_12_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_5_target'
+RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
+RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_4_target'
-** execution stop: 2026-04-21 09:41:02:176877
-** real time: 420.165sec
-** CPU time: 73.001
+RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
+RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
+kin.cpp:getFrame:415(-1) cannot find frame named 'rod_3_target'
+kin.cpp:getFrame:415(-1) cannot find frame named 'rod_2_target'
+RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
+RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
+** execution stop: 2026-04-21 11:18:17:287
+** real time: 44.2373sec
+** CPU time: 11.9541
 
 ** set+queried params:

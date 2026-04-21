@@ -35,8 +35,8 @@ if run == "ur5":
 
 elif run == "husky":
     # run the backward search to find the assembly sequence
-    truss = Truss.from_json("JSON/long_beam_test.json")
-    # truss = Truss.from_json("JSON/scaffold_test.json")
+    # truss = Truss.from_json("JSON/long_beam_test.json")
+    truss = Truss.from_json("JSON/scaffold_test.json")
     searcher = TrussSearch(truss)
 
     removal_sequence = searcher.backward_search()
@@ -44,8 +44,8 @@ elif run == "husky":
     print("Assembly:", assembly_sequence)
 
     # Create start environment
-    # builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0005) #scale = 0.0005
-    builder = RaiTrussBuilder(truss, radius=0.005, scale=0.003) #long_beam 0.003 - 0.004
+    builder = RaiTrussBuilder(truss, radius=0.005, scale=0.001) #scale = 0.0005
+    # builder = RaiTrussBuilder(truss, radius=0.005, scale=0.003) #long_beam 0.003 - 0.004
     builder.import_husky()
 
     # Loop over the assembly_sequence and execute the required steps to build Truss
@@ -54,20 +54,13 @@ elif run == "husky":
 
         builder.create_rod(rod_id, pos=[-3, -1, 1.0], ori= [0.5, 0.0, 0.5, 0.70710678])
 
-        # # if not first_rod:
-        # #     builder.prepare_next_grab(rod_id)
-            
-        # first_rod = False
-        # builder.pick_and_place_husky(rod_id)
-        
-        # builder.pick_and_place_using_keyframes(rod_id)
         
         keyframes, q0 = builder.get_keyframes(rod_id)
         builder.find_path(keyframes, q0, rod_id)
         
+        # keyframes, q0 = builder.husky_direct_komo(rod_id)
+        
         # builder.set_to_end_position(rod_id)
-
-    # builder.husky_simple_move_test()
 
     print("Finished all rods palced in desired target location")
 

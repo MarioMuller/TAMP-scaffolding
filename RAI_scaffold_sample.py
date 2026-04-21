@@ -41,24 +41,6 @@ class RaiTrussBuilder:
 
         return np.concatenate(([w], xyz))
 
-    # only here as a helper to see that the calculations work properly and lead to desired final structure
-    def check_end_configuration(self):
-        
-        for rod_id, (n1, n2) in self.truss.elements.items():
-
-            p1 = np.array(self.truss.nodes[n1]) * self.scale
-            p2 = np.array(self.truss.nodes[n2]) * self.scale
-        
-            length = np.linalg.norm(p2 - p1)
-            center = 0.5 * (p1 + p2)
-            quat = self.quaternion_from_z_to_vector(p2 - p1)
-
-            self.C.addFrame(f"rod_{rod_id}", 'world') .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition(center) .setQuaternion(quat)
-        
-        self.C.view()
-        input("Press Enter to close...")
-
-        return
     
     # helper function to move rods out of the way 
     def set_to_end_position(self, rod_id):
@@ -254,233 +236,6 @@ class RaiTrussBuilder:
 
         return   
     
-    def pick_and_place_husky(self, rod_id):
-
-        goal_center, goal_quat = self.get_goal_pose(rod_id)
-
-        target_name = f"rod_{rod_id}_target"
-        if self.C.getFrame(target_name) is None:
-            self.C.addFrame(target_name, 'world')
-
-        self.C.getFrame(target_name).setPosition(goal_center)
-        self.C.getFrame(target_name).setQuaternion(goal_quat)
-        
-        orientations = [1.0, -1.0]
-        
-        for orientation in orientations:
-        
-            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=10, kOrder=2, enableCollisions=True)
-
-            komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-            komo.addControlObjective([], 2, 1e0)
-
-            # enable collisions and respect JointLimits
-            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
-            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-            # grab the rod in the center
-            # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
-            komo.addObjective([1.], ry.FS.positionDiff, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.sos, [1e0]) 
-            komo.addObjective([1.], ry.FS.distance, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.sos, [1e1], [-0.0])
-        
-            # Gripper fingers are parallel to the rod center axis
-            # komo.addObjective([1.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [orientation])
-            # ensure the motions stops at pickup time
-            # komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-            # attach the rod to the gripper
-            komo.addModeSwitch([1.,-1], ry.SY.stable, ['a1_ur_gripper_center', f"rod_{rod_id}"], True)
-            
-            
-            goal_center_up = goal_center.copy()
-            goal_center_up[2] += 0.10   # move 20 cm up in world z
-            
-            komo.addObjective([2.], ry.FS.position, [f"rod_{rod_id}"], ry.OT.sos, [1e1], goal_center_up)
-            # komo.addObjective([1.], ry.FS.distance, [f"rod_{rod_id}", goal_center_up], ry.OT.sos, [1e1], [-0.0])
-            # komo.addObjective([2.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
-
-            komo.addObjective([3.], ry.FS.positionDiff, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1])
-            # komo.addObjective([1.], ry.FS.distance, [f"rod_{rod_id}", goal_center], ry.OT.sos, [1e1], [-0.0])
-            # komo.addObjective([3.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-            # komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
-
-            ret = ry.NLP_Solver(komo.nlp(), verbose=4).solve()
-            
-            # for i in range(1000):
-            #     komo.initRandom()   # randomize trajectory initialization
-                
-            #     ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
-            #     print(ret)
-
-            #     if ret.feasible:
-            #         break
-                
-            print(ret)
-            
-            if ret.feasible:
-                break
-
-        if not ret.feasible:
-
-            komo.view(True, "IK solution")
-            raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
-
-        # komo.view(True, "IK solution")
-        q = komo.getPath()
-
-        print('size of path:', q.shape)
-
-        for t in range(q.shape[0]):
-            if t == 1:
-                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
-
-            self.C.setJointState(q[t])
-            self.C.view(False, f'place waypoint {t}')
-            time.sleep(.2)
-
-        self.C.attach('world', f'rod_{rod_id}')
-
-    def pick_and_place_using_keyframes(self, rod_id):
-        """
-        This functions builds upon previously found joint constellations for the placement and pickup locations
-
-        Args:
-            q_pickup: joint configuration of the pickup location
-            q_placement: joint configuration of the placement location
-        """
-        
-        solutions_pickup = self.q_pickup(rod_id)
-        solutions_place = self.q_place(rod_id)
-        
-        for q_pickup in solutions_pickup:
-            
-           for q_place in solutions_place:
-        
-                komo = ry.KOMO(self.C, phases=2, slicesPerPhase=10, kOrder=2, enableCollisions=True)
-
-                komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-                komo.addControlObjective([], 2, 1e0)
-
-                # enable collisions and respect JointLimits
-                komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
-                komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-                # grab the rod in the center
-                # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
-                komo.addObjective([1.], ry.FS.jointState, [], ry.OT.eq, [1e1], q_pickup)
-                # ensure the motions stops at pickup time
-                komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-                # attach the rod to the gripper
-                komo.addModeSwitch([1.,-1], ry.SY.stable, ['a1_ur_gripper_center', f"rod_{rod_id}"], True)
-                
-
-                komo.addObjective([2.], ry.FS.jointState, [], ry.OT.eq, [1e0], q_place)
-                komo.addObjective([2.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-
-                ret = ry.NLP_Solver(komo.nlp(), verbose=4).solve()
-                    
-                print(ret)
-                
-                if ret.feasible:
-                    break
-
-        if not ret.feasible:
-
-            komo.view(True, "IK solution")
-            raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
-
-        # komo.view(True, "IK solution")
-        q = komo.getPath()
-
-        print('size of path:', q.shape)
-
-        for t in range(q.shape[0]):
-            if t == 10:
-                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
-
-            self.C.setJointState(q[t])
-            self.C.view(False, f'place waypoint {t}')
-            time.sleep(.2)
-
-        self.C.attach('world', f'rod_{rod_id}')
-        
-        
-        return
-    
-    def q_pickup(self, rod_id):
-        
-        orientations = [1.0, -1.0]
-        solutions = []
-        
-        for orientation in orientations:
-            komo = ry.KOMO(self.C, phases=1, slicesPerPhase=1, kOrder=1, enableCollisions=True)
-
-            komo.addControlObjective([], 0, 1e-1) 
-            
-            # enable collisions and respect JointLimits
-            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
-            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-            # grab the rod in the center
-            # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
-            komo.addObjective([1.], ry.FS.positionDiff, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) 
-            # Gripper fingers are parallel to the rod center axis
-            komo.addObjective([1.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [orientation])
-            
-            ret = ry.NLP_Solver(komo.nlp(), verbose=4).solve()
-            
-            print(ret)
-            if ret.feasible:
-                q = komo.getPath()
-                solutions.append(q)
-            
-        if not solutions:
-            komo.view(True, "IK solution")
-            print("FAILED to find solution")
-            
-            
-        return solutions
-    
-    def q_place(self, rod_id):
-        
-        goal_center, goal_quat = self.get_goal_pose(rod_id)
-
-        target_name = f"rod_{rod_id}_target"
-        if self.C.getFrame(target_name) is None:
-            self.C.addFrame(target_name, 'world')
-
-        self.C.getFrame(target_name).setPosition(goal_center)
-        self.C.getFrame(target_name).setQuaternion(goal_quat)
-        
-        orientations = [1.0, -1.0]
-        solutions = []
-        
-        for orientation in orientations:
-            komo = ry.KOMO(self.C, phases=1, slicesPerPhase=1, kOrder=0, enableCollisions=True)
-
-            komo.addControlObjective([], 0, 1e-1) 
-            
-            # enable collisions and respect JointLimits
-            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
-            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-            # place the end effector in desired final position
-            komo.addObjective([1.], ry.FS.positionDiff, ['a1_ur_gripper_center', target_name], ry.OT.eq, [1e1]) 
-            # Gripper fingers are parallel to the rod center axis
-            komo.addObjective([1.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', target_name], ry.OT.eq, [1e1], [orientation])
-
-            ret = ry.NLP_Solver(komo.nlp(), verbose=4).solve()
-            
-            print(ret)
-            if ret.feasible:
-                q = komo.getPath()
-                solutions.append(q)
-
-            
-        if not solutions:
-            komo.view(True, "IK solution")
-            print("FAILED to find solution")
-            
-        return solutions
     
     
     def get_keyframes(self, rod_id):
@@ -546,6 +301,69 @@ class RaiTrussBuilder:
             
         return keyframes, q0
     
+    def husky_direct_komo(self, rod_id):
+        
+        goal_center, goal_quat = self.get_goal_pose(rod_id)
+
+        target_name = f"rod_{rod_id}_target"
+        if self.C.getFrame(target_name) is None:
+            self.C.addFrame(target_name, 'world')
+
+        self.C.getFrame(target_name).setPosition(goal_center)
+        self.C.getFrame(target_name).setQuaternion(goal_quat)
+        
+        orientations = [1.0]
+        
+        q0 = self.C.getJointState()
+        
+        for orientation in orientations:
+            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=5, kOrder=2, enableCollisions=True)
+
+            komo.addControlObjective([], 0, 1e-1) 
+            komo.addControlObjective([], 1, 1e-1)
+            komo.addControlObjective([], 2, 1e-1)
+            
+            # enable collisions and respect JointLimits
+            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+            
+            # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
+            komo.addObjective([1.], ry.FS.positionDiff, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) 
+            # Gripper fingers are parallel to the rod center axis
+            komo.addObjective([1.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [orientation])
+            komo.addModeSwitch([1,2], ry.SY.stable, ['a1_ur_gripper_center', f"rod_{rod_id}"], True)
+
+
+            # place the end effector in desired final position
+            komo.addObjective([2.], ry.FS.positionDiff,
+                  [f"rod_{rod_id}", target_name],
+                  ry.OT.eq, [1e2])
+
+            komo.addObjective([2.], ry.FS.scalarProductZZ,
+                  [f"rod_{rod_id}", target_name],
+                  ry.OT.eq, [1e2], [1.0])
+            komo.addModeSwitch([2,3], ry.SY.stable, ['table', f"rod_{rod_id}"], True)
+
+            
+            # move back to starting position
+            komo.addObjective([3., -1], ry.FS.jointState, [], ry.OT.eq, [1e0], q0)
+            
+            keyframes = (self.solve_komo(komo))
+            
+
+        for t in range(keyframes.shape[0]):
+            if t == 5:
+                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
+            
+            elif t == 10:  
+                self.C.attach('table', f'rod_{rod_id}')
+
+            self.C.setJointState(keyframes[t])
+            self.C.view(False, f'place waypoint {t}')
+            time.sleep(.1)
+            
+        return keyframes, q0
+    
     def find_path(self, keyframes, q0, rod_id):
         full_path = []
         q_start = q0
@@ -564,7 +382,7 @@ class RaiTrussBuilder:
             for t in range(path.shape[0]):
                 self.C.setJointState(path[t])
                 self.C.view()
-                time.sleep(.1)
+                time.sleep(.03)
 
             # Update attachment after reaching the keyframe
             self.C.setJointState(q_goal)
@@ -580,12 +398,9 @@ class RaiTrussBuilder:
             q_start = q_goal
 
         return full_path
-
-
-        
     
     # based on implementation of vhartman
-    def solve_komo(self, komo, attempts = 100, mult = 3, offset = -1.5, view = False): 
+    def solve_komo(self, komo, attempts = 1000, mult = 3, offset = -1.5, view = False): 
         for attempt in range(attempts):
         
             if attempt > 0:
@@ -599,7 +414,7 @@ class RaiTrussBuilder:
             retval = solver.solve()
             retval = retval.dict()
 
-            # print(retval)
+            print(retval)
 
             if view:
                 print(retval)
@@ -684,43 +499,7 @@ class RaiTrussBuilder:
             time.sleep(.1)
 
         return   
-    
-
-    def husky_simple_move_test(self):
-
-        target_position = np.array(self.C.getFrame("husky_coll_base_link").getPosition())
-        target_position[0] += 3
-        target_position[1] += 3 
         
-        komo = ry.KOMO(self.C, phases=1, slicesPerPhase=10, kOrder=2, enableCollisions=True)
-
-        komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-        komo.addControlObjective([], 2, 1e0)
-
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
-        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-        komo.addObjective([1.], ry.FS.position, ["husky_coll_base_link"], ry.OT.eq, [1e1], target_position)
-        komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-
-        ret = ry.NLP_Solver(komo.nlp(), verbose=4).solve()
-        print(ret)
-
-        komo.view(True, "IK solution")
-        q = komo.getPath()
-
-        print('size of path:', q.shape)
-
-        for t in range(q.shape[0]):
-            self.C.setJointState(q[t])
-            self.C.view(False, f'place waypoint {t}')
-            time.sleep(.1)
-
-
-        return
-    
-    
-    
 
 if __name__ == "__main__":
 
