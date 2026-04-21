@@ -1,6 +1,6 @@
 base_link 	{  }
 base_link_1 (base_link) 	{ , shape:mesh, mesh:'meshes/base_link_1.ply', visual }
-base_link_0 (base_link) 	{ Q:[0, 0, 0.1, 0, 0, 0, 1]  , shape:box, size:[1, 0.5709, 0.22375, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+base_link_0 (base_link) 	{ Q:[0, 0, 0.04, 0, 0, 0, 1]  , shape:box, size:[1, 0.5709, 0.33375, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 base_link>front_left_wheel (base_link) 	{  Q:[0.256, 0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
 base_link>front_right_wheel (base_link) 	{  Q:[0.256, -0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
 base_link>rear_left_wheel (base_link) 	{  Q:[-0.256, 0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }

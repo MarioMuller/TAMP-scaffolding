@@ -105,7 +105,7 @@ class RaiTrussBuilder:
         p1 = np.array(self.truss.nodes[n1], dtype=float) * self.scale
         p2 = np.array(self.truss.nodes[n2], dtype=float) * self.scale
 
-        length = np.linalg.norm(p2 - p1) -0.06
+        length = np.linalg.norm(p2 - p1) -0.03 #-0.03 for long_beam
         if length < 1e-10:
             raise ValueError(f"Rod {rod_id} has zero length")
 
@@ -494,19 +494,19 @@ class RaiTrussBuilder:
         self.C.getFrame(target_name).setPosition(goal_center)
         self.C.getFrame(target_name).setQuaternion(goal_quat)
         
-        orientations = [1.0, -1.0]
-        keyframes = []
+        orientations = [1.0]
         
         q0 = self.C.getJointState()
         
         for orientation in orientations:
-            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=10, kOrder=1, enableCollisions=True)
+            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=1, kOrder=1, enableCollisions=True)
 
             komo.addControlObjective([], 0, 1e-1) 
             komo.addControlObjective([], 1, 1e-1)
+            # komo.addControlObjective([], 2, 1e-1)
             
             # enable collisions and respect JointLimits
-            # komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
             komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
             
             # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
@@ -517,22 +517,72 @@ class RaiTrussBuilder:
 
 
             # place the end effector in desired final position
-            komo.addObjective([2.], ry.FS.positionDiff, ['a1_ur_gripper_center', target_name], ry.OT.eq, [1e1]) 
-            # Gripper fingers are parallel to the rod center axis
-            komo.addObjective([2.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', target_name], ry.OT.eq, [1e1], [orientation])
+            komo.addObjective([2.], ry.FS.positionDiff,
+                  [f"rod_{rod_id}", target_name],
+                  ry.OT.eq, [1e2])
+
+            komo.addObjective([2.], ry.FS.scalarProductZZ,
+                  [f"rod_{rod_id}", target_name],
+                  ry.OT.eq, [1e2], [1.0])
             komo.addModeSwitch([2,3], ry.SY.stable, ['table', f"rod_{rod_id}"], True)
 
             
             # move back to starting position
             komo.addObjective([3., -1], ry.FS.jointState, [], ry.OT.eq, [1e0], q0)
             
-            keyframes.append(self.solve_komo(komo))
+            keyframes = (self.solve_komo(komo))
             
-        if not keyframes:
-            komo.view(True, "IK solution")
-            print("FAILED to find solution")
+
+        # for t in range(keyframes.shape[0]):
+        #     if t == 1:
+        #         self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
             
-        return keyframes
+        #     elif t == 2:  
+        #         self.C.attach('table', f'rod_{rod_id}')
+
+        #     self.C.setJointState(keyframes[t])
+        #     self.C.view(False, f'place waypoint {t}')
+        #     time.sleep(.1)
+            
+        return keyframes, q0
+    
+    def find_path(self, keyframes, q0, rod_id):
+        full_path = []
+        q_start = q0
+
+        for keyframe_id, q_goal in enumerate(keyframes):
+            rrt = ry.PathFinder()
+            rrt.setProblem(self.C, q_start, q_goal)
+
+            ret = rrt.solve()
+            print(ret)
+
+            path = ret.x
+            full_path.append(path)
+
+            # Replay only the path segment just planned
+            for t in range(path.shape[0]):
+                self.C.setJointState(path[t])
+                self.C.view()
+                time.sleep(.1)
+
+            # Update attachment after reaching the keyframe
+            self.C.setJointState(q_goal)
+
+            if keyframe_id == 0:
+                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
+                print("rod attached to robot")
+
+            elif keyframe_id == 1:
+                self.C.attach('table', f'rod_{rod_id}')
+                print("rod attached to table")
+
+            q_start = q_goal
+
+        return full_path
+
+
+        
     
     # based on implementation of vhartman
     def solve_komo(self, komo, attempts = 100, mult = 3, offset = -1.5, view = False): 
@@ -559,6 +609,8 @@ class RaiTrussBuilder:
             if retval["feasible"]: #retval["ineq"] < 1 and retval["eq"] < 1 and 
                 keyframes = komo.getPath()
                 return keyframes
+        
+        print("FAILED to find solution")
         
         return None
 
@@ -666,6 +718,8 @@ class RaiTrussBuilder:
 
 
         return
+    
+    
     
 
 if __name__ == "__main__":
