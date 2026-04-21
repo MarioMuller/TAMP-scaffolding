@@ -96,14 +96,6 @@ class RaiTrussBuilder:
         # input("Press Enter to close...")
         return
     
-    def import_ur5(self):
-        self.C.addFile("/home/mario/TAMP-scaffolding/src/models/ur5/ur5.g") .setPosition([0.0,0.55,0])
-        print(self.C.getFrameNames())
-
-        self.qHome = self.C.getJointState().copy()
-        self.C.view()
-        return
-    
     def import_husky(self):
 
         # sets ground plane
@@ -146,96 +138,6 @@ class RaiTrussBuilder:
         self.C.view()
 
         return
-
-    
-    def pick_and_place_rod(self, rod_id):
-
-        goal_center, goal_quat = self.get_goal_pose(rod_id)
-
-        target_name = f"rod_{rod_id}_target"
-        if self.C.getFrame(target_name) is None:
-            self.C.addFrame(target_name, 'world')
-
-        self.C.getFrame(target_name).setPosition(goal_center)
-        self.C.getFrame(target_name).setQuaternion(goal_quat)
-        
-        komo = ry.KOMO(self.C, phases=3, slicesPerPhase=10, kOrder=2, enableCollisions=True)
-
-        komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-        komo.addControlObjective([], 2, 1e0)
-
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
-        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-        # grab the rod in spawning position
-        komo.addObjective([1.], ry.FS.positionDiff, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) # an equality constraint on the 3D position difference between ur_gripper_center and box
-        komo.addObjective([1.], ry.FS.scalarProductXZ, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [1.0])
-        komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-        komo.addModeSwitch([1.,-1], ry.SY.stable, ['ur_gripper_center', f"rod_{rod_id}"], True)
-
-        goal_center_up = goal_center.copy()
-        goal_center_up[2] += 0.10   # move 20 cm up in world z
-        komo.addObjective([2.], ry.FS.position, [f"rod_{rod_id}"], ry.OT.eq, [1e1], goal_center_up)
-        komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
-
-        komo.addObjective([3.], ry.FS.positionDiff, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1])
-        komo.addObjective([3.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-        komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [1.0])
-
-        ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
-        print(ret)
-
-        if not ret.feasible:
-
-            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=10, kOrder=2, enableCollisions=True)
-
-            komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-            komo.addControlObjective([], 2, 1e0)
-
-            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e2])
-            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-
-            # grab the rod in spawning position
-            komo.addObjective([1.], ry.FS.positionDiff, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) # an equality constraint on the 3D position difference between ur_gripper_center and box
-            komo.addObjective([1.], ry.FS.scalarProductXZ, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [1.0])
-            komo.addObjective([1.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-            komo.addModeSwitch([1.,-1], ry.SY.stable, ['ur_gripper_center', f"rod_{rod_id}"], True)
-
-            goal_center_up = goal_center.copy()
-            goal_center_up[2] += 0.10   # move 20 cm up in world z
-            komo.addObjective([2.], ry.FS.position, [f"rod_{rod_id}"], ry.OT.eq, [1e1], goal_center_up)
-            komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [-1.0])
-
-            komo.addObjective([3.], ry.FS.positionDiff, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1])
-            komo.addObjective([3.], ry.FS.qItself, [], ry.OT.eq, [1e0], [], 1)
-            komo.addObjective([3.], ry.FS.scalarProductZZ, [f"rod_{rod_id}", target_name], ry.OT.eq, [1e1], [-1.0])
-
-            ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
-            print(ret)
-
-
-            if not ret.feasible:
-
-                komo.view(True, "IK solution")
-                raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
-
-        # komo.view(True, "IK solution")
-        q = komo.getPath()
-
-        print('size of path:', q.shape)
-
-        for t in range(q.shape[0]):
-            if t == 10:
-                self.C.attach('ur_gripper_center', f'rod_{rod_id}')
-
-            self.C.setJointState(q[t])
-            self.C.view(False, f'place waypoint {t}')
-            time.sleep(.1)
-
-        self.C.attach('world', f'rod_{rod_id}')
-
-        return   
-    
     
     
     def get_keyframes(self, rod_id):
@@ -298,69 +200,6 @@ class RaiTrussBuilder:
         #     self.C.setJointState(keyframes[t])
         #     self.C.view(False, f'place waypoint {t}')
         #     time.sleep(.1)
-            
-        return keyframes, q0
-    
-    def husky_direct_komo(self, rod_id):
-        
-        goal_center, goal_quat = self.get_goal_pose(rod_id)
-
-        target_name = f"rod_{rod_id}_target"
-        if self.C.getFrame(target_name) is None:
-            self.C.addFrame(target_name, 'world')
-
-        self.C.getFrame(target_name).setPosition(goal_center)
-        self.C.getFrame(target_name).setQuaternion(goal_quat)
-        
-        orientations = [1.0]
-        
-        q0 = self.C.getJointState()
-        
-        for orientation in orientations:
-            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=5, kOrder=2, enableCollisions=True)
-
-            komo.addControlObjective([], 0, 1e-1) 
-            komo.addControlObjective([], 1, 1e-1)
-            komo.addControlObjective([], 2, 1e-1)
-            
-            # enable collisions and respect JointLimits
-            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
-            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-            
-            # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
-            komo.addObjective([1.], ry.FS.positionDiff, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) 
-            # Gripper fingers are parallel to the rod center axis
-            komo.addObjective([1.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [orientation])
-            komo.addModeSwitch([1,2], ry.SY.stable, ['a1_ur_gripper_center', f"rod_{rod_id}"], True)
-
-
-            # place the end effector in desired final position
-            komo.addObjective([2.], ry.FS.positionDiff,
-                  [f"rod_{rod_id}", target_name],
-                  ry.OT.eq, [1e2])
-
-            komo.addObjective([2.], ry.FS.scalarProductZZ,
-                  [f"rod_{rod_id}", target_name],
-                  ry.OT.eq, [1e2], [1.0])
-            komo.addModeSwitch([2,3], ry.SY.stable, ['table', f"rod_{rod_id}"], True)
-
-            
-            # move back to starting position
-            komo.addObjective([3., -1], ry.FS.jointState, [], ry.OT.eq, [1e0], q0)
-            
-            keyframes = (self.solve_komo(komo))
-            
-
-        for t in range(keyframes.shape[0]):
-            if t == 5:
-                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
-            
-            elif t == 10:  
-                self.C.attach('table', f'rod_{rod_id}')
-
-            self.C.setJointState(keyframes[t])
-            self.C.view(False, f'place waypoint {t}')
-            time.sleep(.1)
             
         return keyframes, q0
     
@@ -429,77 +268,214 @@ class RaiTrussBuilder:
         
         return None
 
-    def prepare_next_grab(self, rod_id):
 
-        print("prepare next grab")
+    def path_length(self, path):
+        #returns the length of the path --> the shorter the better
+
+        path = np.asarray(path, dtype=float)
+        if len(path) < 2:
+            return 0.0
+        return float(np.sum(np.linalg.norm(np.diff(path, axis=0), axis=1)))
+    
+    def interpolate(self, q0, q1, max_step=0.02):
+        #line interpolation in joint space
+      
+        q0 = np.asarray(q0, dtype=float)
+        q1 = np.asarray(q1, dtype=float)
+
+        dist = np.linalg.norm(q1 - q0)
+        n = max(2, int(np.ceil(dist / max_step)) + 1)
+
+        # linear distribution
+        alphas = np.linspace(0.0, 1.0, n)
+        return np.array([(1.0 - a) * q0 + a * q1 for a in alphas], dtype=float)
+
+    def path_collision_checking(self, path, verbose=False):
+        # check if a new path segment is collision free
         
-        komo = ry.KOMO(self.C, phases=2, slicesPerPhase=10, kOrder=2, enableCollisions=True)
+        path = np.asarray(path, dtype=float)
+        if path.ndim != 2:
+            return False
 
-        komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-        komo.addControlObjective([], 2, 1e0)
+        q_start = self.C.getJointState().copy()
 
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
-        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+        try:
+            for i, q in enumerate(path):
+                
+                # set robot into joint configuration and test if it causes collision
+                self.C.setJointState(q)
+                self.C.computeCollisions()
 
-        tool_pos = np.array(self.C.getFrame('ur_gripper_center').getPosition())
-        tool_pos_up = tool_pos.copy()
-        tool_pos_up[2] += 0.10   # move 10 cm up in world z
+                total_penetration = self.C.getCollisionsTotalPenetration()
 
-        komo.addObjective([1.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], tool_pos_up)
+                if total_penetration > 0:
+                    print("Collision detected")
+                    self.C.view()
+                    time.sleep(0)
+                    return False
+            
+            # print("No Collision detected")
+            return True
+        
+        finally:
+            self.C.setJointState(q_start)
 
-        rod_center = np.array(self.C.getFrame(f"rod_{rod_id}").getPosition())
-        rod_center_up = rod_center.copy()
-        rod_center_up[2] += 0.10   # move 20 cm up in world z
-        komo.addObjective([2.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], rod_center_up)
-        komo.addObjective([2.], ry.FS.scalarProductXZ, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [1.0])
-        komo.addObjective([2.], ry.FS.scalarProductZZ, ['ur_gripper', 'world'], ry.OT.eq,[1e1],[-1.])
+    def shortcut_path(self, path, max_iter=200, max_step=0.02, min_gap=2, verbose=True):
+        # shortcut if a segment results in a better (= shorter) path
+        # TODO: Think about wheter just short q is acctually is the proper metric e.g. moving a joint 0.1rad is different to moving the husky 0.1 m
+        # TODO: Is it even useful to have the cost. Linear path should always be cheapest
+        
+        path = np.asarray(path, dtype=float)
 
-        ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
-        print(ret)
-        print(komo.report())
+        if path.ndim != 2 or len(path) < 3:
+            return path
 
-        if not ret.feasible:
-            komo = ry.KOMO(self.C, phases=2, slicesPerPhase=10, kOrder=2, enableCollisions=True)
+        # setup current path as baseline
+        best = path.copy()
+        best_cost = self.path_length(best)
 
-            komo.addControlObjective([], 0, 1e-1) # what happens if you change weighting to 1e0? why?
-            komo.addControlObjective([], 2, 1e0)
+        # Cut the path into three segments repeatedly and check if the interpolated path is collision free and cheaper
+        for _ in range(max_iter):
+            
+            # The path is already a line -> line interpolation can't improve
+            if len(best) < 3:
+                break
+            
+            # randomly select two steps in the path to interpolate between
+            i = np.random.randint(0, len(best))
+            j = np.random.randint(0, len(best))
 
-            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
-            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+            # shortcut doesn't work between same point
+            if i == j:
+                continue
+            
+            # j should always be the first one
+            if i > j:
+                i, j = j, i
+                
+            # only test them if the path elements are not following each other
+            if j - i < min_gap:
+                continue
 
-            tool_pos = np.array(self.C.getFrame('ur_gripper_center').getPosition())
-            tool_pos_up = tool_pos.copy()
-            tool_pos_up[2] += 0.10   # move 10 cm up in world z
+            q0 = best[i]
+            q1 = best[j]
 
-            komo.addObjective([1.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], tool_pos_up)
+            candidate_middle = self.interpolate(q0, q1, max_step=max_step)
 
-            rod_center = np.array(self.C.getFrame(f"rod_{rod_id}").getPosition())
-            rod_center_up = rod_center.copy()
-            rod_center_up[2] += 0.10   # move 20 cm up in world z
-            komo.addObjective([2.], ry.FS.position, ['ur_gripper_center'], ry.OT.eq, [1e1], rod_center_up)
-            komo.addObjective([2.], ry.FS.scalarProductXZ, ['ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [-1.0])
-            komo.addObjective([2.], ry.FS.scalarProductZZ, ['ur_gripper', 'world'], ry.OT.eq,[1e1],[-1.])
+            old_piece = best[i:j + 1]
+            old_cost = self.path_length(old_piece)
+            new_cost = self.path_length(candidate_middle)
 
-            ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
+            if new_cost >= old_cost:
+                continue
+
+            if not self.path_collision_checking(candidate_middle, verbose=False):
+                continue
+
+            candidate = np.vstack([
+                best[:i],
+                candidate_middle,
+                best[j + 1:]
+            ])
+            
+            if not self.path_collision_checking(candidate, verbose=False):
+                continue
+
+            candidate_cost = self.path_length(candidate)
+            if candidate_cost < best_cost:
+                best = candidate
+                best_cost = candidate_cost
+
+        if verbose:
+            print(f"original cost: {self.path_length(path):.4f}")
+            print(f"shortcut cost: {self.path_length(best):.4f}")
+            print(f"original points: {len(path)}")
+            print(f"shortcut points: {len(best)}")
+
+        return best
+
+    def play_path(self, path, dt=0.01, title="path"):
+        path = np.asarray(path, dtype=float)
+        for t in range(path.shape[0]):
+            self.C.setJointState(path[t])
+            self.C.view(False, f"{title} {t}")
+            time.sleep(dt)
+            
+    def find_path_shortcut(self, keyframes, q0, rod_id, do_shortcut=True, shortcut_iter=300, shortcut_step=0.02):
+        full_path = []
+        q_start = np.asarray(q0, dtype=float).copy()
+
+        for keyframe_id, q_goal in enumerate(keyframes):
+            q_goal = np.asarray(q_goal, dtype=float).copy()
+
+            self.C.setJointState(q_start)
+
+            rrt = ry.PathFinder()
+            rrt.setProblem(self.C, q_start, q_goal)
+
+            ret = rrt.solve()
             print(ret)
-            print(komo.report())
 
-            if not ret.feasible:
-                komo.view(True, "IK solution")
-                raise RuntimeError(f"Pick & PLace not possible for rod {rod_id}")
+            path = ret.x
+            if path is None:
+                raise RuntimeError(f"PathFinder failed for segment {keyframe_id}: ret.x is None")
 
-        # komo.view(True, "IK solution")
-        q = komo.getPath()
+            path = np.asarray(path, dtype=float)
 
-        print('size of path:', q.shape)
+            if path.ndim == 1:
+                if path.shape[0] != len(q_start):
+                    raise RuntimeError(
+                        f"PathFinder failed for segment {keyframe_id}: invalid path shape {path.shape}"
+                    )
+                path = path.reshape(1, -1)
 
-        for t in range(q.shape[0]):
-            self.C.setJointState(q[t])
-            self.C.view(False, f'place waypoint {t}')
-            time.sleep(.1)
+            if path.ndim != 2 or path.shape[0] == 0:
+                raise RuntimeError(
+                    f"PathFinder failed for segment {keyframe_id}: invalid path shape {path.shape}"
+                )
 
-        return   
+            print(f"Segment {keyframe_id}: raw path points = {len(path)}, cost = {self.path_length(path):.4f}")
+
+            if do_shortcut and len(path) >= 3:
+                path = self.shortcut_path(
+                    path,
+                    max_iter=shortcut_iter,
+                    max_step=shortcut_step,
+                    min_gap=2,
+                    verbose=True
+                )
+                print(f"Segment {keyframe_id}: shortcut path points = {len(path)}, cost = {self.path_length(path):.4f}")
+
+            full_path.append(path)
+
+            # replay the final segment path
+            self.play_path(path, dt=0.03, title=f"segment {keyframe_id}")
+
+            # snap exactly to goal before switching mode
+            self.C.setJointState(q_goal)
+
+            if keyframe_id == 0:
+                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
+                print("rod attached to robot")
+
+            elif keyframe_id == 1:
+                self.C.attach('table', f'rod_{rod_id}')
+                print("rod attached to table")
+
+            q_start = q_goal.copy()
+
+        return full_path
+    
+    def super_simple_collision(self):
         
+        self.C.computeCollisions()
+
+        total_penetration = self.C.getCollisionsTotalPenetration()
+        print(total_penetration)
+
+        if total_penetration > 0:
+            print("collision")
+            return False
 
 if __name__ == "__main__":
 

@@ -1,5 +1,5 @@
 ** compiled at:     Nov 26 2024 16:46:14
-** execution start: 2026-04-21 11:17:32:763021
+** execution start: 2026-04-21 15:15:43:137384
 graph.cpp:initParameters:1512(3) opening config file 'rai.cfg'
 graph.cpp:initParameters:1519(3)  - failed
 graph.cpp:initParameters:1525(3) opening base config file '/root/local/rai/../local.cfg'
@@ -146,24 +146,3 @@ util.cpp:cd_start:1034(3) entering path '/home/mario/TAMP-scaffolding/src/models
 util.cpp:cd_start:1034(3) entering path '/home/mario/TAMP-scaffolding'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_15_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_14_target'
-RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
-RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_13_target'
-RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
-RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_12_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_5_target'
-RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
-RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_4_target'
-RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
-RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_3_target'
-kin.cpp:getFrame:415(-1) cannot find frame named 'rod_2_target'
-RRT_PathFinder.cpp:RRT_PathFinder:256(0) initializing with infeasible qT:
-RRT_PathFinder.cpp:RRT_PathFinder:255(0) initializing with infeasible q0:
-** execution stop: 2026-04-21 11:18:17:287
-** real time: 44.2373sec
-** CPU time: 11.9541
-
-** set+queried params:
