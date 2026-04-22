@@ -38,6 +38,7 @@ if run == "husky":
         # builder.set_to_end_position(rod_id)
 
     print("Finished all rods palced in desired target location")
+    time.sleep(5)
     
 elif run == "collision test":
     

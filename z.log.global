@@ -1,5 +1,5 @@
 ** compiled at:     Nov 26 2024 16:46:14
-** execution start: 2026-04-21 15:15:43:137384
+** execution start: 2026-04-22 11:59:40:236245
 graph.cpp:initParameters:1512(3) opening config file 'rai.cfg'
 graph.cpp:initParameters:1519(3)  - failed
 graph.cpp:initParameters:1525(3) opening base config file '/root/local/rai/../local.cfg'
@@ -146,3 +146,4 @@ util.cpp:cd_start:1034(3) entering path '/home/mario/TAMP-scaffolding/src/models
 util.cpp:cd_start:1034(3) entering path '/home/mario/TAMP-scaffolding'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_15_target'
 kin.cpp:getFrame:415(-1) cannot find frame named 'rod_14_target'
+kin.cpp:getFrame:415(-1) cannot find frame named 'rod_13_target'

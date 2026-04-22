@@ -92,7 +92,7 @@ class RaiTrussBuilder:
             raise ValueError(f"Rod {rod_id} has zero length")
 
         self.C.addFrame(f"rod_{rod_id}") .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition(pos) .setQuaternion(ori) .setContact(1)
-        self.C.view()
+        # self.C.view()
         # input("Press Enter to close...")
         return
     
@@ -135,7 +135,7 @@ class RaiTrussBuilder:
         # self.C.getFrame("a2_coll1").setContact(0)
 
         # print(self.C.getFrameNames())
-        self.C.view()
+        # self.C.view()
 
         return
     
@@ -204,18 +204,20 @@ class RaiTrussBuilder:
         return keyframes, q0
     
     def find_path(self, keyframes, q0, rod_id):
-        full_path = []
         q_start = q0
 
         for keyframe_id, q_goal in enumerate(keyframes):
-            rrt = ry.PathFinder()
-            rrt.setProblem(self.C, q_start, q_goal)
+            
+            for attempt in range (50):
+                rrt = ry.PathFinder()
+                rrt.setProblem(self.C, q_start, q_goal)
 
-            ret = rrt.solve()
-            print(ret)
-
-            path = ret.x
-            full_path.append(path)
+                ret = rrt.solve()
+                print(f"RRT returns: ", ret)
+                
+                if ret.feasible:
+                    path = ret.x
+                    break
 
             # Replay only the path segment just planned
             for t in range(path.shape[0]):
@@ -236,7 +238,7 @@ class RaiTrussBuilder:
 
             q_start = q_goal
 
-        return full_path
+        return 
     
     # based on implementation of vhartman
     def solve_komo(self, komo, attempts = 1000, mult = 3, offset = -1.5, view = False): 
@@ -269,13 +271,64 @@ class RaiTrussBuilder:
         return None
 
 
-    def path_length(self, path):
-        #returns the length of the path --> the shorter the better
-
+    
+    def path_cost(self, path, weights=None):
+        """
+        Computes path cost 
+        """
         path = np.asarray(path, dtype=float)
+
+        if path.ndim != 2:
+            raise ValueError("path has invalid shape")
+
         if len(path) < 2:
             return 0.0
-        return float(np.sum(np.linalg.norm(np.diff(path, axis=0), axis=1)))
+
+        diffs = np.diff(path, axis=0)
+
+        if weights is not None:
+            weights = np.asarray(weights, dtype=float)
+            if weights.shape != (path.shape[1],):
+                raise ValueError(
+                    f"weights must have shape ({path.shape[1]},), got {weights.shape}"
+                )
+            diffs = diffs * weights
+
+        return float(np.sum(np.linalg.norm(diffs, axis=1)))
+
+    
+    def interpolate_path(self, path, max_step = 0.02):
+        """
+        Interpolate the path to get a higher resolution path
+        Based on Valentins implementation
+        """
+        path = np.asarray(path, dtype=float)
+        new_path = []
+        
+        if len(path) == 0:
+            print("Trying to interpolate empty path")
+            return np.empty((0, 0), dtype=float)
+        elif len(path) == 1:
+            print("Interpolating between single point! Point is returned")
+            return path
+
+        # discretize path
+        for i in range(len(path) - 1):
+            q0 = path[i]
+            q1 = path[i + 1]
+
+            dist = np.linalg.norm(q1 - q0)
+            N = max(2, int(np.ceil(dist / max_step)) + 1)
+            dir = (q1 - q0) / N
+
+            for j in range(N):
+                q = q0 + dir * j
+                new_path.append((q))
+
+        # add the final state (which is not added in the interpolation before)
+        new_path.append(path[-1])
+
+        return np.asarray(new_path, dtype=float)
     
     def interpolate(self, q0, q1, max_step=0.02):
         #line interpolation in joint space
@@ -290,7 +343,7 @@ class RaiTrussBuilder:
         alphas = np.linspace(0.0, 1.0, n)
         return np.array([(1.0 - a) * q0 + a * q1 for a in alphas], dtype=float)
 
-    def path_collision_checking(self, path, verbose=False):
+    def path_collision_free(self, path, verbose=False):
         # check if a new path segment is collision free
         
         path = np.asarray(path, dtype=float)
@@ -300,7 +353,7 @@ class RaiTrussBuilder:
         q_start = self.C.getJointState().copy()
 
         try:
-            for i, q in enumerate(path):
+            for q in path:
                 
                 # set robot into joint configuration and test if it causes collision
                 self.C.setJointState(q)
@@ -310,8 +363,8 @@ class RaiTrussBuilder:
 
                 if total_penetration > 0:
                     print("Collision detected")
-                    self.C.view()
-                    time.sleep(0)
+                    # self.C.view()
+                    # time.sleep(1)
                     return False
             
             # print("No Collision detected")
@@ -326,13 +379,14 @@ class RaiTrussBuilder:
         # TODO: Is it even useful to have the cost. Linear path should always be cheapest
         
         path = np.asarray(path, dtype=float)
-
-        if path.ndim != 2 or len(path) < 3:
-            return path
+        new_path = self.interpolate_path(path, max_step=max_step)
+        path = new_path
+        
+        if new_path.ndim != 2 or len(new_path) < 3:
+            return new_path
 
         # setup current path as baseline
-        best = path.copy()
-        best_cost = self.path_length(best)
+        best = new_path.copy()
 
         # Cut the path into three segments repeatedly and check if the interpolated path is collision free and cheaper
         for _ in range(max_iter):
@@ -360,35 +414,23 @@ class RaiTrussBuilder:
             q0 = best[i]
             q1 = best[j]
 
-            candidate_middle = self.interpolate(q0, q1, max_step=max_step)
-
-            old_piece = best[i:j + 1]
-            old_cost = self.path_length(old_piece)
-            new_cost = self.path_length(candidate_middle)
-
-            if new_cost >= old_cost:
+            if self.path_cost([best[i], best[j]]) >= self.path_cost(best[i:j]):
                 continue
-
-            if not self.path_collision_checking(candidate_middle, verbose=False):
-                continue
-
-            candidate = np.vstack([
-                best[:i],
-                candidate_middle,
-                best[j + 1:]
-            ])
             
-            if not self.path_collision_checking(candidate, verbose=False):
-                continue
+            candidate = best
 
-            candidate_cost = self.path_length(candidate)
-            if candidate_cost < best_cost:
+            for k in range(j - i):
+                q = q0 + (q1 - q0) / (j - i) * k
+                candidate[i + k] = q
+        
+            
+            if not self.path_collision_free(candidate, verbose=False):
                 best = candidate
-                best_cost = candidate_cost
+                continue
 
         if verbose:
-            print(f"original cost: {self.path_length(path):.4f}")
-            print(f"shortcut cost: {self.path_length(best):.4f}")
+            print(f"original cost: {self.path_cost(path):.4f}")
+            print(f"shortcut cost: {self.path_cost(best):.4f}")
             print(f"original points: {len(path)}")
             print(f"shortcut points: {len(best)}")
 
@@ -410,11 +452,16 @@ class RaiTrussBuilder:
 
             self.C.setJointState(q_start)
 
-            rrt = ry.PathFinder()
-            rrt.setProblem(self.C, q_start, q_goal)
+            for attempt in range (50):
+                rrt = ry.PathFinder()
+                rrt.setProblem(self.C, q_start, q_goal)
 
-            ret = rrt.solve()
-            print(ret)
+                ret = rrt.solve()
+                print(f"RRT returns: ", ret)
+                
+                if ret.feasible:
+                    path = ret.x
+                    break
 
             path = ret.x
             if path is None:
@@ -434,7 +481,7 @@ class RaiTrussBuilder:
                     f"PathFinder failed for segment {keyframe_id}: invalid path shape {path.shape}"
                 )
 
-            print(f"Segment {keyframe_id}: raw path points = {len(path)}, cost = {self.path_length(path):.4f}")
+            print(f"Segment {keyframe_id}: raw path points = {len(path)}, cost = {self.path_cost(path):.4f}")
 
             if do_shortcut and len(path) >= 3:
                 path = self.shortcut_path(
@@ -444,12 +491,12 @@ class RaiTrussBuilder:
                     min_gap=2,
                     verbose=True
                 )
-                print(f"Segment {keyframe_id}: shortcut path points = {len(path)}, cost = {self.path_length(path):.4f}")
+                print(f"Segment {keyframe_id}: shortcut path points = {len(path)}, cost = {self.path_cost(path):.4f}")
 
             full_path.append(path)
 
             # replay the final segment path
-            self.play_path(path, dt=0.03, title=f"segment {keyframe_id}")
+            self.play_path(path, dt=0.01, title=f"segment {keyframe_id}")
 
             # snap exactly to goal before switching mode
             self.C.setJointState(q_goal)
@@ -474,7 +521,7 @@ class RaiTrussBuilder:
         print(total_penetration)
 
         if total_penetration > 0:
-            print("collision")
+            # print("collision")
             return False
 
 if __name__ == "__main__":
