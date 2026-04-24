@@ -138,8 +138,7 @@ class RaiTrussBuilder:
         # self.C.view()
 
         return
-    
-    
+      
     def get_keyframes(self, rod_id):
         
         goal_center, goal_quat = self.get_goal_pose(rod_id)
@@ -203,10 +202,12 @@ class RaiTrussBuilder:
             
         return keyframes, q0
     
-    def find_path(self, keyframes, q0, rod_id):
-        q_start = q0
+    def find_path(self, keyframes, q0, rod_id, show_visualization = False):
+        q_start = np.asarray(q0, dtype=float).copy()
 
         for keyframe_id, q_goal in enumerate(keyframes):
+            
+            path = None
             
             for attempt in range (50):
                 rrt = ry.PathFinder()
@@ -218,12 +219,16 @@ class RaiTrussBuilder:
                 if ret.feasible:
                     path = ret.x
                     break
+                
+            if path is None:
+                raise RuntimeError("RRT failed to find a Path")
 
-            # Replay only the path segment just planned
-            for t in range(path.shape[0]):
-                self.C.setJointState(path[t])
-                self.C.view()
-                time.sleep(.03)
+            if show_visualization:
+                # Replay only the path segment just planned
+                for t in range(path.shape[0]):
+                    self.C.setJointState(path[t])
+                    self.C.view()
+                    time.sleep(.1)
 
             # Update attachment after reaching the keyframe
             self.C.setJointState(q_goal)
@@ -269,9 +274,7 @@ class RaiTrussBuilder:
         print("FAILED to find solution")
         
         return None
-
-
-    
+ 
     def path_cost(self, path, weights=None):
         """
         Computes path cost 
@@ -295,8 +298,7 @@ class RaiTrussBuilder:
             diffs = diffs * weights
 
         return float(np.sum(np.linalg.norm(diffs, axis=1)))
-
-    
+  
     def interpolate_path(self, path, max_step = 0.02):
         """
         Interpolate the path to get a higher resolution path
@@ -329,49 +331,39 @@ class RaiTrussBuilder:
         new_path.append(path[-1])
 
         return np.asarray(new_path, dtype=float)
-    
-    def interpolate(self, q0, q1, max_step=0.02):
-        #line interpolation in joint space
-      
-        q0 = np.asarray(q0, dtype=float)
-        q1 = np.asarray(q1, dtype=float)
-
-        dist = np.linalg.norm(q1 - q0)
-        n = max(2, int(np.ceil(dist / max_step)) + 1)
-
-        # linear distribution
-        alphas = np.linspace(0.0, 1.0, n)
-        return np.array([(1.0 - a) * q0 + a * q1 for a in alphas], dtype=float)
 
     def path_collision_free(self, path, verbose=False):
         # check if a new path segment is collision free
         
-        path = np.asarray(path, dtype=float)
-        if path.ndim != 2:
+        Ctest = ry.Config()
+        Ctest.addConfigurationCopy(self.C)
+        
+        path_np = np.asarray(path, dtype=float)
+        if path_np.ndim != 2:
             return False
 
         q_start = self.C.getJointState().copy()
 
-        try:
-            for q in path:
-                
-                # set robot into joint configuration and test if it causes collision
-                self.C.setJointState(q)
-                self.C.computeCollisions()
-
-                total_penetration = self.C.getCollisionsTotalPenetration()
-
-                if total_penetration > 0:
-                    print("Collision detected")
-                    # self.C.view()
-                    # time.sleep(1)
-                    return False
+       
+        for q in path_np:
             
-            # print("No Collision detected")
-            return True
+            # set robot into joint configuration and test if it causes collision
+            Ctest.setJointState(q)
+            Ctest.computeCollisions()
+
+            total_penetration = Ctest.getCollisionsTotalPenetration()
+
+            if total_penetration > 1e-6:
+                # print("Collision detected")
+                # self.C.view()
+                # time.sleep(1)
+                return False
         
-        finally:
-            self.C.setJointState(q_start)
+        # print("No Collision detected")
+        return True
+        
+        # finally:
+        #     self.C.setJointState(q_start)
 
     def shortcut_path(self, path, max_iter=200, max_step=0.02, min_gap=2, verbose=True):
         # shortcut if a segment results in a better (= shorter) path
@@ -414,18 +406,18 @@ class RaiTrussBuilder:
             q0 = best[i]
             q1 = best[j]
 
-            if self.path_cost([best[i], best[j]]) >= self.path_cost(best[i:j]):
+            if self.path_cost([best[i], best[j]]) >= self.path_cost(best[i:j+1]):
                 continue
             
-            candidate = best
+            candidate = best.copy()
 
             for k in range(j - i):
                 q = q0 + (q1 - q0) / (j - i) * k
                 candidate[i + k] = q
         
             
-            if not self.path_collision_free(candidate, verbose=False):
-                best = candidate
+            if self.path_collision_free(candidate, verbose=False):
+                best = candidate.copy()
                 continue
 
         if verbose:
@@ -451,6 +443,8 @@ class RaiTrussBuilder:
             q_goal = np.asarray(q_goal, dtype=float).copy()
 
             self.C.setJointState(q_start)
+            
+            path = None
 
             for attempt in range (50):
                 rrt = ry.PathFinder()
@@ -463,7 +457,6 @@ class RaiTrussBuilder:
                     path = ret.x
                     break
 
-            path = ret.x
             if path is None:
                 raise RuntimeError(f"PathFinder failed for segment {keyframe_id}: ret.x is None")
 
@@ -494,9 +487,16 @@ class RaiTrussBuilder:
                 print(f"Segment {keyframe_id}: shortcut path points = {len(path)}, cost = {self.path_cost(path):.4f}")
 
             full_path.append(path)
+            
+            self.path_collision_free(path)
+            
+            # if self.path_collision_free(path):
+            #     print("the path has been checked again and is collision free")
+            # else:
+            #     print("The path contains collisions but apparently it doesn't give a f")
 
             # replay the final segment path
-            self.play_path(path, dt=0.01, title=f"segment {keyframe_id}")
+            self.play_path(path, dt=0.005, title=f"segment {keyframe_id}")
 
             # snap exactly to goal before switching mode
             self.C.setJointState(q_goal)
