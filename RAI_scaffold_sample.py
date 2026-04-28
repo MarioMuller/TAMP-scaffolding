@@ -3,6 +3,30 @@ import numpy as np
 import robotic as ry
 import time
 import os
+from dataclasses import dataclass, field
+
+@dataclass
+class AttachmentEvent:
+    rod_id: int
+    segment_id: int
+    parent: str
+    child: str
+
+@dataclass
+class RodPathRecord:
+    rod_id: int
+    segments: list = field(default_factory=list)
+    events: list = field(default_factory=list)
+
+@dataclass
+class AssemblyRecorder:
+    records: list = field(default_factory=list)
+
+    def add(self, record):
+        self.records.append(record)
+
+    def sequence(self):
+        return [r.rod_id for r in self.records]
 
 class RaiTrussBuilder:
 
@@ -88,6 +112,7 @@ class RaiTrussBuilder:
         p2 = np.array(self.truss.nodes[n2], dtype=float) * self.scale
 
         length = np.linalg.norm(p2 - p1) -0.03 #-0.03 for long_beam
+        
         if length < 1e-10:
             raise ValueError(f"Rod {rod_id} has zero length")
 
@@ -138,6 +163,269 @@ class RaiTrussBuilder:
         # self.C.view()
 
         return
+    
+    def get_rod_length(self, rod_id):
+        n1, n2 = self.truss.elements[rod_id]
+
+        p1 = np.array(self.truss.nodes[n1], dtype=float) * self.scale
+        p2 = np.array(self.truss.nodes[n2], dtype=float) * self.scale
+
+        # same shortening as in create_rod()
+        return np.linalg.norm(p2 - p1) - 0.03
+    
+    def create_dual_arm_grasp_frames(
+        self,
+        rod_id,
+        d1_from_end=0.04,
+        d12_between_arms=0.12,
+    ):
+        """
+        Creates two grasp frames fixed on the rod.
+
+        Assumption:
+        - RAI cylinder local z-axis is the rod axis.
+        - d1_from_end is measured from rod negative-z end.
+        - d12_between_arms is measured along the rod axis.
+        """
+
+        rod = f"rod_{rod_id}"
+        length = self.get_rod_length(rod_id)
+
+        d2_from_end = d1_from_end + d12_between_arms
+
+        if d1_from_end < 0.0 or d2_from_end > length:
+            raise ValueError(
+                f"Invalid grasp distances: d1={d1_from_end}, d2={d2_from_end}, rod length={length}"
+            )
+
+        z1 = -0.5 * length + d1_from_end
+        z2 = -0.5 * length + d2_from_end
+
+        g1 = f"rod_{rod_id}_grasp_a1"
+        g2 = f"rod_{rod_id}_grasp_a2"
+
+        if self.C.getFrame(g1) is None:
+            self.C.addFrame(g1, rod)
+
+        if self.C.getFrame(g2) is None:
+            self.C.addFrame(g2, rod)
+
+        self.C.getFrame(g1).setRelativePosition([0.0, 0.0, z1])
+        self.C.getFrame(g2).setRelativePosition([0.0, 0.0, z2])
+
+        return g1, g2
+    
+    def get_keyframes_dual(
+        self,
+        rod_id,
+        d1_from_end=0.12,
+        d12_between_arms=0.8,
+        theta=0.0,
+    ):
+        goal_center, goal_quat = self.get_goal_pose(rod_id)
+
+        rod = f"rod_{rod_id}"
+
+        target_name = f"rod_{rod_id}_target"
+        if self.C.getFrame(target_name) is None:
+            self.C.addFrame(target_name, "world")
+
+        self.C.getFrame(target_name).setPosition(goal_center)
+        self.C.getFrame(target_name).setQuaternion(goal_quat)
+
+        g1, g2 = self.create_dual_arm_grasp_frames(
+            rod_id,
+            d1_from_end=d1_from_end,
+            d12_between_arms=d12_between_arms,
+        )
+
+        q0 = self.C.getJointState()
+
+        komo = ry.KOMO(
+            self.C,
+            phases=3,
+            slicesPerPhase=5,
+            kOrder=1,
+            enableCollisions=True,
+        )
+
+        komo.addControlObjective([], 0, 1e-1)
+        komo.addControlObjective([], 1, 1e-1)
+
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+
+
+        # Phase 1: both arms grasp rod
+        # both grippers touch their respective rod positions
+        komo.addObjective([1.0], ry.FS.positionDiff,
+                        ["a1_ur_gripper_center", g1],
+                        ry.OT.eq, [1e2])
+
+        komo.addObjective([1.0], ry.FS.positionDiff,
+                        ["a2_ur_gripper_center", g2],
+                        ry.OT.eq, [1e2])
+
+        # both grippers are parallel to the rod
+        komo.addObjective([1.0], ry.FS.scalarProductXZ,
+                        ["a1_ur_gripper_center", rod],
+                        ry.OT.eq, [1e1], [1.0])
+
+        komo.addObjective([1.0], ry.FS.scalarProductXZ,
+                        ["a2_ur_gripper_center", rod],
+                        ry.OT.eq, [1e1], [1.0])
+
+        # same rotational angle around the rod
+        komo.addObjective([1.0], ry.FS.scalarProductYY,
+                        ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+                        ry.OT.eq, [1e1], [1.0])
+
+        komo.addObjective([1.0], ry.FS.scalarProductZZ,
+                        ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+                        ry.OT.eq, [1e1], [1.0])
+
+        # RAI mode switch gives rod one parent
+        # Arm 2 is constrained at the keyframe, but not attached
+        komo.addModeSwitch(
+            [1, 2],
+            ry.SY.stable,
+            ["a1_ur_gripper_center", rod],
+            True,
+        )
+        
+        # betweeb 1 and 2 the rod needs to be carried by both
+        # Arm 1 grasp point: fixed distance from rod end
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.positionDiff,
+            ["a1_ur_gripper_center", g1],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        # Arm 2 grasp point: fixed distance from arm 1 along rod
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.positionDiff,
+            ["a2_ur_gripper_center", g2],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        # Arm 1 gripper x-axis parallel to rod z-axis
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductXZ,
+            ["a1_ur_gripper_center", rod],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Arm 2 gripper x-axis parallel to rod z-axis
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductXZ,
+            ["a2_ur_gripper_center", rod],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Same rotational angle around the rod:
+        # gripper y-axes parallel
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductYY,
+            ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Same rotational angle around the rod:
+        # gripper z-axes parallel
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductZZ,
+            ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Rod is kinematically attached to arm 1 
+        komo.addModeSwitch(
+            [1.0, 2.0],
+            ry.SY.stable,
+            ["a1_ur_gripper_center", rod],
+            True,
+        )
+
+        # placement position
+        komo.addObjective(
+            [2.0],
+            ry.FS.positionDiff,
+            [rod, target_name],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        komo.addObjective(
+            [2.0],
+            ry.FS.scalarProductZZ,
+            [rod, target_name],
+            ry.OT.eq,
+            [1e2],
+            [1.0],
+        )
+
+        komo.addObjective(
+            [2.0],
+            ry.FS.scalarProductXX,
+            [rod, target_name],
+            ry.OT.eq,
+            [1e2],
+            [1.0],
+        )
+
+        # Rod becomes attached to table after placement
+        komo.addModeSwitch(
+            [2.0, 3.0],
+            ry.SY.stable,
+            ["table", rod],
+            True,
+        )
+                
+
+        # back to start
+        komo.addObjective(
+            [3.0, -1],
+            ry.FS.jointState,
+            [],
+            ry.OT.eq,
+            [1e0],
+            q0,
+        )
+
+        keyframes = self.solve_komo(komo)
+
+        if keyframes is None:
+            raise RuntimeError("KOMO failed to find dual-arm keyframes")
+        
+        for t in range(keyframes.shape[0]):
+            if t == 5:
+                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
+            
+            elif t == 10:  
+                self.C.attach('table', f'rod_{rod_id}')
+
+            self.C.setJointState(keyframes[t])
+            self.C.view(False, f'place waypoint {t}')
+            time.sleep(.5)
+
+        return keyframes, q0
+
       
     def get_keyframes(self, rod_id):
         
@@ -209,7 +497,7 @@ class RaiTrussBuilder:
             
             path = None
             
-            for attempt in range (50):
+            for attempt in range (20):
                 rrt = ry.PathFinder()
                 rrt.setProblem(self.C, q_start, q_goal)
 
@@ -255,7 +543,7 @@ class RaiTrussBuilder:
                 komo.initWithConstant(x_init)
                 # komo.initWithPath(np.random.rand(3, 12) * 5 - 2.5)
 
-            solver = ry.NLP_Solver(komo.nlp(), verbose=4)
+            solver = ry.NLP_Solver(komo.nlp(), verbose=0)
 
             retval = solver.solve()
             retval = retval.dict()
@@ -332,11 +620,9 @@ class RaiTrussBuilder:
 
         return np.asarray(new_path, dtype=float)
 
-    def path_collision_free(self, path, verbose=False):
+    def path_collision_free(self, path, Ctest, verbose=False):
         # check if a new path segment is collision free
         
-        Ctest = ry.Config()
-        Ctest.addConfigurationCopy(self.C)
         
         path_np = np.asarray(path, dtype=float)
         if path_np.ndim != 2:
@@ -369,6 +655,9 @@ class RaiTrussBuilder:
         # shortcut if a segment results in a better (= shorter) path
         # TODO: Think about wheter just short q is acctually is the proper metric e.g. moving a joint 0.1rad is different to moving the husky 0.1 m
         # TODO: Is it even useful to have the cost. Linear path should always be cheapest
+        
+        Ctest = ry.Config()
+        Ctest.addConfigurationCopy(self.C)
         
         path = np.asarray(path, dtype=float)
         new_path = self.interpolate_path(path, max_step=max_step)
@@ -411,12 +700,13 @@ class RaiTrussBuilder:
             
             candidate = best.copy()
 
-            for k in range(j - i):
-                q = q0 + (q1 - q0) / (j - i) * k
-                candidate[i + k] = q
+            for k in range(j - i + 1):
+                alpha = k / (j - i)
+                candidate[i + k] = q0 + alpha * (q1 - q0)
         
+            new_segment = candidate[i:j+1]
             
-            if self.path_collision_free(candidate, verbose=False):
+            if self.path_collision_free(new_segment, Ctest, verbose=False):
                 best = candidate.copy()
                 continue
 
@@ -487,13 +777,6 @@ class RaiTrussBuilder:
                 print(f"Segment {keyframe_id}: shortcut path points = {len(path)}, cost = {self.path_cost(path):.4f}")
 
             full_path.append(path)
-            
-            self.path_collision_free(path)
-            
-            # if self.path_collision_free(path):
-            #     print("the path has been checked again and is collision free")
-            # else:
-            #     print("The path contains collisions but apparently it doesn't give a f")
 
             # replay the final segment path
             self.play_path(path, dt=0.005, title=f"segment {keyframe_id}")
@@ -513,16 +796,166 @@ class RaiTrussBuilder:
 
         return full_path
     
-    def super_simple_collision(self):
-        
-        self.C.computeCollisions()
+    def replay_recorded_plan(
+        self,
+        recorder,
+        rod_pos=[-3, -1, 1.0],
+        rod_ori=[0.5, 0.0, 0.5, 0.70710678],
+        dt=0.001,
+    ):
+        """
+        Replays all recorded paths from the beginning.
+        Use this with a fresh builder/config.
+        """
 
-        total_penetration = self.C.getCollisionsTotalPenetration()
-        print(total_penetration)
+        for record in recorder.records:
+            rod_id = record.rod_id
 
-        if total_penetration > 0:
-            # print("collision")
-            return False
+            print(f"Replaying rod {rod_id}")
+
+            if self.C.getFrame(f"rod_{rod_id}") is None:
+                self.create_rod(rod_id, pos=rod_pos, ori=rod_ori)
+
+            for segment_id, path in enumerate(record.segments):
+                for q in path:
+                    self.C.setJointState(q)
+                    self.C.view(False, f"replay rod {rod_id}, segment {segment_id}")
+                    time.sleep(dt)
+
+                for event in record.events:
+                    if event.segment_id == segment_id:
+                        self.C.attach(event.parent, event.child)
+                        print(f"Replay attach: {event.child} to {event.parent}")
+                        
+                        
+    def try_plan_and_commit_rod(
+        self,
+        rod_id,
+        rod_pos=[-3, -1, 1.0],
+        rod_ori=[0.5, 0.0, 0.5, 0.70710678],
+        do_shortcut=True,
+        shortcut_iter=300,
+        shortcut_step=0.02,
+        replay_now=False,
+    ):
+        """
+        Checks if path for placement can be found if this rod is removed
+        """
+
+        print(f"\nTrying rod {rod_id}")
+
+        try:
+            self.create_rod(rod_id, pos=rod_pos, ori=rod_ori)
+
+            keyframes, q0 = self.get_keyframes(rod_id)
+
+            record = RodPathRecord(rod_id=rod_id)
+
+            q_start = np.asarray(q0, dtype=float).copy()
+
+            for keyframe_id, q_goal in enumerate(keyframes):
+                q_goal = np.asarray(q_goal, dtype=float).copy()
+                self.C.setJointState(q_start)
+
+                path = None
+
+                for attempt in range(50):
+                    rrt = ry.PathFinder()
+                    rrt.setProblem(self.C, q_start, q_goal)
+
+                    ret = rrt.solve()
+                    print(f"RRT segment {keyframe_id}, attempt {attempt}: ", ret)
+
+                    if ret.feasible:
+                        path = np.asarray(ret.x, dtype=float)
+                        break
+
+                if path is None:
+                    raise RuntimeError(f"RRT failed for rod {rod_id}, segment {keyframe_id}")
+
+                if path.ndim == 1:
+                    path = path.reshape(1, -1)
+
+                print(
+                    f"Rod {rod_id}, segment {keyframe_id}: "
+                    f"raw path points = {len(path)}, cost = {self.path_cost(path):.4f}"
+                )
+
+                if do_shortcut and len(path) >= 3:
+                    path = self.shortcut_path(
+                        path,
+                        max_iter=shortcut_iter,
+                        max_step=shortcut_step,
+                        min_gap=2,
+                        verbose=True,
+                    )
+
+                record.segments.append(path.copy())
+
+                if replay_now:
+                    self.play_path(path, dt=0.005, title=f"rod {rod_id}, segment {keyframe_id}")
+
+                # Commit scene mode after reaching keyframe
+                self.C.setJointState(q_goal)
+
+                if keyframe_id == 0:
+                    self.C.attach("a1_ur_gripper_center", f"rod_{rod_id}")
+                    record.events.append(
+                        AttachmentEvent(
+                            rod_id=rod_id,
+                            segment_id=keyframe_id,
+                            parent="a1_ur_gripper_center",
+                            child=f"rod_{rod_id}",
+                        )
+                    )
+                    print(f"Rod {rod_id} attached to robot")
+
+                elif keyframe_id == 1:
+                    self.C.attach("table", f"rod_{rod_id}")
+                    record.events.append(
+                        AttachmentEvent(
+                            rod_id=rod_id,
+                            segment_id=keyframe_id,
+                            parent="table",
+                            child=f"rod_{rod_id}",
+                        )
+                    )
+                    print(f"Rod {rod_id} attached to table")
+
+                q_start = q_goal.copy()
+
+            print(f"Accepted rod {rod_id}")
+            return record
+
+        except Exception as e:
+            print(f"Rod {rod_id} failed: {e}")
+            return None
+    
+    def reset_scene_with_rods(self, placed_rods):
+        """
+        Rebuilds scene with not yet removed rods in final pos
+        """
+
+        self.C.clear()
+        self.C.addFrame("world")
+        self.import_husky()
+
+        for rod_id in placed_rods:
+            self.create_rod(
+                rod_id,
+                pos=[-3, -1, 1.0],
+                ori=[0.5, 0.0, 0.5, 0.70710678],
+            )
+
+            center, quat = self.get_goal_pose(rod_id)
+
+            self.C.getFrame(f"rod_{rod_id}") \
+                .setPosition(center) \
+                .setQuaternion(quat)
+
+            self.C.attach("table", f"rod_{rod_id}")
+            
+        self.C.view()
 
 if __name__ == "__main__":
 

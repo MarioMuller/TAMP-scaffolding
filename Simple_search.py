@@ -5,8 +5,10 @@ import numpy as np
 import heapq
 
 class TrussSearch:
-    def __init__(self, truss):
+    def __init__(self, truss, builder=None):
         self.truss = truss
+        self.builder = builder
+        self.motion_records = {}
 
     # create graph structure
     def build_graph(self, active_rods):
@@ -52,6 +54,40 @@ class TrussSearch:
 
         return True
 
+    def is_motion_feasible(self, support_rods, rod_id):
+        """
+        support_rods:
+            rods that remain after removing rod_id in backward search.
+            These are the rods that would already be assembled before rod_id
+            in the forward assembly direction.
+
+        rod_id:
+            rod we are testing whether we can place next.
+        """
+
+        if self.builder is None:
+            return True
+
+        print(f"Checking motion feasibility for rod {rod_id} with supports {sorted(support_rods)}")
+
+        # rebuild clean scene containing only the support rods
+        self.builder.reset_scene_with_rods(support_rods)
+
+        record = self.builder.try_plan_and_commit_rod(
+            rod_id,
+            rod_pos=[-3, -1, 1.0],
+            rod_ori=[0.5, 0.0, 0.5, 0.70710678],
+            do_shortcut=True,
+            replay_now=False,
+        )
+
+        if record is None:
+            print(f"Motion infeasible for rod {rod_id}")
+            return False
+
+        print(f"Motion feasible for rod {rod_id}")
+        self.motion_records[rod_id] = record
+        return True
 
     # use height as heuristicc
     def heuristic(self, rod_id):
@@ -86,6 +122,9 @@ class TrussSearch:
             visited.add(new_state)
 
             if not self.is_valid_state(new_state):
+                continue
+            
+            if not self.is_motion_feasible(new_state, rod_id):
                 continue
 
             # if it is a feasible option add rod to remove sequence
