@@ -1,0 +1,316 @@
+# Stuff related to finding the keyframes
+
+import numpy as np
+import robotic as ry
+
+
+class KeyframePlanner:
+    def __init__(self, C, rod_manager):
+        self.C = C
+        self.rods = rod_manager
+        
+        
+    # based on implementation of vhartman
+    def solve_komo(self, komo, attempts = 1000, mult = 3, offset = -1.5, view = False): 
+        for attempt in range(attempts):
+        
+            if attempt > 0:
+                dim = len(self.C.getJointState())
+                x_init = np.random.rand(dim) * mult + offset
+                komo.initWithConstant(x_init)
+                # komo.initWithPath(np.random.rand(3, 12) * 5 - 2.5)
+
+            solver = ry.NLP_Solver(komo.nlp(), verbose=0)
+
+            retval = solver.solve()
+            retval = retval.dict()
+
+            print(retval)
+
+            if view:
+                print(retval)
+                komo.view(True, "IK solution")
+
+
+            if retval["feasible"]: #retval["ineq"] < 1 and retval["eq"] < 1 and 
+                keyframes = komo.getPath()
+                return keyframes
+        
+        print("FAILED to find solution")
+        
+        return None
+    
+    def get_keyframes(self, rod_id):
+        
+        goal_center, goal_quat = self.rods.get_goal_pose(rod_id)
+
+        target_name = f"rod_{rod_id}_target"
+        if self.C.getFrame(target_name) is None:
+            self.C.addFrame(target_name, 'world')
+
+        self.C.getFrame(target_name).setPosition(goal_center)
+        self.C.getFrame(target_name).setQuaternion(goal_quat)
+        
+        orientations = [1.0]
+        
+        q0 = self.C.getJointState()
+        
+        for orientation in orientations:
+            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=1, kOrder=1, enableCollisions=True)
+
+            komo.addControlObjective([], 0, 1e-1) 
+            komo.addControlObjective([], 1, 1e-1)
+            # komo.addControlObjective([], 2, 1e-1)
+            
+            # enable collisions and respect JointLimits
+            komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+            komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+            
+            # TODO: change constraint to allow for flexibility when deciding on grabbing position. e.g. using inequality conctraints
+            komo.addObjective([1.], ry.FS.positionDiff, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1]) 
+            # Gripper fingers are parallel to the rod center axis
+            komo.addObjective([1.], ry.FS.scalarProductXZ, ['a1_ur_gripper_center', f"rod_{rod_id}"], ry.OT.eq, [1e1], [orientation])
+            komo.addModeSwitch([1,2], ry.SY.stable, ['a1_ur_gripper_center', f"rod_{rod_id}"], True)
+
+
+            # place the end effector in desired final position
+            komo.addObjective([2.], ry.FS.positionDiff,
+                  [f"rod_{rod_id}", target_name],
+                  ry.OT.eq, [1e2])
+
+            komo.addObjective([2.], ry.FS.scalarProductZZ,
+                  [f"rod_{rod_id}", target_name],
+                  ry.OT.eq, [1e2], [1.0])
+            komo.addModeSwitch([2,3], ry.SY.stable, ['table', f"rod_{rod_id}"], True)
+
+            
+            # move back to starting position
+            komo.addObjective([3., -1], ry.FS.jointState, [], ry.OT.eq, [1e0], q0)
+            
+            keyframes = (self.solve_komo(komo))
+            
+
+        # for t in range(keyframes.shape[0]):
+        #     if t == 1:
+        #         self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
+            
+        #     elif t == 2:  
+        #         self.C.attach('table', f'rod_{rod_id}')
+
+        #     self.C.setJointState(keyframes[t])
+        #     self.C.view(False, f'place waypoint {t}')
+        #     time.sleep(.1)
+            
+        return keyframes, q0
+    
+    
+    def get_keyframes_dual(
+        self,
+        rod_id,
+        d1_from_end=0.12,
+        d12_between_arms=0.8,
+        theta=0.0,
+    ):
+        goal_center, goal_quat = self.rods.get_goal_pose(rod_id)
+
+        rod = f"rod_{rod_id}"
+
+        target_name = f"rod_{rod_id}_target"
+        if self.C.getFrame(target_name) is None:
+            self.C.addFrame(target_name, "world")
+
+        self.C.getFrame(target_name).setPosition(goal_center)
+        self.C.getFrame(target_name).setQuaternion(goal_quat)
+
+        g1, g2 = self.rods.create_dual_arm_grasp_frames(
+            rod_id,
+            d1_from_end=d1_from_end,
+            d12_between_arms=d12_between_arms,
+        )
+
+        q0 = self.C.getJointState()
+
+        komo = ry.KOMO(
+            self.C,
+            phases=3,
+            slicesPerPhase=1,
+            kOrder=1,
+            enableCollisions=True,
+        )
+
+        komo.addControlObjective([], 0, 1e-1)
+        komo.addControlObjective([], 1, 1e-1)
+
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
+
+
+        # Phase 1: both arms grasp rod
+        # both grippers touch their respective rod positions
+        komo.addObjective([1.0], ry.FS.positionDiff,
+                        ["a1_ur_gripper_center", g1],
+                        ry.OT.eq, [1e2])
+
+        komo.addObjective([1.0], ry.FS.positionDiff,
+                        ["a2_ur_gripper_center", g2],
+                        ry.OT.eq, [1e2])
+
+        # both grippers are parallel to the rod
+        komo.addObjective([1.0], ry.FS.scalarProductXZ,
+                        ["a1_ur_gripper_center", rod],
+                        ry.OT.eq, [1e1], [1.0])
+
+        komo.addObjective([1.0], ry.FS.scalarProductXZ,
+                        ["a2_ur_gripper_center", rod],
+                        ry.OT.eq, [1e1], [1.0])
+
+        # same rotational angle around the rod
+        komo.addObjective([1.0], ry.FS.scalarProductYY,
+                        ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+                        ry.OT.eq, [1e1], [1.0])
+
+        komo.addObjective([1.0], ry.FS.scalarProductZZ,
+                        ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+                        ry.OT.eq, [1e1], [1.0])
+
+        # RAI mode switch gives rod one parent
+        # Arm 2 is constrained at the keyframe, but not attached
+        komo.addModeSwitch(
+            [1, 2],
+            ry.SY.stable,
+            ["a1_ur_gripper_center", rod],
+            True,
+        )
+        
+        # betweeb 1 and 2 the rod needs to be carried by both
+        # Arm 1 grasp point: fixed distance from rod end
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.positionDiff,
+            ["a1_ur_gripper_center", g1],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        # Arm 2 grasp point: fixed distance from arm 1 along rod
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.positionDiff,
+            ["a2_ur_gripper_center", g2],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        # Arm 1 gripper x-axis parallel to rod z-axis
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductXZ,
+            ["a1_ur_gripper_center", rod],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Arm 2 gripper x-axis parallel to rod z-axis
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductXZ,
+            ["a2_ur_gripper_center", rod],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Same rotational angle around the rod:
+        # gripper y-axes parallel
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductYY,
+            ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Same rotational angle around the rod:
+        # gripper z-axes parallel
+        komo.addObjective(
+            [1.0, 2.0],
+            ry.FS.scalarProductZZ,
+            ["a1_ur_gripper_center", "a2_ur_gripper_center"],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
+        # Rod is kinematically attached to arm 1 
+        komo.addModeSwitch(
+            [1.0, 2.0],
+            ry.SY.stable,
+            ["a1_ur_gripper_center", rod],
+            True,
+        )
+
+        # placement position
+        komo.addObjective(
+            [2.0],
+            ry.FS.positionDiff,
+            [rod, target_name],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        komo.addObjective(
+            [2.0],
+            ry.FS.scalarProductZZ,
+            [rod, target_name],
+            ry.OT.eq,
+            [1e2],
+            [1.0],
+        )
+
+        komo.addObjective(
+            [2.0],
+            ry.FS.scalarProductXX,
+            [rod, target_name],
+            ry.OT.eq,
+            [1e2],
+            [1.0],
+        )
+
+        # Rod becomes attached to table after placement
+        komo.addModeSwitch(
+            [2.0, 3.0],
+            ry.SY.stable,
+            ["table", rod],
+            True,
+        )
+                
+
+        # back to start
+        komo.addObjective(
+            [3.0, -1],
+            ry.FS.jointState,
+            [],
+            ry.OT.eq,
+            [1e0],
+            q0,
+        )
+
+        keyframes = self.solve_komo(komo)
+
+        if keyframes is None:
+            raise RuntimeError("KOMO failed to find dual-arm keyframes")
+        
+        for t in range(keyframes.shape[0]):
+            if t == 1:
+                self.C.attach('a1_ur_gripper_center', f'rod_{rod_id}')
+            
+            elif t == 2:  
+                self.C.attach('table', f'rod_{rod_id}')
+
+            self.C.setJointState(keyframes[t])
+            self.C.view(False, f'place waypoint {t}')
+            time.sleep(20)
+
+        return keyframes, q0

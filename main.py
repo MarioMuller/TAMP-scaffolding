@@ -1,74 +1,19 @@
-from json_import import Truss
-from Simple_search import TrussSearch
-from RAI_scaffold_sample import RaiTrussBuilder, AssemblyRecorder
+from truss import Truss
+from backward_search import AssemblyPlanner
+from rai.builder import RaiTrussBuilder, RodPathRecord
+from DataClasses import AssemblyPlan
 import time
 
-run = "husky"
-# run = "collision test"
-
-if run == "husky":
-    # run the backward search to find the assembly sequence
-    # truss = Truss.from_json("JSON/long_beam_test.json")
-    truss = Truss.from_json("JSON/scaffold_test.json")
-    searcher = TrussSearch(truss)
-
-    removal_sequence = searcher.backward_search()
-    assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
+run = "replay_husky"
     
-    print("Assembly:", assembly_sequence)
-
-    # Create start environment
-    builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0012) #scale = 0.0005
-    # builder = RaiTrussBuilder(truss, radius=0.005, scale=0.003) #long_beam 0.003 - 0.004
-    builder.import_husky()
-
-    # Loop over the assembly_sequence and execute the required steps to build Truss
-    first_rod = True
-    for rod_id in assembly_sequence:
-
-        builder.create_rod(rod_id, pos=[-3, -1, 1.0], ori= [0.5, 0.0, 0.5, 0.70710678])
-        
-        # keyframes, q0 = builder.get_keyframes(rod_id)
-        # # builder.find_path(keyframes, q0, rod_id, show_visualization=True)
-        # builder.find_path_shortcut(keyframes, q0, rod_id, do_shortcut=True)
-        
-        keyframes, q0 = builder.get_keyframes_dual(rod_id)
-        # builder.find_path_shortcut(keyframes, q0, rod_id, do_shortcut=True)
-       
-        
-        # keyframes, q0 = builder.husky_direct_komo(rod_id)
-        
-        # builder.set_to_end_position(rod_id)
-
-    print("Finished all rods palced in desired target location")
-    time.sleep(5)
-    
-elif run == "collision test":
-    
-    truss = Truss.from_json("JSON/scaffold_test.json")
-    searcher = TrussSearch(truss)
-
-    removal_sequence = searcher.backward_search()
-    assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
-    
-    # Create start environment
-    builder = RaiTrussBuilder(truss, radius=0.005, scale=0.001) #scale = 0.0005
-    builder.import_husky()
-    
-    builder.create_rod(assembly_sequence[1], pos=[-1, -0, 0.05], ori= [0.7071,0.7071,0,0])
-    builder.super_simple_collision()
-    time.sleep(5)
-
-    print("collision test finsihed")
-    
-elif run == "replay_husky":
+if run == "replay_husky":
 
     truss = Truss.from_json("JSON/scaffold_test.json")
 
     builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
     builder.import_husky()
 
-    searcher = TrussSearch(truss, builder=builder)
+    searcher = AssemblyPlanner(truss, builder=builder)
 
     removal_sequence = searcher.backward_search()
     assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
@@ -79,27 +24,49 @@ elif run == "replay_husky":
     if assembly_sequence is None:
         raise RuntimeError("No feasible assembly sequence found")
 
-    recorder = AssemblyRecorder()
+    recorder = AssemblyPlan()
 
-    for rod_id in assembly_sequence:
+    # for rod_id in assembly_sequence:
+    #     if rod_id not in searcher.motion_records:
+    #         raise RuntimeError(f"No recorded motion found for rod {rod_id}")
+
+    #     recorder.add(rod_id, searcher.motion_records[rod_id])
+
+    # print("Recorded assembly sequence:", recorder.sequence())
+
+    # print("Now replaying full recorded plan")
+
+    # replay_builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
+    # replay_builder.import_husky()
+
+    # replay_builder.replay_recorded_plan(
+    #     recorder,
+    #     rod_pos=[-3, -1, 1.0],
+    #     rod_ori=[0.5, 0.0, 0.5, 0.70710678],
+    #     dt=0.0005,
+    #     wait_for_input = True
+    # )
+    
+    
+
+    for rod_id in removal_sequence:
         if rod_id not in searcher.motion_records:
             raise RuntimeError(f"No recorded motion found for rod {rod_id}")
 
-        recorder.add(searcher.motion_records[rod_id])
-
-    print("Recorded assembly sequence:", recorder.sequence())
-
-    print("Now replaying full recorded plan")
+        recorder.add(rod_id, searcher.motion_records[rod_id])
 
     replay_builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
     replay_builder.import_husky()
 
-    replay_builder.replay_recorded_plan(
+    replay_builder.display_recorded_plan_viser(
         recorder,
+        port=8080,
+        pause_time=0.03,
         rod_pos=[-3, -1, 1.0],
         rod_ori=[0.5, 0.0, 0.5, 0.70710678],
-        dt=0.005,
     )
+    
+    
 
     print("Replay finished")
 

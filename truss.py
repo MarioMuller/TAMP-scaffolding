@@ -1,6 +1,8 @@
 import json
 
-# imports all the required data from the JSON
+# imports the truss structure based on the JSON
+# TODO: replace this  with the actual building elements
+
 class Truss:
     def __init__(self, nodes, elements, grounded_nodes):
         self.nodes = nodes

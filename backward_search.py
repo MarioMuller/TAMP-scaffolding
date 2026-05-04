@@ -1,10 +1,10 @@
-from json_import import Truss
+from truss import Truss
 from collections import defaultdict, deque
 import pyvista as pv
 import numpy as np
 import heapq
 
-class TrussSearch:
+class AssemblyPlanner:
     def __init__(self, truss, builder=None):
         self.truss = truss
         self.builder = builder
@@ -54,6 +54,8 @@ class TrussSearch:
 
         return True
 
+    
+    # TODO: maybe put main part of function to other file
     def is_motion_feasible(self, support_rods, rod_id):
         """
         support_rods:
@@ -129,6 +131,10 @@ class TrussSearch:
 
             # if it is a feasible option add rod to remove sequence
             new_sequence = sequence + [rod_id]
+            
+            #debug
+            if len(new_sequence) == 3:
+                return new_sequence
 
             # check if there are remaining nodes
             if len(new_state) == 0:
@@ -222,7 +228,7 @@ def export_assembly_video(
 if __name__ == "__main__":
     # truss = Truss.from_json("JSON/long_beam_test.json")
     truss = Truss.from_json("JSON/scaffold_test.json")
-    searcher = TrussSearch(truss)
+    searcher = AssemblyPlanner(truss)
 
     removal_sequence = searcher.backward_search()
     assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
