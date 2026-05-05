@@ -2,6 +2,7 @@
 
 import numpy as np
 import robotic as ry
+import time
 
 
 class KeyframePlanner:

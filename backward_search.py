@@ -3,6 +3,7 @@ from collections import defaultdict, deque
 import pyvista as pv
 import numpy as np
 import heapq
+import time
 
 class AssemblyPlanner:
     def __init__(self, truss, builder=None):

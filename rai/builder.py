@@ -8,6 +8,7 @@ from .pathplanning import PathPlanner
 from .replay import PlanReplayer
 from .viser_replay import ViserPlanReplayer
 
+
 class RaiTrussBuilder:
 
     def __init__(self, truss, radius=0.0015, scale = 0.00351):
@@ -54,7 +55,9 @@ class RaiTrussBuilder:
         try:
             self.rods.create_rod(rod_id, pos=rod_pos, ori=rod_ori)
 
-            keyframes, q0 = self.keyframes.get_keyframes(rod_id)
+            # keyframes, q0 = self.keyframes.get_keyframes(rod_id)
+            
+            keyframes, q0 = self.keyframes.get_keyframes_dual(rod_id)
 
             record = RodPathRecord(rod_id=rod_id)
 

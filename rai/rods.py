@@ -4,7 +4,7 @@
 import numpy as np
 import robotic as ry
 from .utils import quaternion_from_z_to_vector
-
+import time
 
 class RodManager:
     def __init__(self, C, truss, radius=0.0015, scale=0.00351):
