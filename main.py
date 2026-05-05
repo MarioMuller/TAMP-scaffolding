@@ -11,7 +11,7 @@ if run == "replay_husky":
     truss = Truss.from_json("JSON/scaffold_test.json")
 
     builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
-    builder.import_husky()
+    builder.import_robots()
 
     searcher = AssemblyPlanner(truss, builder=builder)
 
@@ -56,7 +56,7 @@ if run == "replay_husky":
         recorder.add(rod_id, searcher.motion_records[rod_id])
 
     replay_builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
-    replay_builder.import_husky()
+    replay_builder.import_robots()
 
     replay_builder.display_recorded_plan_viser(
         recorder,

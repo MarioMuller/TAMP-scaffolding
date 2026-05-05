@@ -6,6 +6,7 @@ class AttachmentEvent:
     segment_id: int
     parent: str
     child: str
+    action: str = "attach"  # "attach" or "detach"
 
 @dataclass
 class RodPathRecord:

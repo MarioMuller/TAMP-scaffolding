@@ -10,6 +10,7 @@ class AssemblyPlanner:
         self.truss = truss
         self.builder = builder
         self.motion_records = {}
+        self.currently_supported_rod = None
 
     # create graph structure
     def build_graph(self, active_rods):
@@ -80,8 +81,12 @@ class AssemblyPlanner:
             rod_id,
             rod_pos=[-3, -1, 1.0],
             rod_ori=[0.5, 0.0, 0.5, 0.70710678],
-            do_shortcut=True,
+            do_shortcut=False,
             replay_now=False,
+            use_rrt=False,
+            needs_support=False,
+            release_supported_rod=self.currently_supported_rod,
+            support_gripper=None,
         )
 
         if record is None:
@@ -90,6 +95,7 @@ class AssemblyPlanner:
 
         print(f"Motion feasible for rod {rod_id}")
         self.motion_records[rod_id] = record
+        self.currently_supported_rod = rod_id
         return True
 
     # use height as heuristicc
@@ -134,7 +140,7 @@ class AssemblyPlanner:
             new_sequence = sequence + [rod_id]
             
             #debug
-            if len(new_sequence) == 3:
+            if len(new_sequence) == 2:
                 return new_sequence
 
             # check if there are remaining nodes

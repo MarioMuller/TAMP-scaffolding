@@ -137,3 +137,47 @@ class RodManager:
 
         if view:
             self.C.view()
+            
+            
+    def create_sliding_support_grasp_frame(self, rod_id):
+        rod = f"rod_{rod_id}"
+        length = self.get_rod_length(rod_id)
+
+        frame_name = f"rod_{rod_id}_support_grasp"
+
+        if self.C.getFrame(frame_name) is None:
+            self.C.addFrame(frame_name, rod) \
+                .setJoint(
+                    ry.JT.transZ,
+                    limits=np.array([-0.5 * length, 0.5 * length])
+                )
+
+        return frame_name       
+
+    def create_support_grasp_frame_at_fraction(self, rod_id, fraction):
+        """
+        Creates a fixed support grasp frame at a fraction along the rod.
+
+        fraction:
+            0.0 = one end
+            0.5 = middle
+            1.0 = other end
+        """
+
+        if fraction < 0.0 or fraction > 1.0:
+            raise ValueError("fraction must be between 0.0 and 1.0")
+
+        rod = f"rod_{rod_id}"
+        length = self.get_rod_length(rod_id)
+
+        z = -0.5 * length + fraction * length
+
+        frame_name = f"rod_{rod_id}_support_grasp_{fraction:.2f}"
+
+        if self.C.getFrame(frame_name) is None:
+            self.C.addFrame(frame_name, rod)
+
+        self.C.getFrame(frame_name).setRelativePosition([0.0, 0.0, z])
+
+        return frame_name
+        

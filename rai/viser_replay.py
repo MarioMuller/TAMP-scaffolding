@@ -31,65 +31,75 @@ class ViserPlanReplayer:
                     ori=rod_ori,
                 )
 
+            # self.rods.create_sliding_support_grasp_frame(rod_id)
+
         C_display_base = ry.Config()
         C_display_base.addConfigurationCopy(self.C)
 
         return C_display_base
 
     def _precompute_viser_steps(self, recorder, C_base):
-        """
-        Sequentially simulates the replay once and stores all frame poses.
-
-        This is important because RAI attachments depend on the current pose
-        at the time C.attach(parent, child) is called.
-        """
         C_sim = ry.Config()
         C_sim.addConfigurationCopy(C_base)
 
         steps = []
+        visible_rods = set()
 
         for record in recorder.records_in_assembly_order():
             rod_id = record.rod_id
+            visible_rods.add(rod_id)  # rod spawns when its motion starts
 
             for segment_id, path in enumerate(record.segments):
                 for q in path:
                     C_sim.setJointState(q)
 
                     poses = {}
-
                     for frame in C_sim.getFrames():
                         poses[frame.name] = (
                             np.asarray(frame.getPosition(), dtype=np.float32),
                             np.asarray(frame.getQuaternion(), dtype=np.float32),
                         )
 
-                    steps.append(
-                        {
-                            "rod_id": rod_id,
-                            "segment_id": segment_id,
-                            "poses": poses,
-                        }
-                    )
+                    steps.append({
+                        "rod_id": rod_id,
+                        "segment_id": segment_id,
+                        "poses": poses,
+                        "visible_rods": set(visible_rods),
+                    })
 
                 for event in record.events:
                     if event.segment_id == segment_id:
-                        if (
-                            C_sim.getFrame(event.parent) is not None
-                            and C_sim.getFrame(event.child) is not None
-                        ):
-                            C_sim.attach(event.parent, event.child)
-                        else:
-                            print(
-                                f"Skipping attachment: "
-                                f"{event.child} to {event.parent}"
-                            )
-
+                        if event.action == "attach":
+                            if (
+                                C_sim.getFrame(event.parent) is not None
+                                and C_sim.getFrame(event.child) is not None
+                            ):
+                                C_sim.attach(event.parent, event.child)
+                            else:
+                                print(
+                                    f"Skipping attachment: "
+                                    f"{event.child} to {event.parent}"
+                                )
+                                
+                                
         return steps
 
     def _viser_set_step(self, i, steps, handles, mode_label=None):
         step = steps[i]
+        visible_rods = step["visible_rods"]
 
         for frame_name, handle in handles.items():
+            is_rod_frame = frame_name.startswith("rod_")
+
+            if is_rod_frame:
+                parts = frame_name.split("_")
+                try:
+                    rod_id = int(parts[1])
+                except ValueError:
+                    rod_id = None
+
+                handle.visible = rod_id in visible_rods
+
             if frame_name not in step["poses"]:
                 continue
 
@@ -101,7 +111,8 @@ class ViserPlanReplayer:
             mode_label.content = (
                 f"**Step:** {i} / {len(steps) - 1}  \n"
                 f"**Rod:** {step['rod_id']}  \n"
-                f"**Segment:** {step['segment_id']}"
+                f"**Segment:** {step['segment_id']}  \n"
+                f"**Visible rods:** {sorted(visible_rods)}"
             )
 
     def display_recorded_plan_viser(
