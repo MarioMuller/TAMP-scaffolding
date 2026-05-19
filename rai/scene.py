@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import robotic as ry
+import time
 
 
 class RaiScene:
@@ -110,3 +111,76 @@ class RaiScene:
             .setRelativePosition([0, 0, 0]) \
             .setRelativeQuaternion([1, 0, 0, 0])
     
+    
+    def import_floating_grippers_debug(self):
+
+        if self.C.getFrame("table") is None:
+            self.C.addFrame("table") \
+                .setPosition([0, 0, 0.0]) \
+                .setShape(ry.ST.box, size=[20, 20, 0.02, 0.005]) \
+                .setColor([0.9, 0.9, 0.9]) \
+                .setContact(1)
+
+        robotiq_path = os.path.join(
+            os.path.dirname(__file__),
+            "../src/models/robotiq/robotiq.g",
+        )
+
+        def add_floating_robotiq(prefix, ball_name, pos, color):
+            """
+            prefix examples:
+                "a1_ur_"
+                "a2_ur_"
+                "h2_a1_ur_"
+            """
+
+            # Floating parent ball only
+            self.C.addFrame(ball_name) \
+                .setParent(self.C.getFrame("world")) \
+                .setJoint(ry.JT.free) \
+                .setJointState([pos[0], pos[1], pos[2], 1.0, 0.0, 0.0, 0.0]) \
+                .setShape(ry.ST.sphere, size=[0.08]) \
+                .setColor(color) \
+                .setContact(0)
+
+            # Import actual Robotiq gripper with original mesh/materials
+            self.C.addFile(robotiq_path, namePrefix=prefix)
+
+            gripper_base = f"{prefix}robotiq_base"
+            gripper_center = f"{prefix}gripper_center"
+
+            if self.C.getFrame(gripper_base) is None:
+                raise RuntimeError(f"Could not find frame: {gripper_base}")
+
+            if self.C.getFrame(gripper_center) is None:
+                raise RuntimeError(f"Could not find frame: {gripper_center}")
+
+            # Attach actual gripper to ball.
+            # Do NOT setShape() or setColor() on gripper_base.
+            self.C.getFrame(gripper_base) \
+                .setParent(self.C.getFrame(ball_name)) \
+                .setRelativePosition([0.0, 0.0, 0.14]) \
+                .setRelativeQuaternion([0.70710678, 0.0, 0.0, 0.70710678])
+
+        # main dual-arm robot: blue
+        add_floating_robotiq(
+            prefix="a1_ur_",
+            ball_name="a1_floating_ball",
+            pos=[-0.6, -0.25, 0.8],
+            color=[0.0, 0.0, 1.0],
+        )
+
+        add_floating_robotiq(
+            prefix="a2_ur_",
+            ball_name="a2_floating_ball",
+            pos=[-0.6, 0.25, 0.8],
+            color=[0.0, 0.0, 1.0],
+        )
+
+        # support robot: red
+        add_floating_robotiq(
+            prefix="h2_a1_ur_",
+            ball_name="h2_a1_floating_ball",
+            pos=[0.8, 0.0, 0.8],
+            color=[1.0, 0.0, 0.0],
+        )

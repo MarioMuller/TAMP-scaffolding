@@ -84,9 +84,9 @@ class AssemblyPlanner:
             do_shortcut=False,
             replay_now=False,
             use_rrt=False,
-            needs_support=False,
+            needs_support=True,
             release_supported_rod=self.currently_supported_rod,
-            support_gripper=None,
+            support_gripper="h2_a1_ur_gripper_center",
         )
 
         if record is None:
@@ -126,9 +126,12 @@ class AssemblyPlanner:
             # remove rod
             new_state = frozenset(state - {rod_id})
 
-            if new_state in visited:
-                continue
-            visited.add(new_state)
+            # TODO: Make a clean check to avoid checking already checked configurations
+            # if new_state in visited:
+            #     continue
+            # visited.add(new_state)
+            if new_state not in visited:
+                visited.add(new_state)
 
             if not self.is_valid_state(new_state):
                 continue
@@ -140,7 +143,7 @@ class AssemblyPlanner:
             new_sequence = sequence + [rod_id]
             
             #debug
-            if len(new_sequence) == 2:
+            if len(new_sequence) == 3:
                 return new_sequence
 
             # check if there are remaining nodes

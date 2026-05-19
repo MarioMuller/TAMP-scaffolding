@@ -12,7 +12,7 @@ class KeyframePlanner:
         
         
     # based on implementation of vhartman
-    def solve_komo(self, komo, attempts = 1000, mult = 3, offset = -1.5, view = False): 
+    def solve_komo(self, komo, attempts = 1000, mult = 3, offset = -1.5, view = False, view_accepted = False): 
         for attempt in range(attempts):
         
             if attempt > 0:
@@ -34,6 +34,10 @@ class KeyframePlanner:
 
 
             if retval["feasible"]: #retval["ineq"] < 1 and retval["eq"] < 1 and 
+                
+                if view_accepted:
+                    komo.view(True, "IK solution")
+                
                 keyframes = komo.getPath()
                 return keyframes
         
@@ -56,28 +60,12 @@ class KeyframePlanner:
         
         q0 = self.C.getJointState()
         
-        support_fixed_pairs = self.create_fixed_pose_frames_by_prefix(
-            prefixes=[
-                "h2_base_XYPhi_joint",
-                "h2_husky_",
-                "h2_a1_",
-            ],
-            tag="support",
-        )
-        
         for orientation in orientations:
-            komo = ry.KOMO(self.C, phases=3, slicesPerPhase=1, kOrder=1, enableCollisions=True)
+            komo = ry.KOMO(self.C, phases=2, slicesPerPhase=1, kOrder=1, enableCollisions=True)
 
             komo.addControlObjective([], 0, 1e-1) 
             komo.addControlObjective([], 1, 1e-1)
             # komo.addControlObjective([], 2, 1e-1)
-            
-            self.add_freeze_frame_constraints(
-                komo,
-                support_fixed_pairs,
-                times=[],
-                weight=1e2,
-            )
             
             # enable collisions and respect JointLimits
             komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
@@ -101,10 +89,10 @@ class KeyframePlanner:
             komo.addModeSwitch([2,3], ry.SY.stable, ['table', f"rod_{rod_id}"], True)
 
             
-            # move back to starting position
-            komo.addObjective([3., -1], ry.FS.jointState, [], ry.OT.eq, [1e0], q0)
+            # # move back to starting position
+            # komo.addObjective([3., -1], ry.FS.jointState, [], ry.OT.eq, [1e0], q0)
             
-            keyframes = (self.solve_komo(komo, view=True))
+            keyframes = (self.solve_komo(komo, view=False))
             
 
         # for t in range(keyframes.shape[0]):
@@ -145,15 +133,6 @@ class KeyframePlanner:
         )
 
         q0 = self.C.getJointState()
-        
-        support_fixed_pairs = self.create_fixed_pose_frames_by_prefix(
-            prefixes=[
-                "h2_base_XYPhi_joint",
-                "h2_husky_",
-                "h2_a1_",
-            ],
-            tag="support",
-        )
 
         komo = ry.KOMO(
             self.C,
@@ -165,13 +144,6 @@ class KeyframePlanner:
 
         komo.addControlObjective([], 0, 1e-1)
         komo.addControlObjective([], 1, 1e-1)
-        
-        self.add_freeze_frame_constraints(
-            komo,
-            support_fixed_pairs,
-            times=[],
-            weight=1e2,
-        )
 
         komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
@@ -317,7 +289,6 @@ class KeyframePlanner:
             ["table", rod],
             True,
         )
-                
 
         # back to start
         komo.addObjective(
@@ -329,7 +300,7 @@ class KeyframePlanner:
             q0,
         )
 
-        keyframes = self.solve_komo(komo)
+        keyframes = self.solve_komo(komo, view=False)
 
         if keyframes is None:
             raise RuntimeError("KOMO failed to find dual-arm keyframes")
@@ -353,8 +324,8 @@ class KeyframePlanner:
         rod_id,
         support_gripper="h2_a1_ur_gripper_center",
         main_gripper="a1_ur_gripper_center",
-        grasp_fractions=(0.25, 0.5, 0.75),
-        freeze_main=True,
+        grasp_fractions=(0.75, 0.5, 0.25),
+        freeze_main=False,
         keep_rod_at_target=True,
     ):
         """
@@ -368,25 +339,28 @@ class KeyframePlanner:
 
         rod = f"rod_{rod_id}"
         q0 = self.C.getJointState()
+        
+        main_joint_names = [
+            "husky_base_XYPhi_joint:0",
+            "husky_base_XYPhi_joint:1",
+            "husky_base_XYPhi_joint:2",
+            "a1_shoulder_pan_joint",
+            "a1_shoulder_lift_joint",
+            "a1_elbow_joint",
+            "a1_wrist_1_joint",
+            "a1_wrist_2_joint",
+            "a1_wrist_3_joint",
+            "a2_shoulder_pan_joint",
+            "a2_shoulder_lift_joint",
+            "a2_elbow_joint",
+            "a2_wrist_1_joint",
+            "a2_wrist_2_joint",
+            "a2_wrist_3_joint",
+        ]
+        
+        main_q0 = q0[:15].copy()
 
         target_name = self.rods.create_target_frame(rod_id)
-
-        fixed_main_frame = None
-        if freeze_main:
-            fixed_main_frame = self.create_fixed_pose_frame(
-                main_gripper,
-                f"fixed_{main_gripper}_for_support",
-            )
-            
-        main_fixed_pairs = self.create_fixed_pose_frames_by_prefix(
-            prefixes=[
-                "husky_base_XYPhi_joint",
-                "husky_coll_",
-                "a1_",
-                "a2_",
-            ],
-            tag="main",
-        )
 
         for fraction in grasp_fractions:
             support_grasp = self.rods.create_support_grasp_frame_at_fraction(
@@ -412,58 +386,50 @@ class KeyframePlanner:
             komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e0])
             komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
             
-            self.add_freeze_frame_constraints(
-                komo,
-                main_fixed_pairs,
-                times=[],
-                weight=1e2,
-            )
-
-            # Freeze main gripper while support robot moves.
             if freeze_main:
-                komo.addObjective(
-                    [1.0],
-                    ry.FS.positionDiff,
-                    [main_gripper, fixed_main_frame],
-                    ry.OT.eq,
-                    [1e2],
-                )
+                print("Freeze main robot is active")
+
+                q0_full = np.asarray(q0, dtype=float)
+
+                scale = np.zeros_like(q0_full)
+                scale[:15] = 1e2   # freeze main robot only
 
                 komo.addObjective(
                     [1.0],
-                    ry.FS.quaternionDiff,
-                    [main_gripper, fixed_main_frame],
+                    ry.FS.qItself,
+                    [],
                     ry.OT.eq,
-                    [1e2],
+                    scale,
+                    q0_full,
                 )
 
-            # Keep rod fixed at target while support robot approaches.
-            if keep_rod_at_target:
-                komo.addObjective(
-                    [1.0],
-                    ry.FS.positionDiff,
-                    [rod, target_name],
-                    ry.OT.eq,
-                    [1e2],
-                )
+            # # Keep rod fixed at target while support robot approaches.
+            
+            # komo.addObjective(
+            #     [1.0],
+            #     ry.FS.positionDiff,
+            #     [rod, target_name],
+            #     ry.OT.eq,
+            #     [1e2],
+            # )
 
-                komo.addObjective(
-                    [1.0],
-                    ry.FS.scalarProductZZ,
-                    [rod, target_name],
-                    ry.OT.eq,
-                    [1e2],
-                    [1.0],
-                )
+            # komo.addObjective(
+            #     [1.0],
+            #     ry.FS.scalarProductZZ,
+            #     [rod, target_name],
+            #     ry.OT.eq,
+            #     [1e2],
+            #     [1.0],
+            # )
 
-                komo.addObjective(
-                    [1.0],
-                    ry.FS.scalarProductXX,
-                    [rod, target_name],
-                    ry.OT.eq,
-                    [1e2],
-                    [1.0],
-                )
+            # komo.addObjective(
+            #     [1.0],
+            #     ry.FS.scalarProductXX,
+            #     [rod, target_name],
+            #     ry.OT.eq,
+            #     [1e2],
+            #     [1.0],
+            # )
 
             # Support gripper touches one candidate point along the rod.
             komo.addObjective(
@@ -488,98 +454,13 @@ class KeyframePlanner:
             keyframes = self.solve_komo(
                 komo,
                 attempts=50,
-                view=True,
+                view_accepted=True,
             )
 
             if keyframes is not None:
                 return keyframes, q0
 
         raise RuntimeError(f"Support keyframe failed for rod {rod_id}")
-    
-    
-    def create_fixed_pose_frame(self, source_frame, fixed_name):
-        if self.C.getFrame(fixed_name) is None:
-            self.C.addFrame(fixed_name, "world")
-
-        self.C.getFrame(fixed_name).setPosition(
-            self.C.getFrame(source_frame).getPosition()
-        )
-
-        self.C.getFrame(fixed_name).setQuaternion(
-            self.C.getFrame(source_frame).getQuaternion()
-        )
-
-        return fixed_name
-
-
-    def create_fixed_pose_frames_by_prefix(self, prefixes, tag):
-        fixed_pairs = []
-
-        for frame_name in self.C.getFrameNames():
-            if not any(frame_name.startswith(prefix) for prefix in prefixes):
-                continue
-
-            if frame_name.startswith("fixed_"):
-                continue
-
-            safe_name = self.safe_frame_name(frame_name)
-            fixed_name = f"fixed_{tag}_{safe_name}"
-
-            self.create_fixed_pose_frame(frame_name, fixed_name)
-
-            if self.C.getFrame(fixed_name) is None:
-                print(f"Failed to create fixed frame for {frame_name}")
-                continue
-
-            fixed_pairs.append((frame_name, fixed_name))
-
-        print(f"Created {len(fixed_pairs)} fixed frames for {tag}")
-
-        return fixed_pairs
-
-
-    def add_freeze_frame_constraints(
-        self,
-        komo,
-        fixed_pairs,
-        times=None,
-        weight=1e2,
-    ):
-        """
-        Constrains all source frames to stay at their fixed world poses.
-        Use times=[] to apply over the whole KOMO.
-        """
-
-        if times is None:
-            times = []
-
-        for source, fixed in fixed_pairs:
-            komo.addObjective(
-                times,
-                ry.FS.positionDiff,
-                [source, fixed],
-                ry.OT.eq,
-                [weight],
-            )
-
-            komo.addObjective(
-                times,
-                ry.FS.quaternionDiff,
-                [source, fixed],
-                ry.OT.eq,
-                [weight],
-            ) 
-        
-        
-        
-    def safe_frame_name(self, name):
-        return (
-            name.replace(">", "_")
-                .replace("/", "_")
-                .replace(":", "_")
-                .replace(" ", "_")
-                .replace(".", "_")
-        )
     
     
     

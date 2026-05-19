@@ -1,0 +1,73 @@
+PSEUDOCODE
+
+import final scaffold geometry
+
+for each rod in scaffold:
+    calculate heuristic for removing rod
+    add candidate to open_list
+
+while open_list not empty:
+
+    take best candidate from open_list
+    remove candidate rod from scaffold state
+
+    check whether remaining scaffold is structurally valid or can reach valid state with available support robots
+
+    if remaining scaffold is not valid:
+        reject candidate
+        continue with next candidate
+
+    check if motion can be found for placing this rod
+
+        create clean start environment
+
+        run KOMO to find keyframes for pick and place rod
+
+        if no keyframes found:
+            reject candidate
+
+        else:
+            plan motion between keyframes
+
+        if placed rod needs support:
+            
+                check if support robot is available
+
+                if not available:
+                    reject candidate
+
+                else:
+                    find support keyframe
+                  
+                    if no support keyframe found:
+                        reject candidate
+
+                    else:
+                        plan motion
+                        save robot paths
+                        motion feasible
+
+          else:
+                attach rod to scaffold
+        	save robot path
+                motion is feasible
+
+    if motion not feasible:
+        reject candidate
+        continue with next candidate
+
+    if motion feasible:
+
+        store recorded motion for rod & add rod to removal sequence
+
+        if no rods left:
+            return removal sequence and recorded paths
+
+        else:
+            for each remaining rod:
+                calculate heuristic for removing that rod next
+                add new candidate to open_list
+
+
+reverse removal sequence to get assembly sequence
+  

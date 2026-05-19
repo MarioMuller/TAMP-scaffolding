@@ -35,13 +35,22 @@ class RaiTrussBuilder:
             base_q=base_q,
         )
         
+    def import_floating_grippers_debug(self):
+        self.scene.import_floating_grippers_debug()
+        
     def import_robots(self):
-        self.import_husky()
+        
+        debug = True
+        if debug:
+            self.import_floating_grippers_debug()
+            
+        else: 
+            self.import_husky()
 
-        self.import_support_husky(
-            name="h2",
-        )
-    
+            self.import_support_husky(
+                name="h2",
+            )
+        
     
     def replay_recorded_plan(self, *args, **kwargs):
         return self.replayer.replay_recorded_plan(*args, **kwargs)
@@ -76,8 +85,8 @@ class RaiTrussBuilder:
             
             # keyframes, q0 = self.keyframes.get_keyframes_dual(
             #     rod_id,
-            #     d1_from_end=0.04,
-            #     d12_between_arms=0.12,
+            #     d1_from_end=0.2,
+            #     d12_between_arms=0.6,
             # )
 
             record = RodPathRecord(rod_id=rod_id)
@@ -211,21 +220,15 @@ class RaiTrussBuilder:
         
         
     def move_support_to_rod_and_attach(
-        self,
-        record,
-        rod_id,
-        support_gripper="h2_a1_ur_gripper_center",
-        main_gripper="a1_ur_gripper_center",
-        use_rrt=False,
-        shortcut_step=0.02,
-    ):
-        """
-        Sequential support step:
-        - Main robot is assumed to hold the rod at the target.
-        - Main gripper is frozen inside support KOMO.
-        - Support robot moves to the rod.
-        - Rod is transferred to support gripper.
-        """
+            self,
+            record,
+            rod_id,
+            support_gripper="h2_a1_ur_gripper_center",
+            main_gripper="a1_ur_gripper_center",
+            use_rrt=False,
+            shortcut_step=0.02,
+        ):
+
 
         support_keyframes, support_q0 = self.keyframes.get_support_keyframes(
             rod_id,
@@ -292,4 +295,4 @@ if __name__ == "__main__":
 
     # build_entire_truss_in_rai(radius, node_positions, rods, C)
     builder = RaiTrussBuilder(truss, radius=0.0015)
-    self.import_robots()
+   # builder.import_robots()

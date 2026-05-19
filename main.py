@@ -57,7 +57,7 @@ if run == "replay_husky":
 
     replay_builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
     replay_builder.import_robots()
-
+    
     replay_builder.display_recorded_plan_viser(
         recorder,
         port=8080,
