@@ -4,6 +4,7 @@ import pyvista as pv
 import numpy as np
 import heapq
 import time
+from DataClasses import SearchNode
 
 class AssemblyPlanner:
     def __init__(self, truss, builder=None):
@@ -114,52 +115,152 @@ class AssemblyPlanner:
         # initialize search
         # counter use first in first out if same priority
         # save current state and rod to try
+        # for rod_id in initial_state:
+        #     # needs to be negative because heapq uses smallest!
+        #     priority = (len(initial_state), -self.heuristic(rod_id))
+        #     heapq.heappush(open_list, (priority, counter, initial_state, rod_id, []))
+        #     counter += 1
+            
+        initial_node = SearchNode(
+            state=initial_state,
+            sequence=[],
+            q=None,
+            supported={},
+            records=[],
+        )
+
         for rod_id in initial_state:
-            # needs to be negative because heapq uses smallest!
             priority = (len(initial_state), -self.heuristic(rod_id))
-            heapq.heappush(open_list, (priority, counter, initial_state, rod_id, []))
+            heapq.heappush(open_list, (priority, counter, initial_node, rod_id))
             counter += 1
 
+        # while open_list:
+        #     priority, counter, state, rod_id, sequence = heapq.heappop(open_list)
+
+        #     # remove rod
+        #     new_state = frozenset(state - {rod_id})
+
+        #     # TODO: Make a clean check to avoid checking already checked configurations
+        #     # if new_state in visited:
+        #     #     continue
+        #     # visited.add(new_state)
+        #     if new_state not in visited:
+        #         visited.add(new_state)
+
+        #     if not self.is_valid_state(new_state):
+        #         continue
+            
+        #     if not self.is_motion_feasible(new_state, rod_id):
+        #         continue
+
+        #     # if it is a feasible option add rod to remove sequence
+        #     new_sequence = sequence + [rod_id]
+            
+        #     #debug
+        #     if len(new_sequence) == 3:
+        #         return new_sequence
+
+        #     # check if there are remaining nodes
+        #     if len(new_state) == 0:
+        #         return new_sequence
+
+        #     # add all rods that could be removed to open_list 
+        #     for next_rod in new_state:
+        #         priority = (len(new_state), -self.heuristic(next_rod))
+        #         heapq.heappush(
+        #             open_list,
+        #             (priority, counter, new_state, next_rod, new_sequence)
+        #         )
+        #         counter += 1
+
+        # return None
+        
         while open_list:
-            priority, counter, state, rod_id, sequence = heapq.heappop(open_list)
+            priority, counter, node, rod_id = heapq.heappop(open_list)
 
-            # remove rod
-            new_state = frozenset(state - {rod_id})
+            current_state = node.state
+            new_state = frozenset(node.state - {rod_id})
 
-            # TODO: Make a clean check to avoid checking already checked configurations
-            # if new_state in visited:
-            #     continue
-            # visited.add(new_state)
-            if new_state not in visited:
-                visited.add(new_state)
+            feasible, result = self.is_removal_feasible(node, rod_id)
 
-            if not self.is_valid_state(new_state):
-                continue
-            
-            if not self.is_motion_feasible(new_state, rod_id):
+            if not feasible:
                 continue
 
-            # if it is a feasible option add rod to remove sequence
-            new_sequence = sequence + [rod_id]
-            
-            #debug
-            if len(new_sequence) == 3:
-                return new_sequence
+            new_node = SearchNode(
+                state=new_state,
+                sequence=node.sequence + [rod_id],
+                q=result["q_final"],
+                supported=result["supported"],
+                records=node.records + [result["record"]],
+            )
 
-            # check if there are remaining nodes
             if len(new_state) == 0:
-                return new_sequence
+                self.final_node = new_node
+                return new_node.sequence
 
-            # add all rods that could be removed to open_list 
+            # debug stopping condition
+            if len(new_node.sequence) == 10:
+                self.final_node = new_node
+                return new_node.sequence
+
             for next_rod in new_state:
                 priority = (len(new_state), -self.heuristic(next_rod))
                 heapq.heappush(
                     open_list,
-                    (priority, counter, new_state, next_rod, new_sequence)
+                    (priority, counter, new_node, next_rod)
                 )
                 counter += 1
 
         return None
+    
+    def is_removal_feasible(self, node, rod_id):
+        """
+        Test whether rod_id can be removed from the current scaffold state.
+
+        node.state:
+            rods currently installed before removing rod_id
+
+        new_state:
+            rods remaining after removing rod_id
+
+        node.supported:
+            branch-local support state, e.g.
+            {
+                "h2_a1_ur_gripper_center": 6
+            }
+        """
+
+        if self.builder is None:
+            return True, None
+
+        current_state = node.state
+        new_state = frozenset(current_state - {rod_id})
+
+        support_required = not self.is_valid_state(new_state)
+
+        print(f"Checking removal feasibility for rod {rod_id}")
+        print(f"Current rods: {sorted(current_state)}")
+        print(f"Remaining rods after removal: {sorted(new_state)}")
+        print(f"Support required: {support_required}")
+
+        result = self.builder.try_remove_and_commit_rod(
+            current_state=current_state,
+            new_state=new_state,
+            rod_id=rod_id,
+            q_start=node.q,
+            supported=node.supported,
+            support_required=support_required,
+            use_rrt=False,
+            do_shortcut=False,
+        )
+
+        if result is None:
+            print(f"Removal infeasible for rod {rod_id}")
+            return False, None
+
+        print(f"Removal feasible for rod {rod_id}")
+        return True, result
+
 
 
 # plotting done by ChatGPT
@@ -233,6 +334,7 @@ def export_assembly_video(
 
     plotter.close()
     print("Video exported")
+    
 
 
 if __name__ == "__main__":

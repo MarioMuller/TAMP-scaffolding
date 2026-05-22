@@ -29,14 +29,41 @@ class PlanReplayer:
             if self.C.getFrame(f"rod_{rod_id}") is None:
                 self.rods.create_rod(rod_id, pos=rod_pos, ori=rod_ori)
 
+            pre_events = [
+                event for event in record.events
+                if event.segment_id == -1
+            ]
+            pre_events_applied = False
+
             for segment_id, path in enumerate(record.segments):
-                for q in path:
+                for q_id, q in enumerate(path):
                     self.C.setJointState(q)
+
+                    if not pre_events_applied and segment_id == 0 and q_id == 0:
+                        for event in pre_events:
+                            if event.action == "attach":
+                                self.C.attach(event.parent, event.child)
+                                print(f"Replay pre-attach: {event.child} to {event.parent}")
+                            elif event.action == "detach":
+                                self.C.attach("world", event.child)
+                                print(f"Replay pre-detach: {event.child} from {event.parent}")
+
+                        pre_events_applied = True
+
                     self.C.view(False, f"replay rod {rod_id}, segment {segment_id}")
                     time.sleep(dt)
 
                 for event in record.events:
+                
                     if event.segment_id == segment_id:
-                        self.C.attach(event.parent, event.child)
-                        print(f"Replay attach: {event.child} to {event.parent}")
-                        
+
+                        if event.action == "attach":
+                            self.C.attach(event.parent, event.child)
+                            print(f"Replay attach: {event.child} to {event.parent}")
+
+                        elif event.action == "detach":
+                            print(f"Replay detach bookkeeping: {event.child} from {event.parent}")
+                            # IMPORTANT:
+                            # Do not call self.C.attach("world", event.child) here.
+                            # Otherwise this immediately undoes the gripper attachment.
+                            pass

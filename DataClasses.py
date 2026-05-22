@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import numpy as np
 
 @dataclass
 class AttachmentEvent:
@@ -32,3 +33,11 @@ class AssemblyPlan:
 
     def sequence(self):
         return self.assembly_sequence
+
+@dataclass
+class SearchNode:
+    state: frozenset
+    sequence: list = field(default_factory=list)
+    q: np.ndarray | None = None
+    supported: dict = field(default_factory=dict)  # support_gripper -> rod_id
+    records: list = field(default_factory=list)

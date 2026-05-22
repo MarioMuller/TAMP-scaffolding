@@ -10,51 +10,56 @@ while open_list not empty:
 
     take best candidate from open_list
     remove candidate rod from scaffold state
+    
+    create clean start environment
 
     if remaining scaffold not structurally valid:
     
 	if valid state reachable with amount of robots:
-	    run Komo to find support keyframe
+	    run KOMO to find keyframes for:
+		    main robot moves to candidate rod
+		    main robot grasps candidate rod
 
-        if remaining scaffold is not valid:
-            reject candidate
-            continue with next candidate
+		    if candidate_is_currently_supported:
+			support robot releases candidate rod
+			support robot moves away
+		
+		    support robots move into place to stabilize unstable rods
+		    candidate rod is detached from scaffold
+		    main robot moves candidate rod to pickup pose
 
-    check if motion can be found for placing this rod
+	    if no keyframes found:
+		reject candidate
+		continue with next candidate
+		
+	    else: 
+	        plan motion between keyframes
+	        save robot paths
+	        motion feasible
+            
 
-        create clean start environment
+    else check if motion can be found for removing this rod
 
-        run KOMO to find keyframes for pick and place rod
+        run KOMO :
+		main robot moves to candidate rod
+		main robot grasps candidate rod
+		
+		if candidate_is_currently_supported:
+				support robot releases candidate rod
+				support robot moves away
+		
+		candidate rod is detached from scaffold
+		main robot moves candidate rod to pickup pose
 
         if no keyframes found:
             reject candidate
 
         else:
             plan motion between keyframes
+            save robot paths
+            motion feasible
 
-        if placed rod needs support:
-            
-                check if support robot is available
-
-                if not available:
-                    reject candidate
-
-                else:
-                    find support keyframe
-                  
-                    if no support keyframe found:
-                        reject candidate
-
-                    else:
-                        plan motion
-                        save robot paths
-                        motion feasible
-
-          else:
-                attach rod to scaffold
-        	save robot path
-                motion is feasible
-
+        
     if motion not feasible:
         reject candidate
         continue with next candidate

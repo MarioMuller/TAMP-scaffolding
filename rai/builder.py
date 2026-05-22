@@ -287,6 +287,156 @@ class RaiTrussBuilder:
             self.C.setJointState(q)
             self.C.view(False, f"{title} {i}")
             time.sleep(dt)
+            
+            
+    def try_remove_and_commit_rod(
+        self,
+        current_state,
+        new_state,
+        rod_id,
+        q_start=None,
+        supported=None,
+        support_required=False,
+        use_rrt=False,
+        do_shortcut=False,
+    ):
+        """
+        Backward-search motion test.
+
+        current_state:
+            rods currently installed before candidate removal
+
+        new_state:
+            rods remaining after candidate rod is removed
+
+        supported:
+            dict support_gripper -> rod_id
+        """
+
+        if supported is None:
+            supported = {}
+
+        # 1. Build scene with candidate rod still installed
+        self.reset_scene_with_rods(current_state)
+
+        if q_start is not None:
+            self.C.setJointState(q_start)
+
+        # 2. Restore branch-local support attachments
+        for support_gripper, supported_rod in supported.items():
+            print("Support robot is actually used")
+            rod_frame = f"rod_{supported_rod}"
+            if self.C.getFrame(rod_frame) is not None:
+                self.C.attach(support_gripper, rod_frame)
+
+        record = RodPathRecord(rod_id=rod_id)
+
+        candidate_is_supported = rod_id in supported.values()
+
+        # 3. If candidate is currently supported, remember which gripper holds it
+        old_support_gripper = None
+        for gripper, supported_rod in supported.items():
+            if supported_rod == rod_id:
+                old_support_gripper = gripper
+                break
+
+        # 4. Compute removal keyframes
+        if False:
+            print("error")
+        # if support_required:
+        #     keyframes, q0, new_supported = self.keyframes.get_remove_keyframes_with_support(
+        #         rod_id=rod_id,
+        #         supported=supported,
+        #         candidate_is_supported=candidate_is_supported,
+        #         old_support_gripper=old_support_gripper,
+        #     )
+        else:
+            keyframes, q0, new_supported = self.keyframes.get_remove_keyframes_dual(
+                rod_id=rod_id,
+                supported=supported,
+                candidate_is_supported=candidate_is_supported,
+                old_support_gripper=old_support_gripper,
+            )
+
+        if keyframes is None:
+            return None
+
+        # 5. Convert keyframes into path segments
+        q_current = self.C.getJointState().copy()
+        for i, q_goal in enumerate(keyframes):
+            if use_rrt:
+                path = self.paths.plan_segment(
+                    q_start=q_current,
+                    q_goal=q_goal,
+                    do_shortcut=do_shortcut,
+                )
+            else:
+                path = np.asarray([q_current, q_goal])
+
+            if path is None:
+                return None
+
+            record.segments.append(path)
+
+            self.C.setJointState(q_goal)
+            q_current = q_goal.copy()
+
+            if i == 0:
+                # Bookkeeping: rod is no longer attached to scaffold/table.
+                record.events.append(
+                    AttachmentEvent(
+                        rod_id=rod_id,
+                        segment_id=i,
+                        parent="table",
+                        child=f"rod_{rod_id}",
+                        action="detach",
+                    )
+                )
+
+                print(f"[event] segment={i}: detach rod_{rod_id} from table")
+
+                # Actual RAI operation: re-parent rod to gripper.
+                self._attach_and_record(
+                    record=record,
+                    rod_id=rod_id,
+                    segment_id=i,
+                    parent="a1_ur_gripper_center",
+                    child=f"rod_{rod_id}",
+                )
+
+        return {
+            "record": record,
+            "q_final": q_current,
+            "supported": new_supported,
+        }
+        
+    
+    def _detach_and_record(
+        self,
+        record,
+        rod_id,
+        segment_id,
+        child,
+        new_parent="world",
+    ):
+        """
+        Detach child from its current parent by attaching it to world.
+        This is mainly for replay/event bookkeeping.
+        """
+
+        self.C.attach(new_parent, child)
+
+        record.events.append(
+            AttachmentEvent(
+                rod_id=rod_id,
+                segment_id=segment_id,
+                parent=new_parent,
+                child=child,
+                action="detach",
+            )
+        )
+
+        print(f"[event] segment={segment_id}: detach {child} -> {new_parent}")
 
 
 if __name__ == "__main__":

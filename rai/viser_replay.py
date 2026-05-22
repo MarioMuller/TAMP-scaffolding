@@ -11,11 +11,12 @@ class ViserPlanReplayer:
         self.rods = rod_manager
 
     def _build_display_config(
-        self,
-        recorder,
-        rod_pos=(-3, -1, 1.0),
-        rod_ori=(0.5, 0.0, 0.5, 0.70710678),
-    ):
+            self,
+            recorder,
+            rod_pos=(-3, -1, 1.0),
+            rod_ori=(0.5, 0.0, 0.5, 0.70710678),
+            replay_mode="removal",
+        ):
         """
         Builds a config containing all rods that appear in the recorded plan.
         """
@@ -31,27 +32,69 @@ class ViserPlanReplayer:
                     ori=rod_ori,
                 )
 
-            # self.rods.create_sliding_support_grasp_frame(rod_id)
+            if replay_mode == "removal":
+                # Removal starts with rod installed.
+                self.rods.set_to_goal_pose(rod_id, view=False)
+
+                if self.C.getFrame("table") is not None:
+                    self.C.attach("table", rod_name)
+
+            elif replay_mode == "assembly":
+                # Assembly starts with rod at pickup/staging pose.
+                self.C.getFrame(rod_name) \
+                    .setPosition(rod_pos) \
+                    .setQuaternion(rod_ori)
 
         C_display_base = ry.Config()
         C_display_base.addConfigurationCopy(self.C)
 
         return C_display_base
 
-    def _precompute_viser_steps(self, recorder, C_base):
+    def _precompute_viser_steps(self, recorder, C_base, replay_mode="removal"):
         C_sim = ry.Config()
         C_sim.addConfigurationCopy(C_base)
 
         steps = []
-        visible_rods = set()
 
-        for record in recorder.records_in_assembly_order():
+        if replay_mode == "removal":
+            visible_rods = {record.rod_id for record in recorder.records}
+        else:
+            visible_rods = set()
+
+        for record in recorder.records:
             rod_id = record.rod_id
-            visible_rods.add(rod_id)  # rod spawns when its motion starts
 
+            print(f"Replaying rod {rod_id}")
+
+            # Events with segment_id == -1 happen before the first segment.
+            pre_events = [
+                event for event in record.events
+                if event.segment_id == -1
+            ]
+
+            if replay_mode == "assembly":
+                visible_rods.add(rod_id)
+
+            pre_events_applied = False
             for segment_id, path in enumerate(record.segments):
-                for q in path:
+                for q_id, q in enumerate(path):
                     C_sim.setJointState(q)
+
+                    # Pre-events need the first replay configuration already set.
+                    # Otherwise C.attach preserves a relative transform from the
+                    # default robot pose and the rod gets carried with a bad offset.
+                    if not pre_events_applied and segment_id == 0 and q_id == 0:
+                        for event in pre_events:
+                            if event.action == "detach":
+                                C_sim.attach("world", event.child)
+                                print(f"Replay pre-detach: {event.child} from {event.parent}")
+
+                        for event in pre_events:
+                            if event.action == "attach":
+                                C_sim.attach(event.parent, event.child)
+                                print(f"Replay pre-attach: {event.child} to {event.parent}")
+
+                        pre_events_applied = True
 
                     poses = {}
                     for frame in C_sim.getFrames():
@@ -67,21 +110,42 @@ class ViserPlanReplayer:
                         "visible_rods": set(visible_rods),
                     })
 
-                for event in record.events:
-                    if event.segment_id == segment_id:
-                        if event.action == "attach":
-                            if (
-                                C_sim.getFrame(event.parent) is not None
-                                and C_sim.getFrame(event.child) is not None
-                            ):
-                                C_sim.attach(event.parent, event.child)
-                            else:
-                                print(
-                                    f"Skipping attachment: "
-                                    f"{event.child} to {event.parent}"
-                                )
-                                
-                                
+                segment_events = [
+                    event for event in record.events
+                    if event.segment_id == segment_id
+                ]
+
+                # First apply detaches
+                for event in segment_events:
+                    if event.action == "detach":
+                        C_sim.attach("world", event.child)
+                        print(f"Replay detach: {event.child} from {event.parent}")
+
+                # Then apply attaches
+                for event in segment_events:
+                    if event.action == "attach":
+                        C_sim.attach(event.parent, event.child)
+                        print(f"Replay attach: {event.child} to {event.parent}")
+                        
+                        
+                # If events happened after this segment, update the last stored pose
+                # so the event is visible at the end of the same segment, not one step later.
+                if segment_events and len(steps) > 0:
+                    poses = {}
+                    for frame in C_sim.getFrames():
+                        poses[frame.name] = (
+                            np.asarray(frame.getPosition(), dtype=np.float32),
+                            np.asarray(frame.getQuaternion(), dtype=np.float32),
+                        )
+
+                    steps[-1]["poses"] = poses
+                    steps[-1]["visible_rods"] = set(visible_rods)
+
+                # Visibility update after events.
+                # In assembly mode, rods stay visible after they have been introduced.
+                # In removal mode, you could remove visibility after pickup later,
+                # but for now keeping them visible is useful for debugging.
+
         return steps
 
     def _viser_set_step(self, i, steps, handles, mode_label=None):
@@ -123,6 +187,7 @@ class ViserPlanReplayer:
         rod_pos=(-3, -1, 1.0),
         rod_ori=(0.5, 0.0, 0.5, 0.70710678),
         primitives_only=False,
+        replay_mode="removal",
     ):
         try:
             import viser
@@ -135,11 +200,13 @@ class ViserPlanReplayer:
             recorder,
             rod_pos=rod_pos,
             rod_ori=rod_ori,
+            replay_mode=replay_mode,
         )
 
         steps = self._precompute_viser_steps(
             recorder,
             C_display_base,
+            replay_mode=replay_mode,
         )
 
         if len(steps) == 0:
