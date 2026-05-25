@@ -1,3 +1,4 @@
+import random
 from truss import Truss
 from collections import defaultdict, deque
 import pyvista as pv
@@ -55,48 +56,6 @@ class AssemblyPlanner:
             if not has_ground:
                 return False
 
-        return True
-
-    
-    # TODO: maybe put main part of function to other file
-    def is_motion_feasible(self, support_rods, rod_id):
-        """
-        support_rods:
-            rods that remain after removing rod_id in backward search.
-            These are the rods that would already be assembled before rod_id
-            in the forward assembly direction.
-
-        rod_id:
-            rod we are testing whether we can place next.
-        """
-
-        if self.builder is None:
-            return True
-
-        print(f"Checking motion feasibility for rod {rod_id} with supports {sorted(support_rods)}")
-
-        # rebuild clean scene containing only the support rods
-        self.builder.reset_scene_with_rods(support_rods)
-
-        record = self.builder.try_plan_and_commit_rod(
-            rod_id,
-            rod_pos=[-3, -1, 1.0],
-            rod_ori=[0.5, 0.0, 0.5, 0.70710678],
-            do_shortcut=False,
-            replay_now=False,
-            use_rrt=False,
-            needs_support=True,
-            release_supported_rod=self.currently_supported_rod,
-            support_gripper="h2_a1_ur_gripper_center",
-        )
-
-        if record is None:
-            print(f"Motion infeasible for rod {rod_id}")
-            return False
-
-        print(f"Motion feasible for rod {rod_id}")
-        self.motion_records[rod_id] = record
-        self.currently_supported_rod = rod_id
         return True
 
     # use height as heuristicc
@@ -237,12 +196,24 @@ class AssemblyPlanner:
         new_state = frozenset(current_state - {rod_id})
 
         support_required = not self.is_valid_state(new_state)
-
-        print(f"Checking removal feasibility for rod {rod_id}")
-        print(f"Current rods: {sorted(current_state)}")
-        print(f"Remaining rods after removal: {sorted(new_state)}")
-        print(f"Support required: {support_required}")
-
+        
+        HELPER_GRIPPERS = [
+            "h1_a1_ur_gripper_center",
+            "h2_a1_ur_gripper_center",
+        ]
+        
+        # debug option: randomize support requirement
+        support_required = random.choice([True, False])
+        
+        
+        if support_required:
+            print(f"Rod {rod_id} requires support upon removal")
+            
+            #check if support robot h1 or h2 is available
+            if not node.has_unused_helper(HELPER_GRIPPERS):
+                print(f"No helper gripper available to support rod {rod_id}")
+                return False, None
+                
         result = self.builder.try_remove_and_commit_rod(
             current_state=current_state,
             new_state=new_state,
@@ -263,78 +234,6 @@ class AssemblyPlanner:
 
 
 
-# plotting done by ChatGPT
-def export_assembly_video(
-    nodes,
-    elements,
-    sequence,
-    output_path="assembly.mp4",
-    fps=2,
-    assembly=True,
-    show_future=True,
-):
-    sequence = list(sequence)
-    pts = np.array(list(nodes.values()), dtype=float)
-    bounds_min = pts.min(axis=0)
-    bounds_max = pts.max(axis=0)
-    diag = np.linalg.norm(bounds_max - bounds_min)
-    if diag == 0:
-        diag = 1.0
-
-    tube_radius = diag * 0.01
-    node_radius = diag * 0.0
-
-    plotter = pv.Plotter(off_screen=True, window_size=(1280, 720))
-    plotter.open_movie(output_path, framerate=fps)
-    plotter.set_background("white")
-
-    if assembly:
-        active_rods = set()
-    else:
-        active_rods = set(elements.keys())
-
-    def draw_frame(step_idx, highlight_rod=None):
-        plotter.clear()
-
-        for eid, (n1, n2) in elements.items():
-            p1 = nodes[n1]
-            p2 = nodes[n2]
-            tube = pv.Line(p1, p2).tube(radius=tube_radius)
-
-            if eid == highlight_rod:
-                plotter.add_mesh(tube, color="red")
-            elif eid in active_rods:
-                plotter.add_mesh(tube, color="blue")
-            elif show_future:
-                plotter.add_mesh(tube, color="lightgray", opacity=0.15)
-
-        cloud = pv.PolyData(pts)
-        node_mesh = cloud.glyph(scale=False, orient=False, geom=pv.Sphere(radius=node_radius))
-        plotter.add_mesh(node_mesh, color="black")
-
-        label = f"Step {step_idx}"
-        if highlight_rod is not None:
-            label += f" | Rod {highlight_rod}"
-        #plotter.add_text(label, position="upper_left", font_size=14, color="black")
-
-        #plotter.show_grid()
-        plotter.reset_camera()
-        plotter.write_frame()
-
-    draw_frame(0)
-
-    for i, rod in enumerate(sequence, start=1):
-        print(i)
-        if assembly:
-            active_rods.add(rod)
-        else:
-            active_rods.remove(rod)
-
-        draw_frame(i, highlight_rod=rod)
-
-    plotter.close()
-    print("Video exported")
-    
 
 
 if __name__ == "__main__":
@@ -346,5 +245,4 @@ if __name__ == "__main__":
     assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
     print("Assembly:", assembly_sequence)
 
-    if assembly_sequence:
-        export_assembly_video(truss.nodes, truss.elements, assembly_sequence)
+   

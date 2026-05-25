@@ -179,8 +179,17 @@ class RaiScene:
 
         # support robot: red
         add_floating_robotiq(
-            prefix="h2_a1_ur_",
-            ball_name="h2_a1_floating_ball",
-            pos=[0.8, 0.0, 0.8],
+            prefix="h1_ur_",
+            ball_name="h1_floating_ball",
+            pos=[0.8, -2.0, 0.8],
             color=[1.0, 0.0, 0.0],
         )
+        
+        add_floating_robotiq(
+            prefix="h2_ur_",
+            ball_name="h2_floating_ball",
+            pos=[0.8, 2.0, 0.8],
+            color=[0.0, 1.0, 0.0],
+        )
+       
+        

@@ -6,9 +6,56 @@ import robotic as ry
 
 
 class ViserPlanReplayer:
+    ROD_COLORS = {
+        "free": (128, 255, 0),
+        "robot": (220, 40, 40),
+        "support": (255, 105, 180),
+    }
+
     def __init__(self, C, rod_manager):
         self.C = C
         self.rods = rod_manager
+
+    def _rod_id_from_name(self, frame_name):
+        parts = frame_name.split("_")
+        if len(parts) < 2 or parts[0] != "rod":
+            return None
+
+        try:
+            return int(parts[1])
+        except ValueError:
+            return None
+
+    def _is_primary_rod_frame(self, frame_name):
+        rod_id = self._rod_id_from_name(frame_name)
+        return rod_id is not None and frame_name == f"rod_{rod_id}"
+
+    def _event_rod_id(self, event):
+        return self._rod_id_from_name(event.child)
+
+    def _rod_state_from_parent(self, parent):
+        if parent in ("world", "table"):
+            return "free"
+
+        if "gripper" not in parent:
+            return "free"
+
+        if parent.startswith(("h1_", "h2_", "support_")):
+            return "support"
+
+        return "robot"
+
+    def _apply_events_to_rod_states(self, rod_states, events):
+        for event in events:
+            rod_id = self._event_rod_id(event)
+            if rod_id is None:
+                continue
+
+            if event.action == "attach":
+                rod_states[rod_id] = self._rod_state_from_parent(event.parent)
+
+            elif event.action == "detach":
+                rod_states[rod_id] = "free"
 
     def _build_display_config(
             self,
@@ -56,12 +103,21 @@ class ViserPlanReplayer:
 
         steps = []
 
+        records = list(recorder.records)
+
         if replay_mode == "removal":
-            visible_rods = {record.rod_id for record in recorder.records}
+            visible_rods = {record.rod_id for record in records}
+        elif replay_mode == "assembly":
+            visible_rods = {records[0].rod_id} if records else set()
         else:
             visible_rods = set()
 
-        for record in recorder.records:
+        rod_states = {
+            record.rod_id: "free"
+            for record in records
+        }
+
+        for record_index, record in enumerate(records):
             rod_id = record.rod_id
 
             print(f"Replaying rod {rod_id}")
@@ -71,9 +127,6 @@ class ViserPlanReplayer:
                 event for event in record.events
                 if event.segment_id == -1
             ]
-
-            if replay_mode == "assembly":
-                visible_rods.add(rod_id)
 
             pre_events_applied = False
             for segment_id, path in enumerate(record.segments):
@@ -94,6 +147,11 @@ class ViserPlanReplayer:
                                 C_sim.attach(event.parent, event.child)
                                 print(f"Replay pre-attach: {event.child} to {event.parent}")
 
+                        self._apply_events_to_rod_states(
+                            rod_states,
+                            pre_events,
+                        )
+
                         pre_events_applied = True
 
                     poses = {}
@@ -108,6 +166,7 @@ class ViserPlanReplayer:
                         "segment_id": segment_id,
                         "poses": poses,
                         "visible_rods": set(visible_rods),
+                        "rod_states": dict(rod_states),
                     })
 
                 segment_events = [
@@ -126,57 +185,76 @@ class ViserPlanReplayer:
                     if event.action == "attach":
                         C_sim.attach(event.parent, event.child)
                         print(f"Replay attach: {event.child} to {event.parent}")
+
+                self._apply_events_to_rod_states(
+                    rod_states,
+                    segment_events,
+                )
                         
                         
-                # If events happened after this segment, update the last stored pose
-                # so the event is visible at the end of the same segment, not one step later.
-                if segment_events and len(steps) > 0:
-                    poses = {}
-                    for frame in C_sim.getFrames():
-                        poses[frame.name] = (
-                            np.asarray(frame.getPosition(), dtype=np.float32),
-                            np.asarray(frame.getQuaternion(), dtype=np.float32),
-                        )
-
-                    steps[-1]["poses"] = poses
-                    steps[-1]["visible_rods"] = set(visible_rods)
-
                 # Visibility update after events.
                 # In assembly mode, rods stay visible after they have been introduced.
                 # In removal mode, you could remove visibility after pickup later,
                 # but for now keeping them visible is useful for debugging.
+
+            if replay_mode == "assembly" and record_index + 1 < len(records):
+                next_rod_id = records[record_index + 1].rod_id
+                visible_rods.add(next_rod_id)
+
+                if len(steps) > 0:
+                    steps[-1]["visible_rods"] = set(visible_rods)
+                    steps[-1]["rod_states"] = dict(rod_states)
 
         return steps
 
     def _viser_set_step(self, i, steps, handles, mode_label=None):
         step = steps[i]
         visible_rods = step["visible_rods"]
+        rod_states = step.get("rod_states", {})
 
         for frame_name, handle in handles.items():
             is_rod_frame = frame_name.startswith("rod_")
 
             if is_rod_frame:
-                parts = frame_name.split("_")
-                try:
-                    rod_id = int(parts[1])
-                except ValueError:
-                    rod_id = None
+                rod_id = self._rod_id_from_name(frame_name)
 
-                handle.visible = rod_id in visible_rods
+                if isinstance(handle, dict):
+                    state = rod_states.get(rod_id, "free")
+                    for variant_state, variant_handle in handle.items():
+                        variant_handle.visible = (
+                            rod_id in visible_rods
+                            and variant_state == state
+                        )
+                else:
+                    handle.visible = rod_id in visible_rods
 
             if frame_name not in step["poses"]:
                 continue
 
             pos, quat = step["poses"][frame_name]
-            handle.position = pos
-            handle.wxyz = quat
+
+            if isinstance(handle, dict):
+                for variant_handle in handle.values():
+                    variant_handle.position = pos
+                    variant_handle.wxyz = quat
+            else:
+                handle.position = pos
+                handle.wxyz = quat
 
         if mode_label is not None:
+            support_rods = sorted(
+                rod_id
+                for rod_id, state in rod_states.items()
+                if state == "support" and rod_id in visible_rods
+            )
+
             mode_label.content = (
                 f"**Step:** {i} / {len(steps) - 1}  \n"
                 f"**Rod:** {step['rod_id']}  \n"
                 f"**Segment:** {step['segment_id']}  \n"
-                f"**Visible rods:** {sorted(visible_rods)}"
+                f"**Visible rods:** {sorted(visible_rods)}  \n"
+                f"**Support required:** {support_rods if support_rods else 'none'}  \n"
+                "**Colors:** green = free/placed, red = attached to robot, pink = support required"
             )
 
     def display_recorded_plan_viser(
@@ -239,14 +317,27 @@ class ViserPlanReplayer:
             if len(raw_color) > 3 and raw_color[3] < 1.0:
                 opacity = float(raw_color[3])
 
-            handles[frame.name] = server.scene.add_mesh_simple(
-                name=f"frames/{frame.name}",
-                vertices=verts,
-                faces=tris,
-                color=color_rgb,
-                flat_shading=False,
-                opacity=opacity,
-            )
+            if self._is_primary_rod_frame(frame.name):
+                handles[frame.name] = {}
+
+                for state, rod_color in self.ROD_COLORS.items():
+                    handles[frame.name][state] = server.scene.add_mesh_simple(
+                        name=f"frames/{frame.name}/{state}",
+                        vertices=verts,
+                        faces=tris,
+                        color=rod_color,
+                        flat_shading=False,
+                        opacity=opacity,
+                    )
+            else:
+                handles[frame.name] = server.scene.add_mesh_simple(
+                    name=f"frames/{frame.name}",
+                    vertices=verts,
+                    faces=tris,
+                    color=color_rgb,
+                    flat_shading=False,
+                    opacity=opacity,
+                )
 
         step_slider = server.gui.add_slider(
             label="Step",
