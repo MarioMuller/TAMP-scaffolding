@@ -12,22 +12,35 @@ class RaiScene:
     def clear(self):
         self.C.clear()
         self.C.addFrame("world")
-        
+
+    def _has_frame(self, name):
+        if hasattr(self.C, "getFrameNames"):
+            return name in self.C.getFrameNames()
+
+        return self.C.getFrame(name) is not None
+
+    def _ensure_table(self):
+        if self._has_frame("table"):
+            return
+
+        self.C.addFrame("table") \
+            .setPosition([0, 0, 0.0]) \
+            .setShape(ry.ST.box, size=[20, 20, 0.02, 0.005]) \
+            .setColor([0.9, 0.9, 0.9]) \
+            .setContact(1)
+
     def import_husky(self):
 
-        # sets ground plane
-        table = self.C.addFrame("table").setPosition([0, 0, 0.0]).setShape(
-            ry.ST.box, size=[20, 20, 0.02, 0.005]
-        ).setColor([0.9, 0.9, 0.9]).setContact(1)
+        self._ensure_table()
 
         # paths to the files
-        husky_path = os.path.join(os.path.dirname(__file__), "../src/models/husky/husky.g")    
+        husky_path = os.path.join(os.path.dirname(__file__), "../src/models/husky/husky.g")
         robot_path = os.path.join(os.path.dirname(__file__), "../src/models/ur5/ur5.g")
 
 
         self.C.addFrame("husky_base_XYPhi_joint") .setParent(self.C.getFrame("world")) .setJoint(
             ry.JT.transXYPhi, limits=np.array([-30, 30, -30, 30, -3.14, 3.14])
-        ).setJointState([-1., 0, 0]) 
+        ).setJointState([-1., 0, 0])
 
         self.C.addFile(husky_path, namePrefix="husky_coll_").setParent(
             self.C.getFrame("husky_base_XYPhi_joint")
@@ -37,13 +50,13 @@ class RaiScene:
         self.C.addFile(robot_path, namePrefix="a1_").setParent(
         self.C.getFrame("husky_coll_right_arm_bulkhead_joint")
             ).setRelativePosition([0, 0, 0]).setRelativeQuaternion([1, 0, 0, 0])
-        
+
         self.C.addFile(robot_path, namePrefix="a2_").setParent(
         self.C.getFrame("husky_coll_left_arm_bulkhead_joint")
             ).setRelativePosition([0, 0, 0]).setRelativeQuaternion([1, 0, 0, 0])
 
         return
-    
+
     def import_support_husky(
         self,
         name="h2",
@@ -58,13 +71,7 @@ class RaiScene:
 
         """
 
-        # ensure table exists
-        if self.C.getFrame("table") is None:
-            self.C.addFrame("table") \
-                .setPosition([0, 0, 0.0]) \
-                .setShape(ry.ST.box, size=[20, 20, 0.02, 0.005]) \
-                .setColor([0.9, 0.9, 0.9]) \
-                .setContact(1)
+        self._ensure_table()
 
         husky_path = os.path.join(
             os.path.dirname(__file__),
@@ -110,16 +117,11 @@ class RaiScene:
             .setParent(self.C.getFrame(parent_joint)) \
             .setRelativePosition([0, 0, 0]) \
             .setRelativeQuaternion([1, 0, 0, 0])
-    
-    
+
+
     def import_floating_grippers_debug(self):
 
-        if self.C.getFrame("table") is None:
-            self.C.addFrame("table") \
-                .setPosition([0, 0, 0.0]) \
-                .setShape(ry.ST.box, size=[20, 20, 0.02, 0.005]) \
-                .setColor([0.9, 0.9, 0.9]) \
-                .setContact(1)
+        self._ensure_table()
 
         robotiq_path = os.path.join(
             os.path.dirname(__file__),
@@ -184,12 +186,12 @@ class RaiScene:
             pos=[0.8, -2.0, 0.8],
             color=[1.0, 0.0, 0.0],
         )
-        
+
         add_floating_robotiq(
             prefix="h2_ur_",
             ball_name="h2_floating_ball",
             pos=[0.8, 2.0, 0.8],
             color=[0.0, 1.0, 0.0],
         )
-       
-        
+
+

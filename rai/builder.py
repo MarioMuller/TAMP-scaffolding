@@ -59,8 +59,7 @@ class RaiTrussBuilder:
         Rebuilds scene with not yet removed rods in final pos
         """
 
-        self.C.clear()
-        self.C.addFrame("world")
+        self.scene.clear()
         self.import_robots()
 
         for rod_id in placed_rods:
@@ -177,7 +176,10 @@ class RaiTrussBuilder:
         rod_id,
         q_start=None,
         supported=None,
-        support_required=False,
+        support_q=None,
+        candidate_is_supported=False,
+        old_support_gripper=None,
+        new_support_assignments=None,
         use_rrt=False,
         do_shortcut=False,
     ):
@@ -193,9 +195,14 @@ class RaiTrussBuilder:
         supported:
             dict support_gripper -> rod_id
         """
-
         if supported is None:
             supported = {}
+
+        if support_q is None:
+            support_q = {}
+
+        if new_support_assignments is None:
+            new_support_assignments = {}
 
         # 1. Build scene with candidate rod still installed
         self.reset_scene_with_rods(current_state)
@@ -207,37 +214,21 @@ class RaiTrussBuilder:
         for support_gripper, supported_rod in supported.items():
             print("Support robot is actually used")
             rod_frame = f"rod_{supported_rod}"
-            if self.C.getFrame(rod_frame) is not None:
+            if rod_frame in self.C.getFrameNames():
                 self.C.attach(support_gripper, rod_frame)
 
         record = RodPathRecord(rod_id=rod_id)
 
-        candidate_is_supported = rod_id in supported.values()
-
-        # 3. If candidate is currently supported, remember which gripper holds it
-        old_support_gripper = None
-        for gripper, supported_rod in supported.items():
-            if supported_rod == rod_id:
-                old_support_gripper = gripper
-                break
 
         # 4. Compute removal keyframes
-        if False:
-            print("error")
-        # if support_required:
-        #     keyframes, q0, new_supported = self.keyframes.get_remove_keyframes_with_support(
-        #         rod_id=rod_id,
-        #         supported=supported,
-        #         candidate_is_supported=candidate_is_supported,
-        #         old_support_gripper=old_support_gripper,
-        #     )
-        else:
-            keyframes, q0, new_supported = self.keyframes.get_remove_keyframes_dual(
-                rod_id=rod_id,
-                supported=supported,
-                candidate_is_supported=candidate_is_supported,
-                old_support_gripper=old_support_gripper,
-            )
+        keyframes, q0, new_supported, phase_info = self.keyframes.get_remove_keyframes_dual(
+            rod_id=rod_id,
+            supported=supported,
+            support_q=support_q,
+            candidate_is_supported=candidate_is_supported,
+            old_support_gripper=old_support_gripper,
+            new_support_assignments=new_support_assignments,
+        )
 
         if keyframes is None:
             return None
@@ -262,33 +253,105 @@ class RaiTrussBuilder:
             self.C.setJointState(q_goal)
             q_current = q_goal.copy()
 
-            if i == 0:
-                # Bookkeeping: rod is no longer attached to scaffold/table.
-                record.events.append(
-                    AttachmentEvent(
-                        rod_id=rod_id,
-                        segment_id=i,
-                        parent="table",
-                        child=f"rod_{rod_id}",
-                        action="detach",
-                    )
-                )
+        # ------------------------------------------------------------
+        # Events
+        # ------------------------------------------------------------
 
-                print(f"[event] segment={i}: detach rod_{rod_id} from table")
+        main_grasp_segment_id = phase_info["main_grasp_segment"]
+        pickup_segment_id = phase_info["pickup_segment"]
 
-                # Actual RAI operation: re-parent rod to gripper.
-                self._attach_and_record(
-                    record=record,
+        # Main robot grasps the candidate rod while it is still part of the scaffold.
+        self._attach_and_record(
+            record=record,
+            rod_id=rod_id,
+            segment_id=main_grasp_segment_id,
+            parent="a1_ur_gripper_center",
+            child=f"rod_{rod_id}",
+        )
+
+        # If this candidate rod was previously supported, the old support releases it
+        # after the main robot has taken over.
+        if candidate_is_supported and old_support_gripper is not None:
+            old_release_segment_id = phase_info.get("old_support_away_segment")
+
+            # If the old support gripper is reused for a newly affected rod,
+            # there is no safe-away phase. It releases the candidate when it starts
+            # moving to the new support target.
+            if old_release_segment_id is None and old_support_gripper in phase_info["new_support_segments"]:
+                old_release_segment_id = phase_info["new_support_segments"][old_support_gripper] - 1
+
+            if old_release_segment_id is None:
+                old_release_segment_id = main_grasp_segment_id
+
+            record.events.append(
+                AttachmentEvent(
                     rod_id=rod_id,
-                    segment_id=i,
-                    parent="a1_ur_gripper_center",
+                    segment_id=old_release_segment_id,
+                    parent=old_support_gripper,
                     child=f"rod_{rod_id}",
+                    action="detach",
                 )
+            )
 
+            print(
+                f"[event] segment={old_release_segment_id}: "
+                f"{old_support_gripper} releases rod_{rod_id}"
+            )
+
+        # Newly affected rods get support before the candidate is detached/removed.
+        for support_gripper, support_rod_id in new_support_assignments.items():
+            support_segment_id = phase_info["new_support_segments"][support_gripper]
+
+            self._attach_and_record(
+                record=record,
+                rod_id=support_rod_id,
+                segment_id=support_segment_id,
+                parent=support_gripper,
+                child=f"rod_{support_rod_id}",
+            )
+
+        # Candidate rod detaches from the scaffold only immediately before the
+        # pickup/removal segment. This prevents the early detach in viser.
+        detach_candidate_segment_id = max(0, pickup_segment_id - 1)
+
+        record.events.append(
+            AttachmentEvent(
+                rod_id=rod_id,
+                segment_id=detach_candidate_segment_id,
+                parent="table",
+                child=f"rod_{rod_id}",
+                action="detach",
+            )
+        )
+
+        print(
+            f"[event] segment={detach_candidate_segment_id}: "
+            f"detach rod_{rod_id} from table"
+        )       
+
+
+        # ------------------------------------------------------------
+        # Updated support joint states
+        # ------------------------------------------------------------
+
+        new_support_q = dict(support_q)
+
+        # If candidate was supported, that support was released.
+        if candidate_is_supported and old_support_gripper is not None:
+            new_support_q.pop(old_support_gripper, None)
+
+        # Store the exact joint configuration at which each new support robot
+        # took over its affected rod.
+        for support_gripper in new_support_assignments:
+            support_segment_id = phase_info["new_support_segments"][support_gripper]
+            q_support = np.asarray(record.segments[support_segment_id][-1], dtype=float).copy()
+            new_support_q[support_gripper] = q_support
+            
         return {
             "record": record,
             "q_final": q_current,
             "supported": new_supported,
+            "support_q": new_support_q,
         }
                
    

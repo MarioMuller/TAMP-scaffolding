@@ -56,8 +56,32 @@ class AssemblyPlan:
             # the carry back to the scaffold, so placement happens after segment 0.
             place_segment_id = 0 if assembly_record.segments else -1
 
+            # Was this rod supported during the removal plan?
+            # In removal, this appears as a support gripper detaching from the candidate rod.
+            support_release_events = [
+                e for e in removal_record.events
+                if e.child == f"rod_{rod_id}"
+                and e.action == "detach"
+                and "gripper" in e.parent
+                and e.parent.startswith(("h1_", "h2_", "support_"))
+            ]
+
+            needs_support_handover = len(support_release_events) > 0
+
+            if needs_support_handover:
+                support_gripper = support_release_events[0].parent
+
+                # In reversed assembly:
+                # segment 0 = main carries rod to final pose
+                # segment 1 = support robot moves in
+                # after segment 1 = handover
+                handover_segment_id = 1 if len(assembly_record.segments) > 1 else 0
+            else:
+                support_gripper = None
+                handover_segment_id = place_segment_id
+
             # Before first segment:
-            # rod starts at pickup pose and is held by the gripper
+            # rod starts at pickup pose and is held by the main gripper
             assembly_record.events.append(
                 AttachmentEvent(
                     rod_id=rod_id,
@@ -68,29 +92,40 @@ class AssemblyPlan:
                 )
             )
 
-            # After the placement segment:
-            # rod has reached scaffold pose, so release from gripper
+            # If support handover is needed, support attaches before main releases
+            if needs_support_handover:
+                assembly_record.events.append(
+                    AttachmentEvent(
+                        rod_id=rod_id,
+                        segment_id=handover_segment_id,
+                        parent=support_gripper,
+                        child=f"rod_{rod_id}",
+                        action="attach",
+                    )
+                )
+
+            # Main releases only after support is attached, or directly after placement
             assembly_record.events.append(
                 AttachmentEvent(
                     rod_id=rod_id,
-                    segment_id=place_segment_id,
+                    segment_id=handover_segment_id,
                     parent="a1_ur_gripper_center",
                     child=f"rod_{rod_id}",
                     action="detach",
                 )
             )
 
-            # After the placement segment:
-            # rod becomes fixed in scaffold/table
-            assembly_record.events.append(
-                AttachmentEvent(
-                    rod_id=rod_id,
-                    segment_id=place_segment_id,
-                    parent="table",
-                    child=f"rod_{rod_id}",
-                    action="attach",
+            # If no support handover is needed, rod becomes fixed to table/scaffold
+            if not needs_support_handover:
+                assembly_record.events.append(
+                    AttachmentEvent(
+                        rod_id=rod_id,
+                        segment_id=place_segment_id,
+                        parent="table",
+                        child=f"rod_{rod_id}",
+                        action="attach",
+                    )
                 )
-            )
 
             assembly_plan.records.append(assembly_record)
 
@@ -100,8 +135,31 @@ class AssemblyPlan:
 class SearchNode:
     state: frozenset
     sequence: list = field(default_factory=list)
+
+    # Full joint configuration at this search node.
     q: np.ndarray | None = None
-    supported: dict = field(default_factory=dict)  # support_gripper -> rod_id
+
+    # Which rods are currently held by support robots.
+    # Example:
+    # {
+    #     "h1_ur_gripper_center": 8,
+    #     "h2_ur_gripper_center": 12,
+    # }
+    supported: dict = field(default_factory=dict)
+
+    # Exact full joint configuration at the moment each support robot
+    # took over its supported rod.
+    #
+    # This is needed so that a support robot can remain in the same
+    # pose/orientation while it keeps supporting the rod across multiple
+    # removal steps.
+    #
+    # Example:
+    # {
+    #     "h1_ur_gripper_center": np.array([...]),
+    # }
+    support_q: dict = field(default_factory=dict)
+
     records: list = field(default_factory=list)
     
     def unused_helpers(self, helper_grippers):
