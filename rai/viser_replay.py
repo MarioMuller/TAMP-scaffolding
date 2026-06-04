@@ -40,7 +40,7 @@ class ViserPlanReplayer:
         if "gripper" not in parent:
             return "free"
 
-        if parent.startswith(("h1_", "h2_", "support_")):
+        if parent.startswith("h"):
             return "support"
 
         return "robot"

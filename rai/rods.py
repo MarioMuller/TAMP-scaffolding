@@ -137,22 +137,7 @@ class RodManager:
 
         if view:
             self.C.view()
-            
-            
-    def create_sliding_support_grasp_frame(self, rod_id):
-        rod = f"rod_{rod_id}"
-        length = self.get_rod_length(rod_id)
-
-        frame_name = f"rod_{rod_id}_support_grasp"
-
-        if self.C.getFrame(frame_name) is None:
-            self.C.addFrame(frame_name, rod) \
-                .setJoint(
-                    ry.JT.transZ,
-                    limits=np.array([-0.5 * length, 0.5 * length])
-                )
-
-        return frame_name       
+               
 
     def create_support_grasp_frame_at_fraction(self, rod_id, fraction):
         """

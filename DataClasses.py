@@ -62,14 +62,15 @@ class AssemblyPlan:
                 e for e in removal_record.events
                 if e.child == f"rod_{rod_id}"
                 and e.action == "detach"
-                and "gripper" in e.parent
-                and e.parent.startswith(("h1_", "h2_", "support_"))
+                and e.parent.startswith("h")
             ]
 
             needs_support_handover = len(support_release_events) > 0
 
             if needs_support_handover:
-                support_gripper = support_release_events[0].parent
+                support_grippers = [
+                    e.parent for e in support_release_events
+                ]
 
                 # In reversed assembly:
                 # segment 0 = main carries rod to final pose
@@ -77,7 +78,7 @@ class AssemblyPlan:
                 # after segment 1 = handover
                 handover_segment_id = 1 if len(assembly_record.segments) > 1 else 0
             else:
-                support_gripper = None
+                support_grippers = []
                 handover_segment_id = place_segment_id
 
             # Before first segment:
@@ -93,7 +94,7 @@ class AssemblyPlan:
             )
 
             # If support handover is needed, support attaches before main releases
-            if needs_support_handover:
+            for support_gripper in support_grippers:
                 assembly_record.events.append(
                     AttachmentEvent(
                         rod_id=rod_id,

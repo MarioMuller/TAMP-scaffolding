@@ -10,6 +10,8 @@ truss = Truss.from_json("JSON/scaffold_test.json")
 builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
 builder.import_robots()
 
+
+
 searcher = AssemblyPlanner(truss, builder=builder)
 
 removal_sequence = searcher.backward_search()
@@ -31,6 +33,7 @@ removal_recorder = AssemblyPlan(
     removal_sequence=searcher.final_node.sequence,
     records=searcher.final_node.records,
 )
+
 
 assembly_recorder = AssemblyPlan.reverse_removal_plan_to_assembly(removal_recorder)
 
