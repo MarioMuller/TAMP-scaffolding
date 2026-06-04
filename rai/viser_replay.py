@@ -57,6 +57,19 @@ class ViserPlanReplayer:
             elif event.action == "detach":
                 rod_states[rod_id] = "free"
 
+    def _all_rod_ids_used_by_recorder(self, recorder):
+        rod_ids = set()
+
+        for record in recorder.records:
+            rod_ids.add(record.rod_id)
+
+            for event in record.events:
+                event_rod_id = self._event_rod_id(event)
+                if event_rod_id is not None:
+                    rod_ids.add(event_rod_id)
+
+        return sorted(rod_ids)
+
     def _build_display_config(
             self,
             recorder,
@@ -65,11 +78,18 @@ class ViserPlanReplayer:
             replay_mode="removal",
         ):
         """
-        Builds a config containing all rods that appear in the recorded plan.
+        Builds a config containing all rods that appear in the recorded plan
+        or in attachment/detachment events.
         """
 
-        for record in recorder.records:
-            rod_id = record.rod_id
+        record_rod_ids = {
+            record.rod_id
+            for record in recorder.records
+        }
+
+        all_rod_ids = self._all_rod_ids_used_by_recorder(recorder)
+
+        for rod_id in all_rod_ids:
             rod_name = f"rod_{rod_id}"
 
             if self.C.getFrame(rod_name) is None:
@@ -80,17 +100,25 @@ class ViserPlanReplayer:
                 )
 
             if replay_mode == "removal":
-                # Removal starts with rod installed.
+                # Removal starts with all relevant rods installed.
                 self.rods.set_to_goal_pose(rod_id, view=False)
 
                 if self.C.getFrame("table") is not None:
                     self.C.attach("table", rod_name)
 
             elif replay_mode == "assembly":
-                # Assembly starts with rod at pickup/staging pose.
-                self.C.getFrame(rod_name) \
-                    .setPosition(rod_pos) \
-                    .setQuaternion(rod_ori)
+                if rod_id in record_rod_ids:
+                    # Rods that are actively assembled start at pickup/staging pose.
+                    self.C.getFrame(rod_name) \
+                        .setPosition(rod_pos) \
+                        .setQuaternion(rod_ori)
+                else:
+                    # Event-only rods, e.g. rod_20/rod_21 in your debug run,
+                    # are already part of the remaining scaffold.
+                    self.rods.set_to_goal_pose(rod_id, view=False)
+
+                    if self.C.getFrame("table") is not None:
+                        self.C.attach("table", rod_name)
 
         C_display_base = ry.Config()
         C_display_base.addConfigurationCopy(self.C)
@@ -112,9 +140,11 @@ class ViserPlanReplayer:
         else:
             visible_rods = set()
 
+        all_rod_ids = self._all_rod_ids_used_by_recorder(recorder)
+
         rod_states = {
-            record.rod_id: "free"
-            for record in records
+            rod_id: "free"
+            for rod_id in all_rod_ids
         }
 
         for record_index, record in enumerate(records):

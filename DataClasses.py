@@ -116,7 +116,7 @@ class AssemblyPlan:
                 )
             )
 
-            # If no support handover is needed, rod becomes fixed to table/scaffold
+                        # If no support handover is needed, rod becomes fixed to table/scaffold
             if not needs_support_handover:
                 assembly_record.events.append(
                     AttachmentEvent(
@@ -125,6 +125,38 @@ class AssemblyPlan:
                         parent="table",
                         child=f"rod_{rod_id}",
                         action="attach",
+                    )
+                )
+
+            # ------------------------------------------------------------
+            # Reverse support attachments from removal.
+            #
+            # In removal:
+            #   while removing rod X, support robot h attaches to rod Y
+            #
+            # In reversed assembly:
+            #   when rod X is assembled again, rod Y may no longer need that
+            #   temporary support, so h should detach from rod Y.
+            # ------------------------------------------------------------
+
+            support_attach_events = [
+                e for e in removal_record.events
+                if e.action == "attach"
+                and e.parent.startswith("h")
+                and e.child.startswith("rod_")
+                and e.child != f"rod_{rod_id}"
+            ]
+
+            support_release_segment_id = place_segment_id
+
+            for e in support_attach_events:
+                assembly_record.events.append(
+                    AttachmentEvent(
+                        rod_id=e.rod_id,
+                        segment_id=support_release_segment_id,
+                        parent=e.parent,
+                        child=e.child,
+                        action="detach",
                     )
                 )
 
