@@ -33,7 +33,7 @@ class KeyframePlanner:
         attempts=1000,
         mult=3,
         offset=-1.5,
-        view=False,
+        view=True,
         view_accepted=False,
     ):
         for attempt in range(attempts):
@@ -571,7 +571,7 @@ class KeyframePlanner:
         keyframes = self.solve_komo(
             komo,
             attempts=50,
-            view=True,
+            view=False,
         )
 
         if keyframes is None:

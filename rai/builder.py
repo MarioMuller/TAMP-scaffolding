@@ -41,13 +41,14 @@ class RaiTrussBuilder:
         self.scene.import_floating_grippers_debug()
 
     def import_robots(self):
-        debug = True
+        debug = False
 
         if debug:
             self.import_floating_grippers_debug()
         else:
             self.import_husky()
             self.import_support_husky(name="h2")
+            self.import_support_husky(name="h3")
 
         self._detect_support_grippers()
 
@@ -73,7 +74,7 @@ class RaiTrussBuilder:
             if self.C.getFrame("table") is not None:
                 self.C.attach("table", f"rod_{rod_id}")
 
-        self.C.view()
+        # self.C.view()
 
     def _attach_and_record(
         self,
