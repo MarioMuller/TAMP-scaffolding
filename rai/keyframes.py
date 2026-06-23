@@ -41,12 +41,21 @@ class KeyframePlanner:
             if attempt > 0:
                 dim = len(self.C.getJointState())
                 x_init = np.random.rand(dim) * mult + offset
+                # print(x_init)
                 komo.initWithConstant(x_init)
-                # komo.initWithPath(np.random.rand(3, 12) * 5 - 2.5)
+                
 
             solver = ry.NLP_Solver(komo.nlp(), verbose=0)
 
-            retval = solver.solve()
+            try:
+                retval = solver.solve()
+            except RuntimeError as e:
+                msg = str(e)
+                if "checkNan" in msg or "inconsistent number" in msg:
+                    print(f"KOMO attempt {attempt} crashed with NaN; skipping this restart")
+                    continue
+                raise
+            
             retval = retval.dict()
 
             print(retval)
@@ -58,7 +67,7 @@ class KeyframePlanner:
             if retval["feasible"]:  # retval["ineq"] < 1 and retval["eq"] < 1 and
 
                 if view_accepted:
-                    komo.view(True, "IK solution")
+                    komo.view(False, "IK solution")
 
                 keyframes = komo.getPath()
                 return keyframes
@@ -80,6 +89,7 @@ class KeyframePlanner:
         IMPORTANT:
         Call this before constructing KOMO objectives that reference the target.
         """
+        
         source = self.C.getFrame(source_frame_name)
         if source is None:
             raise RuntimeError(
@@ -346,21 +356,21 @@ class KeyframePlanner:
             )
 
             # Keep the rod supported by this continuing support in its installed pose.
-            komo.addObjective(
-                [t_grasp, t_pickup],
-                ry.FS.positionDiff,
-                [supported_rod, rod_target],
-                ry.OT.eq,
-                [1e2],
-            )
+            # komo.addObjective(
+            #     [t_grasp, t_pickup],
+            #     ry.FS.positionDiff,
+            #     [supported_rod, rod_target],
+            #     ry.OT.eq,
+            #     [1e2],
+            # )
 
-            komo.addObjective(
-                [t_grasp, t_pickup],
-                ry.FS.quaternionDiff,
-                [supported_rod, rod_target],
-                ry.OT.eq,
-                [1e2],
-            )
+            # komo.addObjective(
+            #     [t_grasp, t_pickup],
+            #     ry.FS.quaternionDiff,
+            #     [supported_rod, rod_target],
+            #     ry.OT.eq,
+            #     [1e2],
+            # )
 
         # ------------------------------------------------------------
         # Keep support robots that hold the candidate fixed until main grasp.
@@ -389,21 +399,21 @@ class KeyframePlanner:
 
             # Because the candidate rod is still installed and still supported
             # before the handover, keep it in the scaffold pose at t_grasp.
-            komo.addObjective(
-                [t_grasp],
-                ry.FS.positionDiff,
-                [rod, candidate_hold_target],
-                ry.OT.eq,
-                [1e2],
-            )
+            # komo.addObjective(
+            #     [t_grasp],
+            #     ry.FS.positionDiff,
+            #     [rod, candidate_hold_target],
+            #     ry.OT.eq,
+            #     [1e2],
+            # )
 
-            komo.addObjective(
-                [t_grasp],
-                ry.FS.quaternionDiff,
-                [rod, candidate_hold_target],
-                ry.OT.eq,
-                [1e2],
-            )
+            # komo.addObjective(
+            #     [t_grasp],
+            #     ry.FS.quaternionDiff,
+            #     [rod, candidate_hold_target],
+            #     ry.OT.eq,
+            #     [1e2],
+            # )
 
         # During support phases, the candidate rod held by the main robot
         # must stay fixed in its installed scaffold pose.

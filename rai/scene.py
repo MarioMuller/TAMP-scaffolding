@@ -29,7 +29,11 @@ class RaiScene:
             .setColor([0.9, 0.9, 0.9]) \
             .setContact(1)
 
-    def import_husky(self):
+    def import_main_husky(self):
+        """
+        import the main husky robot with two arms
+        
+        """
 
         self._ensure_table()
 
@@ -56,6 +60,64 @@ class RaiScene:
             ).setRelativePosition([0, 0, 0]).setRelativeQuaternion([1, 0, 0, 0])
 
         return
+    
+    def import_main_husky_baseless(self):
+        """
+        import the main husky robot with two arms
+        
+        """
+
+        self._ensure_table()
+
+        # paths to the files
+        robot_path = os.path.join(os.path.dirname(__file__), "../src/models/ur5/ur5.g")
+        
+        # Floating parent ball only
+        self.C.addFrame("main_husky_base_1") \
+            .setParent(self.C.getFrame("world")) \
+            .setJoint(ry.JT.free) \
+            .setJointState([0, 0, 0, 1.0, 0.0, 0.0, 0.0]) \
+            .setRelativePosition([0, 0, 0.16]) \
+            .setShape(ry.ST.sphere, size=[0.08]) \
+            .setColor([0, 0, 1]) \
+            .setContact(1)
+            
+        # self.C.addFrame("main_husky_base_1") \
+        #     .setParent(self.C.getFrame("world")) \
+        #     .setJoint(
+        #         ry.JT.transXYPhi,
+        #         limits=np.array([-30, 30, -30, 30, -3.14, 3.14])
+        #     ) \
+        #     .setJointState([0, 0, 0]) \
+        #     .setRelativePosition([0, 0, 0.16]) \
+        #     .setShape(ry.ST.sphere, size=[0.08]) \
+        #     .setColor([0, 0, 1]) \
+        #     .setContact(1)
+
+
+        # attatch both arms to the husky
+        self.C.addFile(robot_path, namePrefix="a1_").setParent(
+        self.C.getFrame("main_husky_base_1")
+            ).setRelativePosition([0, 0, 0]).setRelativeQuaternion([1, 0, 0, 0])
+
+          
+            
+        # Second arm base is fixed relative to the first base
+        self.C.addFrame("main_husky_base_2") \
+            .setParent(self.C.getFrame("main_husky_base_1")) \
+            .setRelativePosition([0.3, 0, 0]) \
+            .setRelativeQuaternion([1.0, 0.0, 0.0, 0.0]) \
+            .setShape(ry.ST.sphere, size=[0.08]) \
+            .setColor([0, 0, 1]) \
+            .setContact(1)     
+        
+        self.C.addFile(robot_path, namePrefix="a2_").setParent(
+        self.C.getFrame("main_husky_base_2")
+            ).setRelativePosition([0, 0, 0]).setRelativeQuaternion([1, 0, 0, 0])
+        
+            
+
+        return
 
     def import_support_husky(
         self,
@@ -64,10 +126,7 @@ class RaiScene:
         arm="right",  # or "left"
     ):
         """
-        Import a Husky with a single arm.
-
-        name:
-            prefix to uniquely identify robot
+        Import a support Husky robot with a single arm, positioned away from the main robot.
 
         """
 
@@ -119,7 +178,12 @@ class RaiScene:
             .setRelativeQuaternion([1, 0, 0, 0])
 
 
-    def import_floating_grippers_debug(self):
+    def import_pineapple_model(self):
+        
+        """
+        Pineapple model consisting of one main arm (blue) and two support arms (red and green), with floating bases
+        
+        """
 
         self._ensure_table()
 
@@ -130,10 +194,9 @@ class RaiScene:
 
         def add_floating_robotiq(prefix, ball_name, pos, color):
             """
-            prefix examples:
-                "a1_ur_"
-                "a2_ur_"
-                "h2_a1_ur_"
+            a1, a2 = arm 1 and 2 of main robot
+            h1, h2 = support robots:
+       
             """
 
             # Floating parent ball only
@@ -179,7 +242,7 @@ class RaiScene:
             color=[0.0, 0.0, 1.0],
         )
 
-        # support robot: red
+        # support robot 1: red
         add_floating_robotiq(
             prefix="h1_ur_",
             ball_name="h1_floating_ball",
@@ -187,6 +250,7 @@ class RaiScene:
             color=[1.0, 0.0, 0.0],
         )
 
+        # support robot 2: green
         add_floating_robotiq(
             prefix="h2_ur_",
             ball_name="h2_floating_ball",

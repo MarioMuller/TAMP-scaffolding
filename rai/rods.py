@@ -53,7 +53,7 @@ class RodManager:
         if length < 1e-10:
             raise ValueError(f"Rod {rod_id} has zero length")
 
-        self.C.addFrame(f"rod_{rod_id}") .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition(pos) .setQuaternion(ori) .setContact(0)
+        self.C.addFrame(f"rod_{rod_id}") .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition(pos) .setQuaternion(ori) .setContact(1)
     
         return
     
@@ -61,7 +61,7 @@ class RodManager:
         center, quat = self.get_goal_pose(rod_id)
 
         target_name = f"rod_{rod_id}_target"
-        if self.C.getFrame(target_name) is None:
+        if target_name not in self.C.getFrameNames():
             self.C.addFrame(target_name, "world")
 
         self.C.getFrame(target_name).setPosition(center).setQuaternion(quat)
@@ -98,10 +98,10 @@ class RodManager:
         g1 = f"rod_{rod_id}_grasp_a1"
         g2 = f"rod_{rod_id}_grasp_a2"
 
-        if self.C.getFrame(g1) is None:
+        if g1 not in self.C.getFrameNames():
             self.C.addFrame(g1, rod)
 
-        if self.C.getFrame(g2) is None:
+        if g2 not in self.C.getFrameNames():
             self.C.addFrame(g2, rod)
 
         self.C.getFrame(g1).setRelativePosition([0.0, 0.0, z1])
@@ -124,6 +124,7 @@ class RodManager:
         self.C.getFrame(f"rod_{rod_id}").setPosition(center) .setQuaternion(quat)
         
         self.C.view()
+        # time.sleep()
         # input("Press Enter to close...")
 
         return
@@ -137,6 +138,7 @@ class RodManager:
 
         if view:
             self.C.view()
+            time.sleep(2)
                
 
     def create_support_grasp_frame_at_fraction(self, rod_id, fraction):
@@ -159,7 +161,7 @@ class RodManager:
 
         frame_name = f"rod_{rod_id}_support_grasp_{fraction:.2f}"
 
-        if self.C.getFrame(frame_name) is None:
+        if frame_name not in self.C.getFrameNames():
             self.C.addFrame(frame_name, rod)
 
         self.C.getFrame(frame_name).setRelativePosition([0.0, 0.0, z])

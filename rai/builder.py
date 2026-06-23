@@ -14,6 +14,7 @@ import time
 class RaiTrussBuilder:
 
     def __init__(self, truss, radius=0.0015, scale=0.00351):
+        
         self.truss = truss
         self.radius = radius
         self.scale = scale
@@ -28,8 +29,9 @@ class RaiTrussBuilder:
         self.replayer = PlanReplayer(self.C, self.rods)
         self.viser_replayer = ViserPlanReplayer(self.C, self.rods)
 
-    def import_husky(self):
-        self.scene.import_husky()
+    def import_main_husky(self):
+        # self.scene.import_main_husky()
+        self.scene.import_main_husky_baseless()
 
     def import_support_husky(self, name="h2", base_q=(3.0, -3.0, 0.0)):
         self.scene.import_support_husky(
@@ -37,18 +39,19 @@ class RaiTrussBuilder:
             base_q=base_q,
         )
 
-    def import_floating_grippers_debug(self):
-        self.scene.import_floating_grippers_debug()
+    def import_pineapple_model(self):
+        self.scene.import_pineapple_model()
 
     def import_robots(self):
         debug = False
 
         if debug:
-            self.import_floating_grippers_debug()
+            self.import_pineapple_model()
+            
         else:
-            self.import_husky()
+            self.import_main_husky()
+            self.import_support_husky(name="h1")
             self.import_support_husky(name="h2")
-            self.import_support_husky(name="h3")
 
         self._detect_support_grippers()
 
@@ -59,6 +62,8 @@ class RaiTrussBuilder:
         """
         Rebuild scene with not-yet-removed rods in their final installed poses.
         """
+        
+        # print("reset_scene_with_rods is called")
         self.scene.clear()
         self.import_robots()
 
@@ -69,12 +74,13 @@ class RaiTrussBuilder:
                 ori=[0.5, 0.0, 0.5, 0.70710678],
             )
 
-            self.rods.set_to_goal_pose(rod_id, view=False)
+            self.rods.set_to_goal_pose(rod_id)
 
             if self.C.getFrame("table") is not None:
                 self.C.attach("table", f"rod_{rod_id}")
 
-        # self.C.view()
+        self.C.view()
+        # time.sleep(5)
 
     def _attach_and_record(
         self,
@@ -153,8 +159,8 @@ class RaiTrussBuilder:
         continuing_supports=None,
         releasable_supports=None,
         new_support_assignments=None,
-        use_rrt=True,
-        do_shortcut=True,
+        use_rrt=False,
+        do_shortcut=False,
     ):
         """
         Backward-search motion test.
@@ -166,17 +172,13 @@ class RaiTrussBuilder:
             rods remaining after candidate rod is removed
 
         supported:
-            dict support_gripper -> rod_id, i.e. all branch-local supports before
-            removing rod_id.
+            dict support_gripper -> rod_id, all supports before removing rod_id.
 
         continuing_supports:
-            dict support_gripper -> rod_id for supports that must keep holding
-            another rod while the candidate is removed. These grippers must not be
-            reassigned or moved by the keyframe planner.
+            dict support_gripper -> rod_id for supports that remain
 
         releasable_supports:
             dict support_gripper -> rod_id for supports holding the candidate rod.
-            These may release after the main robot has grasped the candidate.
 
         new_support_assignments:
             dict support_gripper -> rod_id for supports that should be added before
@@ -188,7 +190,8 @@ class RaiTrussBuilder:
         releasable_supports = dict(releasable_supports or {})
         new_support_assignments = dict(new_support_assignments or {})
 
-        # 1. Build scene with candidate rod still installed.
+        # Build scene with candidate rod still installed.
+        print(f"Trying to remove rod {rod_id} from scaffold")
         self.reset_scene_with_rods(current_state)
 
         if q_start is not None:
@@ -380,7 +383,7 @@ class RaiTrussBuilder:
             and name.endswith("gripper_center")
         ]
 
-        print("Support grippers:", self.support_grippers)
+        print("The following support grippers are available:", self.support_grippers)
 
 
 if __name__ == "__main__":

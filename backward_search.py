@@ -106,25 +106,26 @@ class AssemblyPlanner:
         else:
             print("only one rod needs support, selecting one placeholder target")
             n_targets = 1
+            
+        # n_targets = 0
 
         return ranked[:min(n_targets, max_targets)]
+    
 
     # greedy backward search
     def backward_search(self):
+        
+        """
+        Run the backward search
+        """
+        
+        # initial state: all rods in final position
         initial_state = frozenset(self.truss.elements.keys())
 
         open_list = []
         counter = 0
-        visited = set()
 
         # initialize search
-        # counter use first in first out if same priority
-        # save current state and rod to try
-        # for rod_id in initial_state:
-        #     # needs to be negative because heapq uses smallest!
-        #     priority = (len(initial_state), -self.heuristic(rod_id))
-        #     heapq.heappush(open_list, (priority, counter, initial_state, rod_id, []))
-        #     counter += 1
 
         initial_node = SearchNode(
             state=initial_state,
@@ -135,27 +136,27 @@ class AssemblyPlanner:
             records=[],
         )
 
-        for rod_id in initial_state:
-            priority = self.removal_priority(initial_node, rod_id)
-            heapq.heappush(open_list, (priority, counter, initial_node, rod_id))
+        # Add all possible first removals to the open list
+        for candidate_rod in initial_state:
+            priority = self.removal_priority(initial_node, candidate_rod)
+            heapq.heappush(open_list, (priority, counter, initial_node, candidate_rod))
             counter += 1
 
         # TODO: Make a clean check to avoid checking already checked configurations
-      
+        # loop until solution found or open list exhausted
         while open_list:
-            priority, counter, node, rod_id = heapq.heappop(open_list)
+            priority, counter, node, candidate_rod = heapq.heappop(open_list)
 
-            current_state = node.state
-            new_state = frozenset(node.state - {rod_id})
+            new_state = frozenset(node.state - {candidate_rod})
 
-            feasible, result = self.is_removal_feasible(node, rod_id)
+            feasible, result = self.is_removal_feasible(node, candidate_rod)
 
             if not feasible:
                 continue
 
             new_node = SearchNode(
                 state=new_state,
-                sequence=node.sequence + [rod_id],
+                sequence=node.sequence + [candidate_rod],
                 q=result["q_final"],
                 supported=result["supported"],
                 support_q=result["support_q"],
@@ -167,7 +168,7 @@ class AssemblyPlanner:
                 return new_node.sequence
 
             # debug stopping condition
-            if len(new_node.sequence) == 3:
+            if len(new_node.sequence) == 10:
                 self.final_node = new_node
                 return new_node.sequence
 
@@ -181,31 +182,20 @@ class AssemblyPlanner:
 
         return None
 
-    def is_removal_feasible(self, node, rod_id):
+    def is_removal_feasible(self, node, candidate_rod):
         """
-        Test whether rod_id can be removed from the current scaffold state.
+        Test whether candidate_rod can be removed from the current scaffold state without violatung stability constraints
 
         node.state:
-            rods currently installed before removing rod_id
+            rods currently installed before removing candidate_rod
 
         new_state:
-            rods remaining after removing rod_id
+            rods remaining after removing candidate_rod
 
-        node.supported:
-            branch-local support state, e.g.
-            {
-                "h2_a1_ur_gripper_center": 6
-            }
         """
-        
-        candidate_rod = rod_id
 
+        # form as follows: "h2_a1_ur_gripper_center": 6
         current_supports = dict(node.supported or {})
-        # Expected format:
-        # current_supports = {
-        #     "h1_ur_gripper_center": 7,
-        #     "h2_ur_gripper_center": 8,
-        # }
 
         continuing_supports = {}
         releasable_supports = {}
@@ -213,42 +203,51 @@ class AssemblyPlanner:
         for support_gripper, supported_rod in current_supports.items():
             if supported_rod == candidate_rod:
                 # This support robot is holding the rod that the main robot will remove.
-                # Once the main robot grasps the candidate, this support robot can release.
+                # Once the main robot grasps the candidate, this support robot can release the rod
                 releasable_supports[support_gripper] = supported_rod
             else:
                 # This support robot is holding another rod.
-                # It must not move.
+                # -> must keep doing so
                 continuing_supports[support_gripper] = supported_rod
 
         current_state = node.state
-        new_state = frozenset(current_state - {rod_id})
+        new_state = frozenset(current_state - {candidate_rod})
 
         # Real support-dependency detection is not implemented yet.
         # Therefore, invalid states are still rejected for now.
         if not self.is_valid_state(new_state):
             print(
-                f"Removing rod {rod_id} would make the scaffold invalid. "
+                f"Removing rod {candidate_rod} would make the scaffold invalid. "
                 "Real support selection is not implemented yet."
             )
             return False, None
 
         HELPER_GRIPPERS = self.builder.support_grippers
 
-        candidate_is_supported = self.is_supported_candidate(node, rod_id)
-        old_support_gripper = self.old_support_gripper_for_candidate(node, rod_id)
-
-        # Temporary placeholder for rods that become unstable after removing rod_id.
+        # Check whether the candidate rod is currently supported by a helper gripper.
+        candidate_is_supported = self.is_supported_candidate(node, candidate_rod)
+        
+        print(f"Candidate rod {candidate_rod} is supported: {candidate_is_supported}")
+        
+        # If the candidate rod is currently supported, find which gripper is holding it.
+        if candidate_is_supported:
+            gripper_supporting_candidate = self.support_gripper_id_for_candidate(node, candidate_rod)
+            
+        else:
+            gripper_supporting_candidate = None
+            
+        # Temporary placeholder for rods that become unstable after removing candidate_rod.
         # TODO: Replace with actual structure check
         affected_rods = self.choose_placeholder_support_targets(
             node=node,
-            removed_rod=rod_id,
+            removed_rod=candidate_rod,
             new_state=new_state,
             max_targets=2,
-            probability_two=1.0,
+            probability_two=0.0,
         )
         
         print(
-            f"After removing rod {rod_id}, placeholder requests support for rods: "
+            f"After removing rod {candidate_rod}, placeholder requests support for rods: "
             f"{affected_rods if affected_rods else 'none'}"
         )
 
@@ -286,11 +285,12 @@ class AssemblyPlanner:
             new_support_assignments[free_gripper] = affected_rod
             supported_after_candidate_grasp[free_gripper] = affected_rod      
 
+        # print debug information about support assignments
         if new_support_assignments:
             supported_rods = list(new_support_assignments.values())
 
             print(
-                f"Before removing rod {rod_id}, support will be added for rods: "
+                f"Before removing rod {candidate_rod}, support will be added for rods: "
                 f"{supported_rods}"
             )
 
@@ -299,17 +299,17 @@ class AssemblyPlanner:
                     f"  {support_gripper} supports rod {support_rod}"
                 )
         else:
-            print(f"Before removing rod {rod_id}, no new support is added.")
+            print(f"Before removing rod {candidate_rod}, no new support is added.")
 
         result = self.builder.try_remove_and_commit_rod(
             current_state=current_state,
             new_state=new_state,
-            rod_id=rod_id,
+            rod_id=candidate_rod,
             q_start=node.q,
             supported=node.supported,
             support_q=node.support_q,
             candidate_is_supported=candidate_is_supported,
-            old_support_gripper=old_support_gripper,
+            old_support_gripper=gripper_supporting_candidate,
             continuing_supports=continuing_supports,
             releasable_supports=releasable_supports,
             new_support_assignments=new_support_assignments,
@@ -318,18 +318,18 @@ class AssemblyPlanner:
         )
 
         if result is None:
-            print(f"Removal infeasible for rod {rod_id}")
+            print(f"Removal infeasible for rod {candidate_rod}")
             return False, None
 
-        print(f"Removal feasible for rod {rod_id}")
+        print(f"Removal feasible for rod {candidate_rod}")
         return True, result
     
-    def old_support_gripper_for_candidate(self, node, rod_id):
+    def support_gripper_id_for_candidate(self, node, candidate_rod):
         """
-        Return the support gripper currently holding rod_id, if any.
+        Return the support gripper currently holding candidate_rod, if any.
         """
         for gripper, supported_rod in node.supported.items():
-            if supported_rod == rod_id:
+            if supported_rod == candidate_rod:
                 return gripper
 
         return None

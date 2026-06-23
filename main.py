@@ -4,13 +4,10 @@ from rai.builder import RaiTrussBuilder
 from DataClasses import AssemblyPlan
 import numpy as np
 
-
 truss = Truss.from_json("JSON/scaffold_test.json")
 
 builder = RaiTrussBuilder(truss, radius=0.005, scale=0.0011)
 builder.import_robots()
-
-
 
 searcher = AssemblyPlanner(truss, builder=builder)
 

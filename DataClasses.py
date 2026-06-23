@@ -166,31 +166,23 @@ class AssemblyPlan:
 
 @dataclass
 class SearchNode:
-    state: frozenset
-    sequence: list = field(default_factory=list)
+    state: frozenset # frozenset of remaining rod ids in the current search node
+    sequence: list = field(default_factory=list) # rod ids in removal order
 
-    # Full joint configuration at this search node.
+    # Full joint configuration at this search node
     q: np.ndarray | None = None
 
-    # Which rods are currently held by support robots.
+    # rods that are currently supported by support robots.
     # Example:
-    # {
-    #     "h1_ur_gripper_center": 8,
-    #     "h2_ur_gripper_center": 12,
-    # }
+    # "h1_ur_gripper_center": 8,
+    # "h2_ur_gripper_center": 12,
     supported: dict = field(default_factory=dict)
 
-    # Exact full joint configuration at the moment each support robot
-    # took over its supported rod.
-    #
-    # This is needed so that a support robot can remain in the same
-    # pose/orientation while it keeps supporting the rod across multiple
-    # removal steps.
+    # TODO: potentially use end effector poses instead of full joint configuration
+    # joint configuration in which the support robot holds rod
     #
     # Example:
-    # {
-    #     "h1_ur_gripper_center": np.array([...]),
-    # }
+    # "h1_ur_gripper_center": np.array([...]),
     support_q: dict = field(default_factory=dict)
 
     records: list = field(default_factory=list)
