@@ -43,7 +43,9 @@ class KeyframePlanner:
                 x_init = np.random.rand(dim) * mult + offset
                 # print(x_init)
                 komo.initWithConstant(x_init)
-                
+            
+            # komo.view(True, f"KOMO initialization, attempt {attempt}")
+
 
             solver = ry.NLP_Solver(komo.nlp(), verbose=0)
 
@@ -320,7 +322,8 @@ class KeyframePlanner:
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq, [1e1])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
+        #TODO try
 
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.
@@ -580,7 +583,7 @@ class KeyframePlanner:
 
         keyframes = self.solve_komo(
             komo,
-            attempts=50,
+            attempts=100,
             view=False,
         )
 

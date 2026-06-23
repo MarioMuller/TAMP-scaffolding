@@ -30,8 +30,8 @@ class RaiTrussBuilder:
         self.viser_replayer = ViserPlanReplayer(self.C, self.rods)
 
     def import_main_husky(self):
-        # self.scene.import_main_husky()
-        self.scene.import_main_husky_baseless()
+        self.scene.import_main_husky()
+        # self.scene.import_main_husky_baseless()
 
     def import_support_husky(self, name="h2", base_q=(3.0, -3.0, 0.0)):
         self.scene.import_support_husky(
@@ -51,7 +51,7 @@ class RaiTrussBuilder:
         else:
             self.import_main_husky()
             self.import_support_husky(name="h1")
-            self.import_support_husky(name="h2")
+            self.import_support_husky(name="h2", base_q=(-3.0, -3.0, 0.0))
 
         self._detect_support_grippers()
 
