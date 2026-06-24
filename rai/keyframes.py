@@ -38,7 +38,7 @@ class KeyframePlanner:
     ):
         for attempt in range(attempts):
 
-            if attempt > 0:
+            if attempt > -1:
                 dim = len(self.C.getJointState())
                 x_init = np.random.rand(dim) * mult + offset
                 # print(x_init)
@@ -54,7 +54,7 @@ class KeyframePlanner:
             except RuntimeError as e:
                 msg = str(e)
                 if "checkNan" in msg or "inconsistent number" in msg:
-                    print(f"KOMO attempt {attempt} crashed with NaN; skipping this restart")
+                    print(f"\033[1m\033[34mKOMO attempt {attempt} crashed with NaN; skipping this restart\033[0m")
                     continue
                 raise
             

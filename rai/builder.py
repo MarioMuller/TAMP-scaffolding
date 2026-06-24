@@ -41,6 +41,7 @@ class RaiTrussBuilder:
 
     def import_pineapple_model(self):
         self.scene.import_pineapple_model()
+        
 
     def import_robots(self):
         debug = False
