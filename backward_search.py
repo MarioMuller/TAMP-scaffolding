@@ -2,7 +2,7 @@ from truss import Truss
 from collections import defaultdict, deque
 import heapq
 from DataClasses import SearchNode
-import random
+from rigidityCheck.truss_rigidity import TrussRigidityChecker
 
 class AssemblyPlanner:
     def __init__(self, truss, builder=None):
@@ -10,6 +10,7 @@ class AssemblyPlanner:
         self.builder = builder
         self.motion_records = {}
         self.currently_supported_rod = None
+        self.rigidity = TrussRigidityChecker(truss)
 
     # create graph structure
     def build_graph(self, active_rods):
@@ -26,34 +27,8 @@ class AssemblyPlanner:
         return graph, active_nodes
 
     # check that rods are not flying
-    def is_valid_state(self, active_rods):
-        graph, active_nodes = self.build_graph(active_rods)
-        visited = set()
-
-        for start in active_nodes:
-            if start in visited:
-                continue
-
-            q = deque([start])
-            has_ground = False
-
-            while q:
-                node = q.popleft()
-                if node in visited:
-                    continue
-
-                visited.add(node)
-                if node in self.truss.grounded_nodes:
-                    has_ground = True
-
-                for neighbour in graph[node]:
-                    if neighbour not in visited:
-                        q.append(neighbour)
-
-            if not has_ground:
-                return False
-
-        return True
+    def is_valid_state(self, active_rods, supported_rods=None):
+        return self.rigidity.is_rigid(active_rods, supported_rods=supported_rods)
 
     # use height as heuristicc
     def heuristic(self, rod_id):
@@ -84,32 +59,12 @@ class AssemblyPlanner:
         max_targets=2,
         probability_two=0.5,
     ):
-        already_supported = set(node.supported.values())
-
-        candidates = [
-            r for r in new_state
-            if r != removed_rod
-        ]
-
-        if not candidates:
-            return []
-
-        ranked = sorted(
-            candidates,
+        return self.rigidity.choose_support_targets(
+            active_rods=new_state,
+            already_supported=node.supported.values(),
+            max_targets=max_targets,
             key=self.heuristic,
-            reverse=True,
         )
-
-        if len(ranked) >= 2 and random.random() < probability_two:
-            print("two rods need support, selecting two placeholder targets")
-            n_targets = 2
-        else:
-            print("only one rod needs support, selecting one placeholder target")
-            n_targets = 1
-            
-        # n_targets = 0
-
-        return ranked[:min(n_targets, max_targets)]
     
 
     # greedy backward search
@@ -213,15 +168,6 @@ class AssemblyPlanner:
         current_state = node.state
         new_state = frozenset(current_state - {candidate_rod})
 
-        # Real support-dependency detection is not implemented yet.
-        # Therefore, invalid states are still rejected for now.
-        if not self.is_valid_state(new_state):
-            print(
-                f"Removing rod {candidate_rod} would make the scaffold invalid. "
-                "Real support selection is not implemented yet."
-            )
-            return False, None
-
         HELPER_GRIPPERS = self.builder.support_grippers
 
         # Check whether the candidate rod is currently supported by a helper gripper.
@@ -236,25 +182,45 @@ class AssemblyPlanner:
         else:
             gripper_supporting_candidate = None
             
-        # Temporary placeholder for rods that become unstable after removing candidate_rod.
-        # TODO: Replace with actual structure check
-        affected_rods = self.choose_placeholder_support_targets(
-            node=node,
-            removed_rod=candidate_rod,
-            new_state=new_state,
-            max_targets=2,
-            probability_two=0.0,
-        )
-        
-        print(
-            f"After removing rod {candidate_rod}, placeholder requests support for rods: "
-            f"{affected_rods if affected_rods else 'none'}"
-        )
-
         # Support state after the main robot has grasped the candidate.
         # Continuing supports stay active and must NOT be moved.
         # Releasable supports are only those holding the candidate rod itself.
         supported_after_candidate_grasp = dict(continuing_supports)
+
+        if self.is_valid_state(
+            new_state,
+            supported_rods=supported_after_candidate_grasp.values(),
+        ):
+            affected_rods = []
+        else:
+            affected_rods = self.choose_placeholder_support_targets(
+                node=node,
+                removed_rod=candidate_rod,
+                new_state=new_state,
+                max_targets=2,
+                probability_two=0.0,
+            )
+
+        supported_after_new_assignments = (
+            set(supported_after_candidate_grasp.values()) | set(affected_rods)
+        )
+        rigidity_check = self.rigidity.check(
+            new_state,
+            supported_rods=supported_after_new_assignments,
+        )
+
+        if not rigidity_check.is_rigid:
+            print(
+                f"Removing rod {candidate_rod} would leave a non-rigid scaffold "
+                f"(rank {rigidity_check.rank}/{rigidity_check.dof})."
+            )
+            return False, None
+
+        print(
+            f"After removing rod {candidate_rod}, rigidity requests support for rods: "
+            f"{affected_rods if affected_rods else 'none'} "
+            f"(rank {rigidity_check.rank}/{rigidity_check.dof})"
+        )
 
         # Only grippers that are not continuing supports may be assigned to new support.
         # This includes:

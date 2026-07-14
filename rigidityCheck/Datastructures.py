@@ -11,15 +11,6 @@ class ElementStatus(Enum):
     float = 1
     rotate = 2
     fixed = 3
-    
-
-import operator
-from collections import deque
-from copy import deepcopy
-from typing import List, Tuple
-
-import pybullet_planning as pp
-from husky_assembly_tamp.symbolic_planner.element_status import ElementStatus
 
 
 class ElementObject(object):
@@ -35,13 +26,10 @@ class ElementObject(object):
         is_grounded=False,
     ) -> None:
 
-        from symbolic_planner.status_checker import (
-            BasicChecker,
-            DefaultChecker,
-            GroundedChecker,
-            TwoFixConstrainChecker,
-            AlgebraicChecker,
-        )
+        try:
+            from .rigiditycheck import AlgebraicChecker, DefaultChecker, TwoFixConstrainChecker
+        except ImportError:
+            from rigiditycheck import AlgebraicChecker, DefaultChecker, TwoFixConstrainChecker
 
         self.index = index
         self.body = body

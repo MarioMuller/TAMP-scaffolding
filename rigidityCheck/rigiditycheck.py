@@ -6,9 +6,14 @@ from collections import deque, namedtuple
 from typing import List, Tuple, Union
 
 import numpy as np
-from Datastructures import ElementObject
-from Datastructures import ElementStatus
-from utils import closest_points_between_segments
+try:
+    from .Datastructures import ElementObject
+    from .Datastructures import ElementStatus
+    from .utils import closest_points_between_segments
+except ImportError:
+    from Datastructures import ElementObject
+    from Datastructures import ElementStatus
+    from utils import closest_points_between_segments
 
 Vertex = namedtuple("Vertex", ["id", "point", "element_index"])
 
