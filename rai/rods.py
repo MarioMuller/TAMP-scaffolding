@@ -57,6 +57,27 @@ class RodManager:
     
         return
     
+    def create_rod_at_goal_pose(self, rod_id):
+        center, quat = self.get_goal_pose(rod_id)
+        
+        quat = np.array(quat, dtype=float)
+        quat = quat / np.linalg.norm(quat)
+
+
+        n1, n2 = self.truss.elements[rod_id]
+
+        p1 = np.array(self.truss.nodes[n1], dtype=float) * self.scale
+        p2 = np.array(self.truss.nodes[n2], dtype=float) * self.scale
+
+        length = np.linalg.norm(p2 - p1) -0.03 #-0.03 for long_beam
+        
+        if length < 1e-10:
+            raise ValueError(f"Rod {rod_id} has zero length")
+
+        self.C.addFrame(f"rod_{rod_id}") .setShape(ry.ST.cylinder, [length, self.radius]) .setColor([.5,1.,.0]) .setPosition(center) .setQuaternion(quat) .setContact(1)
+    
+        return
+    
     def create_target_frame(self, rod_id):
         center, quat = self.get_goal_pose(rod_id)
 
@@ -108,26 +129,6 @@ class RodManager:
         self.C.getFrame(g2).setRelativePosition([0.0, 0.0, z2])
 
         return g1, g2
-    
-    # helper function to move rods out of the way 
-    def set_to_end_position(self, rod_id):
-        
-        n1, n2 = self.truss.elements[rod_id]
-
-        p1 = np.array(self.truss.nodes[n1]) * self.scale
-        p2 = np.array(self.truss.nodes[n2]) * self.scale
-    
-        center = 0.5 * (p1 + p2)
-        center[2] += 0.1
-        quat = quaternion_from_z_to_vector(p2 - p1)
-
-        self.C.getFrame(f"rod_{rod_id}").setPosition(center) .setQuaternion(quat)
-        
-        self.C.view()
-        # time.sleep()
-        # input("Press Enter to close...")
-
-        return
     
     def set_to_goal_pose(self, rod_id, view=False):
         center, quat = self.get_goal_pose(rod_id)

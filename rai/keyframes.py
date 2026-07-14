@@ -78,6 +78,24 @@ class KeyframePlanner:
 
         return None
 
+    def copy_frame_pose(self, source_frame_name, target_frame_name):
+        source = self.C.getFrame(source_frame_name)
+        if source is None:
+            raise RuntimeError(
+                f"Cannot copy pose. Source frame does not exist: {source_frame_name}"
+            )
+
+        if target_frame_name not in self.C.getFrameNames():
+            raise RuntimeError(
+                f"Cannot copy pose. Target frame does not exist: {target_frame_name}"
+            )
+
+        target = self.C.getFrame(target_frame_name)
+        target.setPosition(source.getPosition())
+        target.setQuaternion(source.getQuaternion())
+
+        return target_frame_name
+
     def make_pose_target_from_frame(
         self,
         source_frame_name,
@@ -91,7 +109,7 @@ class KeyframePlanner:
         IMPORTANT:
         Call this before constructing KOMO objectives that reference the target.
         """
-        
+
         source = self.C.getFrame(source_frame_name)
         if source is None:
             raise RuntimeError(
@@ -102,11 +120,8 @@ class KeyframePlanner:
             target = self.C.addFrame(target_frame_name, parent)
             target.setShape(ry.ST.marker, [marker_size])
             target.setContact(0)
-        else:
-            target = self.C.getFrame(target_frame_name)
 
-        target.setPosition(source.getPosition())
-        target.setQuaternion(source.getQuaternion())
+        self.copy_frame_pose(source_frame_name, target_frame_name)
 
         return target_frame_name
 
@@ -161,6 +176,7 @@ class KeyframePlanner:
         releasable_supports = dict(releasable_supports or {})
         new_support_assignments = dict(new_support_assignments or {})
 
+        # Determine whether the old support is being reused for a new affected rod.
         old_support_is_reused = (
             old_support_gripper is not None
             and old_support_gripper in new_support_assignments
@@ -170,6 +186,7 @@ class KeyframePlanner:
         # Helper frames
         # ------------------------------------------------------------
 
+        # Create a fixed target frame for the candidate rod at its pickup pose.
         pickup_name = f"rod_{rod_id}_pickup_target"
 
         if pickup_name not in self.C.getFrameNames():
@@ -179,15 +196,16 @@ class KeyframePlanner:
             .setPosition([-3, -1, 1.0]) \
             .setQuaternion([0.5, 0.0, 0.5, 0.70710678])
 
+
+        # Create a fixed target frame for the candidate rod at its installed pose.
         candidate_hold_target = f"rod_{rod_id}_hold_target"
 
         if candidate_hold_target not in self.C.getFrameNames():
             self.C.addFrame(candidate_hold_target, "world")
 
-        self.C.getFrame(candidate_hold_target) \
-            .setPosition(self.C.getFrame(rod).getPosition()) \
-            .setQuaternion(self.C.getFrame(rod).getQuaternion())
+        self.copy_frame_pose(rod, candidate_hold_target)
 
+        # TODO: Give it more flexibility if only one needs to grab at connector
         g1, g2 = self.rods.create_dual_arm_grasp_frames(
             rod_id,
             d1_from_end=0.12,
@@ -287,9 +305,7 @@ class KeyframePlanner:
             if support_target not in self.C.getFrameNames():
                 self.C.addFrame(support_target, "world")
 
-            self.C.getFrame(support_target) \
-                .setPosition(self.C.getFrame(support_rod).getPosition()) \
-                .setQuaternion(self.C.getFrame(support_rod).getQuaternion())
+            self.copy_frame_pose(support_rod, support_target)
 
         t_pickup = phases.add("move_to_pickup")
 

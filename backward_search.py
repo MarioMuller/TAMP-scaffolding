@@ -82,7 +82,7 @@ class AssemblyPlanner:
         removed_rod,
         new_state,
         max_targets=2,
-        probability_two=1,
+        probability_two=0.5,
     ):
         already_supported = set(node.supported.values())
 
@@ -168,9 +168,9 @@ class AssemblyPlanner:
                 return new_node.sequence
 
             # debug stopping condition
-            # if len(new_node.sequence) == 10:
-            #     self.final_node = new_node
-            #     return new_node.sequence
+            if len(new_node.sequence) >= 2:
+                self.final_node = new_node
+                return new_node.sequence
 
             for next_rod in new_state:
                 priority = self.removal_priority(new_node, next_rod)
@@ -243,7 +243,7 @@ class AssemblyPlanner:
             removed_rod=candidate_rod,
             new_state=new_state,
             max_targets=2,
-            probability_two=1.0,
+            probability_two=0.0,
         )
         
         print(

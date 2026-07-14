@@ -59,23 +59,17 @@ class RaiTrussBuilder:
     def display_recorded_plan_viser(self, *args, **kwargs):
         return self.viser_replayer.display_recorded_plan_viser(*args, **kwargs)
 
-    def reset_scene_with_rods(self, placed_rods):
+    def reset_scene_with_rods(self, remaining_rods):
         """
         Rebuild scene with not-yet-removed rods in their final installed poses.
         """
-        
-        # print("reset_scene_with_rods is called")
+
         self.scene.clear()
         self.import_robots()
 
-        for rod_id in placed_rods:
-            self.rods.create_rod(
-                rod_id,
-                pos=[-3, -1, 1.0],
-                ori=[0.5, 0.0, 0.5, 0.70710678],
-            )
-
-            self.rods.set_to_goal_pose(rod_id)
+        for rod_id in remaining_rods:
+            
+            self.rods.create_rod_at_goal_pose(rod_id)
 
             if self.C.getFrame("table") is not None:
                 self.C.attach("table", f"rod_{rod_id}")
@@ -198,11 +192,12 @@ class RaiTrussBuilder:
         if q_start is not None:
             self.C.setJointState(q_start)
 
-        # 2. Restore branch-local support attachments.
+        # 2. Restore support attachments.
         #
         # This includes both continuing supports and possibly a support on the
         # candidate rod. The keyframe planner decides whether/when the candidate
-        # support releases.
+        # support releases
+        
         for support_gripper, supported_rod in supported.items():
             rod_frame = f"rod_{supported_rod}"
 
@@ -219,10 +214,10 @@ class RaiTrussBuilder:
 
         # 3. Compute keyframes.
         #
-        # IMPORTANT:
-        # keyframes.py must accept continuing_supports and use them to add KOMO
+        # keyframes.py accepts continuing_supports and use them to add KOMO
         # constraints that keep those grippers/rods fixed. builder.py only passes
-        # the information through; the KOMO lives in KeyframePlanner.
+        # the information to keyframes.py
+        
         keyframes, q0, _keyframe_new_supported, phase_info = self.keyframes.get_remove_keyframes_dual(
             rod_id=rod_id,
             supported=supported,
