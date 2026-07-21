@@ -1,0 +1,261 @@
+{
+  "model_name": "scaffold_block_3x1x2",
+  "assembly_type": "extrusion",
+  "model_type": "3D_frame",
+  "unit": "millimeter",
+  "generate_time": "07/14/2026 00:00:00",
+  "dimension": 3,
+  "node_num": 24,
+  "element_num": 46,
+  "base_frame_in_rob_base": {
+    "Origin": {
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 0.0
+    },
+    "OriginX": 0.0,
+    "OriginY": 0.0,
+    "OriginZ": 0.0,
+    "XAxis": {
+      "X": 1.0,
+      "Y": 0.0,
+      "Z": 0.0
+    },
+    "YAxis": {
+      "X": 0.0,
+      "Y": 1.0,
+      "Z": 0.0
+    },
+    "ZAxis": {
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 1.0
+    },
+    "Normal": {
+      "X": 0.0,
+      "Y": 0.0,
+      "Z": 1.0
+    },
+    "IsValid": true
+  },
+  "uniform_cross_section": true,
+  "uniform_material_properties": true,
+  "material_properties": {
+    "_source": "custom",
+    "material_name": "PLA",
+    "youngs_modulus": 350,
+    "youngs_modulus_unit": "kN/cm2",
+    "shear_modulus": 240,
+    "shear_modulus_unit": "kN/cm2",
+    "tensile_yeild_stress": 3.6,
+    "tensile_yeild_stress_unit": "kN/cm2",
+    "density": 12.2582,
+    "density_unit": "kN/m3",
+    "poisson_ratio": 0.27,
+    "cross_sec_area": 0.07068583470577035,
+    "cross_sec_area_unit": "centimeter^2",
+    "_cross_sec_area_note": "round_shape, radius 0.15 cm",
+    "Jx": 0.0007952156404399163,
+    "Jx_unit": "centimeter^4",
+    "_Jx_note": "0.5 * pi * r^4",
+    "Iy": 0.00039760782021995816,
+    "Iy_unit": "centimeter^4",
+    "_Iy_note": "0.25 * pi * r^4",
+    "Iz": 0.00039760782021995816,
+    "Iz_unit": "centimeter^4"
+  },
+  "node_list": [
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 0.0 },
+      "node_id": 0,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 0.0 },
+      "node_id": 1,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 2000.0, "Y": 0.0, "Z": 0.0 },
+      "node_id": 2,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 3000.0, "Y": 0.0, "Z": 0.0 },
+      "node_id": 3,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 0.0 },
+      "node_id": 4,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 0.0 },
+      "node_id": 5,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 2000.0, "Y": 1000.0, "Z": 0.0 },
+      "node_id": 6,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 3000.0, "Y": 1000.0, "Z": 0.0 },
+      "node_id": 7,
+      "is_grounded": 1,
+      "fixities": [1, 1, 1, 1, 1, 1]
+    },
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 8,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 9,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 2000.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 10,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 3000.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 11,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 12,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 13,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 2000.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 14,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 3000.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 15,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 2000.0 },
+      "node_id": 16,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 2000.0 },
+      "node_id": 17,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 2000.0, "Y": 0.0, "Z": 2000.0 },
+      "node_id": 18,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 3000.0, "Y": 0.0, "Z": 2000.0 },
+      "node_id": 19,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 2000.0 },
+      "node_id": 20,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 2000.0 },
+      "node_id": 21,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 2000.0, "Y": 1000.0, "Z": 2000.0 },
+      "node_id": 22,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 3000.0, "Y": 1000.0, "Z": 2000.0 },
+      "node_id": 23,
+      "is_grounded": 0,
+      "fixities": []
+    }
+  ],
+  "element_list": [
+    { "end_node_ids": [0, 1], "element_id": 0, "layer_id": 0 },
+    { "end_node_ids": [1, 2], "element_id": 1, "layer_id": 0 },
+    { "end_node_ids": [2, 3], "element_id": 2, "layer_id": 0 },
+    { "end_node_ids": [4, 5], "element_id": 3, "layer_id": 0 },
+    { "end_node_ids": [5, 6], "element_id": 4, "layer_id": 0 },
+    { "end_node_ids": [6, 7], "element_id": 5, "layer_id": 0 },
+    { "end_node_ids": [8, 9], "element_id": 6, "layer_id": 1 },
+    { "end_node_ids": [9, 10], "element_id": 7, "layer_id": 1 },
+    { "end_node_ids": [10, 11], "element_id": 8, "layer_id": 1 },
+    { "end_node_ids": [12, 13], "element_id": 9, "layer_id": 1 },
+    { "end_node_ids": [13, 14], "element_id": 10, "layer_id": 1 },
+    { "end_node_ids": [14, 15], "element_id": 11, "layer_id": 1 },
+    { "end_node_ids": [16, 17], "element_id": 12, "layer_id": 2 },
+    { "end_node_ids": [17, 18], "element_id": 13, "layer_id": 2 },
+    { "end_node_ids": [18, 19], "element_id": 14, "layer_id": 2 },
+    { "end_node_ids": [20, 21], "element_id": 15, "layer_id": 2 },
+    { "end_node_ids": [21, 22], "element_id": 16, "layer_id": 2 },
+    { "end_node_ids": [22, 23], "element_id": 17, "layer_id": 2 },
+    { "end_node_ids": [0, 4], "element_id": 18, "layer_id": 0 },
+    { "end_node_ids": [1, 5], "element_id": 19, "layer_id": 0 },
+    { "end_node_ids": [2, 6], "element_id": 20, "layer_id": 0 },
+    { "end_node_ids": [3, 7], "element_id": 21, "layer_id": 0 },
+    { "end_node_ids": [8, 12], "element_id": 22, "layer_id": 1 },
+    { "end_node_ids": [9, 13], "element_id": 23, "layer_id": 1 },
+    { "end_node_ids": [10, 14], "element_id": 24, "layer_id": 1 },
+    { "end_node_ids": [11, 15], "element_id": 25, "layer_id": 1 },
+    { "end_node_ids": [16, 20], "element_id": 26, "layer_id": 2 },
+    { "end_node_ids": [17, 21], "element_id": 27, "layer_id": 2 },
+    { "end_node_ids": [18, 22], "element_id": 28, "layer_id": 2 },
+    { "end_node_ids": [19, 23], "element_id": 29, "layer_id": 2 },
+    { "end_node_ids": [0, 8], "element_id": 30, "layer_id": 0 },
+    { "end_node_ids": [1, 9], "element_id": 31, "layer_id": 0 },
+    { "end_node_ids": [2, 10], "element_id": 32, "layer_id": 0 },
+    { "end_node_ids": [3, 11], "element_id": 33, "layer_id": 0 },
+    { "end_node_ids": [4, 12], "element_id": 34, "layer_id": 0 },
+    { "end_node_ids": [5, 13], "element_id": 35, "layer_id": 0 },
+    { "end_node_ids": [6, 14], "element_id": 36, "layer_id": 0 },
+    { "end_node_ids": [7, 15], "element_id": 37, "layer_id": 0 },
+    { "end_node_ids": [8, 16], "element_id": 38, "layer_id": 1 },
+    { "end_node_ids": [9, 17], "element_id": 39, "layer_id": 1 },
+    { "end_node_ids": [10, 18], "element_id": 40, "layer_id": 1 },
+    { "end_node_ids": [11, 19], "element_id": 41, "layer_id": 1 },
+    { "end_node_ids": [12, 20], "element_id": 42, "layer_id": 1 },
+    { "end_node_ids": [13, 21], "element_id": 43, "layer_id": 1 },
+    { "end_node_ids": [14, 22], "element_id": 44, "layer_id": 1 },
+    { "end_node_ids": [15, 23], "element_id": 45, "layer_id": 1 }
+  ]
+}

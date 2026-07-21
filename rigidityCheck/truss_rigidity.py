@@ -230,6 +230,128 @@ def _rod_height_key(truss):
     return key
 
 
+def _set_axes_equal(ax, points: np.ndarray) -> None:
+    mins = points.min(axis=0)
+    maxs = points.max(axis=0)
+    centers = 0.5 * (mins + maxs)
+    radius = 0.5 * max(maxs - mins)
+    if radius == 0:
+        radius = 1.0
+
+    ax.set_xlim(centers[0] - radius, centers[0] + radius)
+    ax.set_ylim(centers[1] - radius, centers[1] + radius)
+    ax.set_zlim(centers[2] - radius, centers[2] + radius)
+
+
+def plot_scaffold(
+    truss,
+    active_rods: set[int],
+    removed_rods: set[int],
+    supported_rods: set[int],
+    result: RigidityResult,
+    label_rods: bool = True,
+    save_path: str | None = None,
+    show: bool = True,
+) -> None:
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    status_colors = {
+        "fixed": "tab:green",
+        "rotate": "tab:orange",
+        "float": "tab:red",
+        "unassembled": "0.65",
+    }
+
+    fig = plt.figure(figsize=(9, 7))
+    ax = fig.add_subplot(111, projection="3d")
+    ax.set_title(
+        "Rigidity check scaffold "
+        f"({'rigid' if result.is_rigid else 'not rigid'}, "
+        f"{result.rank}/{result.dof} fixed rods)"
+    )
+
+    for rod_id, (n1, n2) in truss.elements.items():
+        p1 = np.asarray(truss.nodes[n1], dtype=float)
+        p2 = np.asarray(truss.nodes[n2], dtype=float)
+        xs, ys, zs = zip(p1, p2)
+
+        if rod_id in removed_rods:
+            color = "0.82"
+            linewidth = 1.0
+            linestyle = "--"
+            alpha = 0.45
+        elif rod_id in supported_rods:
+            color = "magenta"
+            linewidth = 3.0
+            linestyle = "-"
+            alpha = 1.0
+        else:
+            status = result.statuses.get(rod_id, ElementStatus.unassembled).name
+            color = status_colors[status]
+            linewidth = 2.0
+            linestyle = "-"
+            alpha = 1.0 if rod_id in active_rods else 0.35
+
+        ax.plot(xs, ys, zs, color=color, linewidth=linewidth, linestyle=linestyle, alpha=alpha)
+
+        if label_rods:
+            midpoint = 0.5 * (p1 + p2)
+            ax.text(midpoint[0], midpoint[1], midpoint[2], str(rod_id), fontsize=8)
+
+    node_points = np.asarray(
+        [truss.nodes[node_id] for node_id in sorted(truss.nodes)],
+        dtype=float,
+    )
+    ax.scatter(
+        node_points[:, 0],
+        node_points[:, 1],
+        node_points[:, 2],
+        color="black",
+        s=12,
+        alpha=0.65,
+    )
+
+    grounded_points = np.asarray(
+        [truss.nodes[node_id] for node_id in sorted(truss.grounded_nodes)],
+        dtype=float,
+    )
+    if len(grounded_points) > 0:
+        ax.scatter(
+            grounded_points[:, 0],
+            grounded_points[:, 1],
+            grounded_points[:, 2],
+            color="black",
+            marker="s",
+            s=45,
+            label="grounded nodes",
+        )
+
+    _set_axes_equal(ax, node_points)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+
+    legend_items = [
+        Line2D([0], [0], color="tab:green", lw=2, label="fixed"),
+        Line2D([0], [0], color="tab:orange", lw=2, label="rotate"),
+        Line2D([0], [0], color="tab:red", lw=2, label="float"),
+        Line2D([0], [0], color="magenta", lw=3, label="supported"),
+        Line2D([0], [0], color="0.82", lw=1, ls="--", label="removed"),
+        Line2D([0], [0], marker="s", color="black", lw=0, label="grounded node"),
+    ]
+    ax.legend(handles=legend_items, loc="upper right")
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=180)
+        print(f"plot saved to: {save_path}")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run the rigiditycheck.py-backed rigidity check for a truss JSON file."
@@ -237,6 +359,7 @@ def main() -> None:
     parser.add_argument(
         "json_path",
         nargs="?",
+        # default="JSON/scaffold_two_floors.json",
         default="JSON/scaffold_test.json",
         help="Path to the truss JSON file.",
     )
@@ -264,6 +387,20 @@ def main() -> None:
         "--show-statuses",
         action="store_true",
         help="Print every active rod's ElementStatus.",
+    )
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Show a matplotlib 3D plot of the checked scaffold.",
+    )
+    parser.add_argument(
+        "--save-plot",
+        help="Save the scaffold plot to an image file instead of only displaying it.",
+    )
+    parser.add_argument(
+        "--label-rods",
+        action="store_true",
+        help="Label rods with their element ids in the plot.",
     )
     args = parser.parse_args()
 
@@ -308,6 +445,18 @@ def main() -> None:
             )
         else:
             print("suggested supports: none found")
+
+    if args.plot or args.save_plot:
+        plot_scaffold(
+            truss=truss,
+            active_rods=active_rods,
+            removed_rods=set(args.remove),
+            supported_rods=supported_rods,
+            result=result,
+            label_rods=args.label_rods,
+            save_path=args.save_plot,
+            show=args.plot,
+        )
 
 
 if __name__ == "__main__":
