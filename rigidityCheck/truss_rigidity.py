@@ -160,7 +160,7 @@ class TrussRigidityChecker:
             for rod_id, index in rod_to_index.items()
         }
 
-        coupled_rods = self._coupled_rods_by_shared_node()
+        coupled_rods = self._coupled_rods()
         element_objects = []
 
         for rod_id in rod_ids:
@@ -170,8 +170,7 @@ class TrussRigidityChecker:
                 np.asarray(self.truss.nodes[n2], dtype=float),
             ]
             is_grounded = (
-                n1 in self.truss.grounded_nodes
-                or n2 in self.truss.grounded_nodes
+                rod_id in self.truss.grounded_rods
                 or rod_id in supported_rods
             )
             coupled_elements = [
@@ -204,21 +203,17 @@ class TrussRigidityChecker:
 
         return element_objects, rod_to_index, index_to_rod
 
-    def _coupled_rods_by_shared_node(self) -> dict[int, set[int]]:
-        node_to_rods = defaultdict(set)
-        for rod_id, (n1, n2) in self.truss.elements.items():
-            node_to_rods[n1].add(rod_id)
-            node_to_rods[n2].add(rod_id)
-
+    def _coupled_rods(self) -> dict[int, set[int]]:
         coupled_rods = {
             rod_id: set()
             for rod_id in self.truss.elements
         }
 
-        for rods in node_to_rods.values():
-            for rod_id in rods:
-                coupled_rods[rod_id].update(rods - {rod_id})
-
+        for rod_1, rod_2 in self.truss.couplers:
+            coupled_rods[rod_1].add(rod_2)
+            coupled_rods[rod_2].add(rod_1)
+            
+        print (f"Coupled rods: {coupled_rods}")  # Debugging statement
         return coupled_rods
 
 
@@ -281,6 +276,11 @@ def plot_scaffold(
             linewidth = 1.0
             linestyle = "--"
             alpha = 0.45
+        elif rod_id in truss.grounded_rods:
+            color = "tab:blue"
+            linewidth = 3.0
+            linestyle = "-"
+            alpha = 1.0
         elif rod_id in supported_rods:
             color = "magenta"
             linewidth = 3.0
@@ -311,21 +311,7 @@ def plot_scaffold(
         s=12,
         alpha=0.65,
     )
-
-    grounded_points = np.asarray(
-        [truss.nodes[node_id] for node_id in sorted(truss.grounded_nodes)],
-        dtype=float,
-    )
-    if len(grounded_points) > 0:
-        ax.scatter(
-            grounded_points[:, 0],
-            grounded_points[:, 1],
-            grounded_points[:, 2],
-            color="black",
-            marker="s",
-            s=45,
-            label="grounded nodes",
-        )
+    
 
     _set_axes_equal(ax, node_points)
     ax.set_xlabel("X")
@@ -338,7 +324,7 @@ def plot_scaffold(
         Line2D([0], [0], color="tab:red", lw=2, label="float"),
         Line2D([0], [0], color="magenta", lw=3, label="supported"),
         Line2D([0], [0], color="0.82", lw=1, ls="--", label="removed"),
-        Line2D([0], [0], marker="s", color="black", lw=0, label="grounded node"),
+        Line2D([0], [0], color="tab:blue", lw=3, label="grounded"),
     ]
     ax.legend(handles=legend_items, loc="upper right")
 
