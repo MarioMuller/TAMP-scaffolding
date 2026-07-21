@@ -360,7 +360,8 @@ def main() -> None:
         "json_path",
         nargs="?",
         # default="JSON/scaffold_two_floors.json",
-        default="JSON/scaffold_test.json",
+        # default="JSON/scaffold_test.json",
+        default="JSON/own_examples/easy_scaffold.json",
         help="Path to the truss JSON file.",
     )
     parser.add_argument(

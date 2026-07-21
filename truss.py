@@ -16,18 +16,16 @@ class Truss:
             data = json.load(f)
 
         nodes = {}
-        grounded_nodes = set()
-        node_fixities = {}
-        elements = {}
+        rods = {}
 
         for n in data["node_list"]:
             nid = n["node_id"]
             nodes[nid] = (n["point"]["X"], n["point"]["Y"], n["point"]["Z"])
-            node_fixities[nid] = tuple(n.get("fixities", []))
+
+
+        for e in data["rod_list"]:
+            rods[e["rod_id"]] = tuple(e["end_node_ids"])
             if n.get("is_grounded", 0) == 1:
-                grounded_nodes.add(nid)
+                grounded_rods.add(nid)
 
-        for e in data["element_list"]:
-            elements[e["element_id"]] = tuple(e["end_node_ids"])
-
-        return cls(nodes, elements, grounded_nodes, node_fixities=node_fixities)
+        return cls(nodes, rods, grounded_nodes, node_fixities=node_fixities)
