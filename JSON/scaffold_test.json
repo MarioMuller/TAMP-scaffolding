@@ -161,6 +161,30 @@
       "node_id": 15,
       "is_grounded": 0,
       "fixities": []
+    },
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 2000.0 },
+      "node_id": 16,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 2000.0 },
+      "node_id": 17,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 2000.0 },
+      "node_id": 18,
+      "is_grounded": 0,
+      "fixities": []
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 2000.0 },
+      "node_id": 19,
+      "is_grounded": 0,
+      "fixities": []
     }
   ],
   "element_list": [
@@ -302,6 +326,16 @@
     {
       "end_node_ids": [7, 15],
       "element_id": 27,
+      "layer_id": 0
+    },
+    {
+      "end_node_ids": [8, 16],
+      "element_id": 28,
+      "layer_id": 0
+    },
+    {
+      "end_node_ids": [12, 17],
+      "element_id": 29,
       "layer_id": 0
     }
   ]

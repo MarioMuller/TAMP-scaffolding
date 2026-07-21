@@ -45,7 +45,7 @@ class TrussRigidityChecker:
     """
     Adapter from the JSON-backed Truss model to rigiditycheck.py.
 
-    This intentionally follows the original checker implementation:
+    follows the original checker implementation:
     - rods are converted to ElementObject instances
     - rods sharing a JSON node become coupled/assembled elements
     - grounded rods use ElementObject.is_grounded
