@@ -31,6 +31,10 @@ class RigidityResult:
     rows: int
     statuses: dict[int, ElementStatus] = field(default_factory=dict)
 
+    failure_modes: tuple[np.ndarray, ...] = ()
+    failure_vertices: tuple = ()
+    failure_elements: dict = field(default_factory=dict)
+    
     @property
     def nullity(self) -> int:
         return self.dof - self.rank
@@ -70,6 +74,9 @@ class TrussRigidityChecker:
                 dof=0,
                 rows=0,
                 statuses={},
+                failure_modes=(),
+                failure_vertices=(),
+                failure_elements={},
             )
 
         element_objects, rod_to_index, index_to_rod = self._build_element_objects(
@@ -91,13 +98,33 @@ class TrussRigidityChecker:
             statuses[rod_id] = status
             if status == ElementStatus.fixed:
                 fixed_count += 1
+                
+                
+        matrix_result = AlgebraicChecker.BuildRigidityMatrix(
+            assembled_indices,
+            element_objects,
+        )
+
+        K = matrix_result.matrix
+        matrix_rank = np.linalg.matrix_rank(K)
+        matrix_dof = K.shape[1]
+
+        failure_modes = ()
+
+        if matrix_rank < matrix_dof:
+            failure_modes = tuple(
+                AlgebraicChecker.GetNullspaceModes(K)
+            )
 
         return RigidityResult(
             is_rigid=fixed_count == len(active),
             rank=fixed_count,
             dof=len(active),
-            rows=0,
+            rows=K.shape[0],
             statuses=statuses,
+            failure_modes=failure_modes,
+            failure_vertices=tuple(matrix_result.vertex_list),
+            failure_elements=matrix_result.elements_dict,
         )
 
     def is_rigid(
@@ -238,6 +265,88 @@ def _set_axes_equal(ax, points: np.ndarray) -> None:
     ax.set_xlim(centers[0] - radius, centers[0] + radius)
     ax.set_ylim(centers[1] - radius, centers[1] + radius)
     ax.set_zlim(centers[2] - radius, centers[2] + radius)
+    
+def _plot_failure_mode(
+    ax,
+    result: RigidityResult,
+    mode_index: int = 0,
+    relative_scale: float = 0.15,
+) -> None:
+    if not result.failure_modes:
+        return
+
+    if mode_index >= len(result.failure_modes):
+        raise ValueError(
+            f"Failure mode {mode_index} does not exist. "
+            f"Available modes: {len(result.failure_modes)}"
+        )
+
+    mode = result.failure_modes[mode_index].reshape((-1, 3))
+
+    points = np.asarray(
+        [
+            vertex.point
+            for vertex in result.failure_vertices
+        ],
+        dtype=float,
+    )
+
+    maximum_motion = np.linalg.norm(
+        mode,
+        axis=1,
+    ).max()
+
+    if maximum_motion == 0:
+        return
+
+    structure_size = np.linalg.norm(
+        points.max(axis=0) - points.min(axis=0)
+    )
+
+    if structure_size == 0:
+        structure_size = 1.0
+
+    displacements = (
+        mode
+        / maximum_motion
+        * relative_scale
+        * structure_size
+    )
+
+    # Draw displacement arrows.
+    ax.quiver(
+        points[:, 0],
+        points[:, 1],
+        points[:, 2],
+        displacements[:, 0],
+        displacements[:, 1],
+        displacements[:, 2],
+        color="cyan",
+        linewidth=1.2,
+        arrow_length_ratio=0.1,
+    )
+
+    # Draw displaced rods as dashed lines.
+    for vertex_1, vertex_2 in result.failure_elements.values():
+        p1 = np.asarray(vertex_1.point, dtype=float)
+        p2 = np.asarray(vertex_2.point, dtype=float)
+
+        displaced_p1 = (
+            p1 + displacements[vertex_1.id]
+        )
+        displaced_p2 = (
+            p2 + displacements[vertex_2.id]
+        )
+
+        ax.plot(
+            [displaced_p1[0], displaced_p2[0]],
+            [displaced_p1[1], displaced_p2[1]],
+            [displaced_p1[2], displaced_p2[2]],
+            color="cyan",
+            linewidth=2.0,
+            linestyle="--",
+            alpha=0.8,
+        )
 
 def _plot_couplers(
     ax,
@@ -405,7 +514,8 @@ def plot_scaffold(
         if label_rods:
             midpoint = 0.5 * (p1 + p2)
             ax.text(midpoint[0], midpoint[1], midpoint[2], str(rod_id), fontsize=8)
-            
+        
+                    
         _plot_coupler_segments(
                 ax=ax,
                 truss=truss,
@@ -421,6 +531,14 @@ def plot_scaffold(
         node_points = np.asarray(
             [truss.nodes[node_id] for node_id in sorted(truss.nodes)],
             dtype=float,
+        )
+        
+    if not result.is_rigid and result.failure_modes:
+        _plot_failure_mode(
+            ax=ax,
+            result=result,
+            mode_index=0,
+            relative_scale=0.15,
         )
 
     node_points = np.asarray(
@@ -449,8 +567,8 @@ def plot_scaffold(
         Line2D([0], [0], color="magenta", lw=3, label="supported"),
         Line2D([0], [0], color="0.82", lw=1, ls="--", label="removed"),
         Line2D([0], [0], color="tab:blue", lw=3, label="grounded"),
-        # Line2D([0], [0], color="cyan", lw=4, marker="o", label="coupler"),
         Line2D([0], [0], color="cyan", lw=5, marker="o", label="coupler segment"),
+        Line2D([0], [0], color="cyan", lw=2, ls="--", label="failure mode"),
     ]
     ax.legend(handles=legend_items, loc="upper right")
 
@@ -533,6 +651,7 @@ def main() -> None:
     print(f"is rigid: {result.is_rigid}")
     print(f"fixed rods: {result.rank}/{result.dof}")
     print(f"non-fixed rods: {result.nullity}")
+    print(f"failure modes: {len(result.failure_modes)}")
 
     if args.show_statuses:
         for rod_id, status_name in result.status_names.items():
