@@ -31,6 +31,59 @@
     {
       "point": { "X": 0.0, "Y": 1000.0, "Z": 1000.0 },
       "node_id": 7
+    },
+    {
+      "point": { "X": 1000.0, "Y": 600.0, "Z": 0.0 },
+      "node_id": 8
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 400.0 },
+      "node_id": 9
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 600.0, "Z": 0.0 },
+      "node_id": 10
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 400.0 },
+      "node_id": 11
+    },
+
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 600.0 },
+      "node_id": 12
+    },
+    {
+      "point": { "X": 600.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 13
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 600.0 },
+      "node_id": 14
+    },
+    {
+      "point": { "X": 400.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 15
+    },
+
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 600.0 },
+      "node_id": 16
+    },
+    {
+      "point": { "X": 600.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 17
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 600.0 },
+      "node_id": 18
+    },
+    {
+      "point": { "X": 400.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 19
     }
   ],
   "rod_list": [
@@ -107,6 +160,42 @@
       "rod_id": 11,
       "layer_id": 1,
       "grounded": false
+    },
+    {
+      "end_node_ids": [8, 9],
+      "rod_id": 12,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [10, 11],
+      "rod_id": 13,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [12, 13],
+      "rod_id": 14,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [14, 15],
+      "rod_id": 15,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [16, 17],
+      "rod_id": 16,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [18, 19],
+      "rod_id": 17,
+      "layer_id": 1,
+      "grounded": false
     }
   ],
 
@@ -158,6 +247,42 @@
     },
     {
       "rod_ids": [6, 10]
+    },
+    { 
+      "rod_ids": [1, 12] 
+    },
+    { 
+      "rod_ids": [10, 12] 
+    },
+    { 
+      "rod_ids": [3, 13] 
+    },
+    { 
+      "rod_ids": [11, 13] 
+    },
+    { 
+      "rod_ids": [9, 14] 
+    },
+    { 
+      "rod_ids": [4, 14] 
+    },
+    { 
+      "rod_ids": [8, 15] 
+    },
+    { 
+      "rod_ids": [4, 15] 
+    },
+    { 
+      "rod_ids": [10, 16] 
+    },
+    { 
+      "rod_ids": [6, 16] 
+    },
+    { 
+      "rod_ids": [11, 17] 
+    },
+    { 
+      "rod_ids": [6, 17] 
     }
 
   ]

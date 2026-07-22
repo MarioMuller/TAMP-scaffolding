@@ -98,6 +98,14 @@
     {
       "point": { "X": 99.0, "Y": 1099.0, "Z": 900.0 },
       "node_id": 23
+    },
+    {
+      "point": { "X": 1050.0, "Y": 500.0, "Z": 99.0 },
+      "node_id": 24
+    },
+    {
+      "point": { "X": 1050.0, "Y": 1000.0, "Z": 500.0 },
+      "node_id": 25
     }
   ],
 
@@ -175,6 +183,12 @@
       "rod_id": 11,
       "layer_id": 1,
       "grounded": false
+    },
+    {
+      "end_node_ids": [24, 25],
+      "rod_id": 12,
+      "layer_id": 1,
+      "grounded": false
     }
   ],
 
@@ -195,6 +209,8 @@
     { "rod_ids": [4, 8] },
     { "rod_ids": [4, 9] },
     { "rod_ids": [6, 11] },
-    { "rod_ids": [6, 10] }
+    { "rod_ids": [6, 10] },
+    { "rod_ids": [1, 12] },
+    { "rod_ids": [10, 12] }
   ]
 }

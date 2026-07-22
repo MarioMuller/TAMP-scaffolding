@@ -65,6 +65,7 @@ class TrussRigidityChecker:
         self,
         active_rods: Iterable[int],
         supported_rods: Iterable[int] | None = None,
+        nullspace_method: str = "svd",
     ) -> RigidityResult:
         active = set(active_rods)
         if not active:
@@ -113,7 +114,7 @@ class TrussRigidityChecker:
 
         if matrix_rank < matrix_dof:
             failure_modes = tuple(
-                AlgebraicChecker.GetNullspaceModes(K)
+                AlgebraicChecker.GetNullspaceModes(K, method=nullspace_method)
             )
 
         return RigidityResult(
@@ -440,7 +441,7 @@ def _plot_coupler_segments(
             [point_1[0], point_2[0]],
             [point_1[1], point_2[1]],
             [point_1[2], point_2[2]],
-            color="cyan",
+            color="purple",
             linewidth=5.0,
             alpha=1.0,
         )
@@ -449,7 +450,7 @@ def _plot_coupler_segments(
             [point_1[0], point_2[0]],
             [point_1[1], point_2[1]],
             [point_1[2], point_2[2]],
-            color="cyan",
+            color="purple",
             s=40,
             depthshade=False,
         )
@@ -591,7 +592,7 @@ def main() -> None:
         nargs="?",
         # default="JSON/scaffold_two_floors.json",
         # default="JSON/scaffold_test.json",
-        default="JSON/own_examples/easy_scaffold copy.json",
+        default="JSON/own_examples/diy_proper_full.json",
         help="Path to the truss JSON file.",
     )
     parser.add_argument(
@@ -633,6 +634,12 @@ def main() -> None:
         action="store_true",
         help="Label rods with their element ids in the plot.",
     )
+    parser.add_argument(
+        "--nullspace-method",
+        choices=("svd", "qr"),
+        default="svd",
+        help="Method used to compute failure modes.",
+    )
     args = parser.parse_args()
 
     from truss import Truss
@@ -642,7 +649,7 @@ def main() -> None:
 
     active_rods = set(truss.elements) - set(args.remove)
     supported_rods = set(args.supported) & active_rods
-    result = checker.check(active_rods, supported_rods=supported_rods)
+    result = checker.check(active_rods, supported_rods=supported_rods, nullspace_method=args.nullspace_method)
 
     print(f"JSON: {args.json_path}")
     print(f"active rods: {len(active_rods)}")

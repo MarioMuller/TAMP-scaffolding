@@ -414,31 +414,90 @@ class AlgebraicChecker(object):
     @staticmethod
     def GetNullspaceModes(
         K: np.ndarray,
+        method: str = "svd",
         tolerance: float | None = None,
     ) -> list[np.ndarray]:
         """
-        Return infinitesimal displacement modes satisfying K @ mode ~= 0.
+        Return an orthonormal basis of the null space of K.
+
+        Args:
+            K:
+                Rigidity matrix.
+
+            method:
+                "svd" or "qr".
+
+            tolerance:
+                Numerical threshold for rank detection.
         """
 
-        _, singular_values, vh = np.linalg.svd(
-            K,
-            full_matrices=True,
-        )
+        method = method.lower()
 
-        if tolerance is None:
-            largest = singular_values[0] if len(singular_values) else 0.0
-            tolerance = (
-                max(K.shape)
-                * np.finfo(float).eps
-                * largest
+        if method == "svd":
+            _, singular_values, vh = np.linalg.svd(
+                K,
+                full_matrices=True,
             )
 
-        rank = int(np.sum(singular_values > tolerance))
+            if tolerance is None:
+                largest = (
+                    singular_values[0]
+                    if len(singular_values)
+                    else 0.0
+                )
+                tolerance = (
+                    max(K.shape)
+                    * np.finfo(float).eps
+                    * largest
+                )
 
-        return [
-            mode.copy()
-            for mode in vh[rank:]
-        ]
+            rank = int(
+                np.sum(singular_values > tolerance)
+            )
+
+            return [
+                mode.copy()
+                for mode in vh[rank:]
+            ]
+
+        if method == "qr":
+            from scipy.linalg import qr
+
+            # K.T = Q R with column pivoting.
+            Q, R, _ = qr(
+                K.T,
+                mode="full",
+                pivoting=True,
+            )
+
+            diagonal = np.abs(np.diag(R))
+
+            if tolerance is None:
+                largest = (
+                    diagonal.max()
+                    if diagonal.size
+                    else 0.0
+                )
+                tolerance = (
+                    max(K.shape)
+                    * np.finfo(float).eps
+                    * largest
+                )
+
+            rank = int(
+                np.sum(diagonal > tolerance)
+            )
+
+            # Columns Q[:, rank:] span null(K).
+            return [
+                Q[:, column].copy()
+                for column in range(rank, Q.shape[1])
+            ]
+
+        raise ValueError(
+            f"Unknown null-space method: {method!r}. "
+            "Use 'svd' or 'qr'."
+        )
 
     
     @staticmethod

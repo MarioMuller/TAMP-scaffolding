@@ -1,0 +1,344 @@
+{
+  "node_list": [
+    {
+      "point": { "X": -99.0, "Y": 99.0, "Z": 50.0 },
+      "node_id": 0
+    },
+    {
+      "point": { "X": 1099.0, "Y": 99.0, "Z": 50.0 },
+      "node_id": 1
+    },
+    {
+      "point": { "X": 1099.0, "Y": 1099.0, "Z": 50.0 },
+      "node_id": 2
+    },
+    {
+      "point": { "X": -99.0, "Y": 1099.0, "Z": 50.0 },
+      "node_id": 3
+    },
+
+    {
+      "point": { "X": 99.0, "Y": -99.0, "Z": 99.0 },
+      "node_id": 8
+    },
+    {
+      "point": { "X": 1099.0, "Y": -99.0, "Z": 99.0 },
+      "node_id": 9
+    },
+    {
+      "point": { "X": 1099.0, "Y": 1099.0, "Z": 99.0 },
+      "node_id": 10
+    },
+    {
+      "point": { "X": 99.0, "Y": 1099.0, "Z": 99.0 },
+      "node_id": 11
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 0.0 },
+      "node_id": 12
+    },
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 0.0 },
+      "node_id": 13
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 0.0 },
+      "node_id": 14
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 0.0 },
+      "node_id": 15
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 4
+    },
+    {
+      "point": { "X": 1000.0, "Y": 0.0, "Z": 1000.0 },
+      "node_id": 5
+    },
+    {
+      "point": { "X": 1000.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 6
+    },
+    {
+      "point": { "X": 0.0, "Y": 1000.0, "Z": 1000.0 },
+      "node_id": 7
+    },
+
+    {
+      "point": { "X": -99.0, "Y": 99.0, "Z": 950.0 },
+      "node_id": 16
+    },
+    {
+      "point": { "X": 1099.0, "Y": 99.0, "Z": 950.0 },
+      "node_id": 17
+    },
+    {
+      "point": { "X": 1099.0, "Y": 1099.0, "Z": 950.0 },
+      "node_id": 18
+    },
+    {
+      "point": { "X": -99.0, "Y": 1099.0, "Z": 950.0 },
+      "node_id": 19
+    },
+
+    {
+      "point": { "X": 99.0, "Y": -99.0, "Z": 900.0 },
+      "node_id": 20
+    },
+    {
+      "point": { "X": 1099.0, "Y": -99.0, "Z": 900.0 },
+      "node_id": 21
+    },
+    {
+      "point": { "X": 1099.0, "Y": 1099.0, "Z": 900.0 },
+      "node_id": 22
+    },
+    {
+      "point": { "X": 99.0, "Y": 1099.0, "Z": 900.0 },
+      "node_id": 23
+    },
+
+    {
+      "point": { "X": 1050.0, "Y": 600.0, "Z": 99.0 },
+      "node_id": 24
+    },
+    {
+      "point": { "X": 1050.0, "Y": 1000.0, "Z": 400.0 },
+      "node_id": 25
+    },
+
+    {
+      "point": { "X": 50.0, "Y": 600.0, "Z": 99.0 },
+      "node_id": 26
+    },
+    {
+      "point": { "X": 50.0, "Y": 1000.0, "Z": 400.0 },
+      "node_id": 27
+    },
+
+    {
+      "point": { "X": 1000.0, "Y": 50.0, "Z": 600.0 },
+      "node_id": 28
+    },
+    {
+      "point": { "X": 600.0, "Y": 50.0, "Z": 950.0 },
+      "node_id": 29
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 50.0, "Z": 600.0 },
+      "node_id": 30
+    },
+    {
+      "point": { "X": 400.0, "Y": 50.0, "Z": 950.0 },
+      "node_id": 31
+    },
+
+    {
+      "point": { "X": 1000.0, "Y": 1050.0, "Z": 600.0 },
+      "node_id": 32
+    },
+    {
+      "point": { "X": 600.0, "Y": 1050.0, "Z": 950.0 },
+      "node_id": 33
+    },
+
+    {
+      "point": { "X": 0.0, "Y": 1050.0, "Z": 600.0 },
+      "node_id": 34
+    },
+    {
+      "point": { "X": 400.0, "Y": 1050.0, "Z": 950.0 },
+      "node_id": 35
+    },
+    {
+      "point": { "X": 1050.0, "Y": 400.0, "Z": 99.0 },
+      "node_id": 36
+    },
+    {
+      "point": { "X": 1050.0, "Y": 0.0, "Z": 400.0 },
+      "node_id": 37
+    },
+    {
+      "point": { "X": 50.0, "Y": 400.0, "Z": 99.0 },
+      "node_id": 38
+    },
+    {
+      "point": { "X": 50.0, "Y": 0.0, "Z": 400.0 },
+      "node_id": 39
+    }
+  ],
+
+  "rod_list": [
+    {
+      "end_node_ids": [0, 1],
+      "rod_id": 0,
+      "layer_id": 0,
+      "grounded": true
+    },
+    {
+      "end_node_ids": [9, 10],
+      "rod_id": 1,
+      "layer_id": 0,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [2, 3],
+      "rod_id": 2,
+      "layer_id": 0,
+      "grounded": true
+    },
+    {
+      "end_node_ids": [8, 11],
+      "rod_id": 3,
+      "layer_id": 0,
+      "grounded": false
+    },
+
+    {
+      "end_node_ids": [16, 17],
+      "rod_id": 4,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [21, 22],
+      "rod_id": 5,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [18, 19],
+      "rod_id": 6,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [20, 23],
+      "rod_id": 7,
+      "layer_id": 1,
+      "grounded": false
+    },
+
+    {
+      "end_node_ids": [12, 4],
+      "rod_id": 8,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [13, 5],
+      "rod_id": 9,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [14, 6],
+      "rod_id": 10,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [15, 7],
+      "rod_id": 11,
+      "layer_id": 1,
+      "grounded": false
+    },
+
+    {
+      "end_node_ids": [24, 25],
+      "rod_id": 12,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [26, 27],
+      "rod_id": 13,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [28, 29],
+      "rod_id": 14,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [30, 31],
+      "rod_id": 15,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [32, 33],
+      "rod_id": 16,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [34, 35],
+      "rod_id": 17,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [36, 37],
+      "rod_id": 18,
+      "layer_id": 1,
+      "grounded": false
+    },
+    {
+      "end_node_ids": [38, 39],
+      "rod_id": 19,
+      "layer_id": 1,
+      "grounded": false
+    }
+  ],
+
+  "coupler_list": [
+    { "rod_ids": [0, 9] },
+    { "rod_ids": [0, 8] },
+    { "rod_ids": [2, 10] },
+    { "rod_ids": [2, 11] },
+    { "rod_ids": [1, 9] },
+    { "rod_ids": [1, 10] },
+    { "rod_ids": [8, 3] },
+    { "rod_ids": [3, 11] },
+
+    { "rod_ids": [9, 5] },
+    { "rod_ids": [5, 10] },
+    { "rod_ids": [7, 8] },
+    { "rod_ids": [7, 11] },
+    { "rod_ids": [4, 8] },
+    { "rod_ids": [4, 9] },
+    { "rod_ids": [6, 11] },
+    { "rod_ids": [6, 10] },
+
+    { "rod_ids": [1, 12] },
+    { "rod_ids": [10, 12] },
+
+    { "rod_ids": [3, 13] },
+    { "rod_ids": [11, 13] },
+
+    { "rod_ids": [9, 14] },
+    { "rod_ids": [4, 14] },
+
+    { "rod_ids": [8, 15] },
+    { "rod_ids": [4, 15] },
+
+    { "rod_ids": [10, 16] },
+    { "rod_ids": [6, 16] },
+
+    { "rod_ids": [11, 17] },
+    { "rod_ids": [6, 17] },
+    { "rod_ids": [1, 18] },
+    { "rod_ids": [9, 18] },
+
+    { "rod_ids": [3, 19] },
+    { "rod_ids": [8, 19] }
+  ]
+}
