@@ -264,35 +264,150 @@ class AlgebraicChecker(object):
         vertex_num = len(vertex_list)
 
         # -------------------- constant-length constraints --------------------#
-        const_length_constrains_vertex = []
+        
+        # -------------------- points belonging to each rod --------------------#
+        coupler_vertices_by_element = {
+            index: []
+            for index in assembled
+        }
+
+        for coupler, coupler_vertices in couplers_dict.items():
+            rod_1, rod_2 = coupler
+            coupler_vertex_1, coupler_vertex_2 = coupler_vertices
+
+            # coupler_vertex_1 lies on rod_1
+            coupler_vertices_by_element[rod_1].append(
+                coupler_vertex_1
+            )
+
+            # coupler_vertex_2 lies on rod_2
+            coupler_vertices_by_element[rod_2].append(
+                coupler_vertex_2
+            )
+
+
+        # -------------------- split rods at coupler points --------------------#
+        rod_vertices_in_order = {}
 
         for index in assembled:
-            vertex_1 = elements_dict[index][0]
-            vertex_2 = elements_dict[index][1]
+            rod_start, rod_end = elements_dict[index]
 
-            const_length_constrains_vertex.append(
-                [vertex_1, vertex_2]
+            start_point = np.asarray(
+                rod_start.point,
+                dtype=float,
+            )
+            end_point = np.asarray(
+                rod_end.point,
+                dtype=float,
             )
 
-            for coupler, coupler_vertices in couplers_dict.items():
-                if index in coupler:
-                    vertex_2 = coupler_vertices[
-                        1 - coupler.index(index)
-                    ]
-                    const_length_constrains_vertex.append(
-                        [vertex_1, vertex_2]
+            rod_direction = end_point - start_point
+            rod_length_squared = float(
+                np.dot(rod_direction, rod_direction)
+            )
+
+            if rod_length_squared == 0.0:
+                raise ValueError(
+                    f"Rod {index} has zero length."
+                )
+
+            vertices_on_rod = [
+                rod_start,
+                *coupler_vertices_by_element[index],
+                rod_end,
+            ]
+
+            def rod_parameter(vertex: Vertex) -> float:
+                point = np.asarray(
+                    vertex.point,
+                    dtype=float,
+                )
+
+                return float(
+                    np.dot(
+                        point - start_point,
+                        rod_direction,
                     )
+                    / rod_length_squared
+                )
 
-        for coupler in couplers:
-            vertex_1, vertex_2 = couplers_dict[coupler]
-            const_length_constrains_vertex.append(
-                [vertex_1, vertex_2]
+            vertices_on_rod.sort(
+                key=rod_parameter
             )
 
-        K_const_length = AlgebraicChecker.CreateConstLengthConstrains(
-            const_length_constrains_vertex,
-            vertex_num,
+            rod_vertices_in_order[index] = vertices_on_rod
+
+
+        # -------------------- constant-length constraints --------------------#
+        const_length_constrains_vertex = []
+
+        # Each rod is divided into adjacent subsegments:
+        #
+        # start -- coupler 1 -- coupler 2 -- ... -- end
+        #
+        # Preserve the length of every adjacent subsegment.
+        for index in assembled:
+            vertices_on_rod = rod_vertices_in_order[index]
+
+            for vertex_1, vertex_2 in zip(
+                vertices_on_rod,
+                vertices_on_rod[1:],
+            ):
+                const_length_constrains_vertex.append(
+                    [vertex_1, vertex_2]
+                )
+
+
+        # Preserve every physical coupler segment.
+        for coupler in couplers:
+            coupler_vertex_1, coupler_vertex_2 = (
+                couplers_dict[coupler]
+            )
+
+            const_length_constrains_vertex.append(
+                [
+                    coupler_vertex_1,
+                    coupler_vertex_2,
+                ]
+            )
+
+
+        K_const_length = (
+            AlgebraicChecker.CreateConstLengthConstrains(
+                const_length_constrains_vertex,
+                vertex_num,
+            )
         )
+        
+        # const_length_constrains_vertex = []
+
+        # for index in assembled:
+        #     vertex_1 = elements_dict[index][0]
+        #     vertex_2 = elements_dict[index][1]
+
+        #     const_length_constrains_vertex.append(
+        #         [vertex_1, vertex_2]
+        #     )
+
+        #     for coupler, coupler_vertices in couplers_dict.items():
+        #         if index in coupler:
+        #             vertex_2 = coupler_vertices[
+        #                 1 - coupler.index(index)
+        #             ]
+        #             const_length_constrains_vertex.append(
+        #                 [vertex_1, vertex_2]
+        #             )
+
+        # for coupler in couplers:
+        #     vertex_1, vertex_2 = couplers_dict[coupler]
+        #     const_length_constrains_vertex.append(
+        #         [vertex_1, vertex_2]
+        #     )
+
+        # K_const_length = AlgebraicChecker.CreateConstLengthConstrains(
+        #     const_length_constrains_vertex,
+        #     vertex_num,
+        # )
 
         # -------------------- rotation constraints --------------------#
         rotation_constrains_vertex = []
@@ -331,47 +446,81 @@ class AlgebraicChecker(object):
             vertex_num,
         )
 
+        # # -------------------- collinear constraints --------------------#
+        # collinear_constrains_vertex = []
+
+        # for coupler in couplers:
+        #     coupler_vertex_1, coupler_vertex_2 = couplers_dict[coupler]
+
+        #     if coupler_vertex_1.element_index in elements_dict:
+        #         vertex_start = elements_dict[
+        #             coupler_vertex_1.element_index
+        #         ][0]
+        #         vertex_end = elements_dict[
+        #             coupler_vertex_1.element_index
+        #         ][1]
+
+        #         collinear_constrains_vertex.append(
+        #             [
+        #                 vertex_start,
+        #                 coupler_vertex_1,
+        #                 vertex_end,
+        #             ]
+        #         )
+
+        #     if coupler_vertex_2.element_index in elements_dict:
+        #         vertex_start = elements_dict[
+        #             coupler_vertex_2.element_index
+        #         ][0]
+        #         vertex_end = elements_dict[
+        #             coupler_vertex_2.element_index
+        #         ][1]
+
+        #         collinear_constrains_vertex.append(
+        #             [
+        #                 vertex_start,
+        #                 coupler_vertex_2,
+        #                 vertex_end,
+        #             ]
+        #         )
+
+        # K_collinear = AlgebraicChecker.CreateCollinearConstrains(
+        #     collinear_constrains_vertex,
+        #     vertex_num,
+        # )
+        
         # -------------------- collinear constraints --------------------#
         collinear_constrains_vertex = []
 
-        for coupler in couplers:
-            coupler_vertex_1, coupler_vertex_2 = couplers_dict[coupler]
+        for index in assembled:
+            vertices_on_rod = rod_vertices_in_order[index]
 
-            if coupler_vertex_1.element_index in elements_dict:
-                vertex_start = elements_dict[
-                    coupler_vertex_1.element_index
-                ][0]
-                vertex_end = elements_dict[
-                    coupler_vertex_1.element_index
-                ][1]
-
+            # For:
+            #
+            # p0 -- p1 -- p2 -- p3
+            #
+            # create triples:
+            #
+            # [p0, p1, p2]
+            # [p1, p2, p3]
+            for vertex_1, vertex_2, vertex_3 in zip(
+                vertices_on_rod,
+                vertices_on_rod[1:],
+                vertices_on_rod[2:],
+            ):
                 collinear_constrains_vertex.append(
                     [
-                        vertex_start,
-                        coupler_vertex_1,
-                        vertex_end,
+                        vertex_1,
+                        vertex_2,
+                        vertex_3,
                     ]
                 )
 
-            if coupler_vertex_2.element_index in elements_dict:
-                vertex_start = elements_dict[
-                    coupler_vertex_2.element_index
-                ][0]
-                vertex_end = elements_dict[
-                    coupler_vertex_2.element_index
-                ][1]
-
-                collinear_constrains_vertex.append(
-                    [
-                        vertex_start,
-                        coupler_vertex_2,
-                        vertex_end,
-                    ]
-                )
-
-        K_collinear = AlgebraicChecker.CreateCollinearConstrains(
-            collinear_constrains_vertex,
-            vertex_num,
+        K_collinear = (
+            AlgebraicChecker.CreateCollinearConstrains(
+                collinear_constrains_vertex,
+                vertex_num,
+            )
         )
 
         # -------------------- grounded constraints --------------------#
