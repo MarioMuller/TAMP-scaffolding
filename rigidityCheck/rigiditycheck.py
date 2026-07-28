@@ -22,6 +22,7 @@ RigidityMatrixResult = namedtuple(
         "matrix",
         "vertex_list",
         "elements_dict",
+        "orientation_vertices",
     ],
 )
 
@@ -199,6 +200,7 @@ class AlgebraicChecker(object):
     def BuildRigidityMatrix(
         assembled: List[int],
         element_object_list: List[ElementObject],
+        orientation_offset_ratio: float = 0.10,
     ) -> RigidityMatrixResult:
         """
         Build the rigidity matrix for the assembled structure.
@@ -233,6 +235,33 @@ class AlgebraicChecker(object):
             )
 
             elements_dict[index] = [vertex_1, vertex_2]
+
+        # -------------------- generate rod orientation vertices --------------------#
+        #
+        # A rod represented only by its two centerline endpoints has no
+        # observable roll about its own axis.  Each virtual orientation vertex
+        # Q lies off the centerline and introduces this missing roll degree of
+        # freedom.  Q is deliberately kept separate from rod_vertices_in_order:
+        # it is not a point on the split rod centerline.
+        orientation_vertices = {}
+
+        for index in assembled:
+            rod_start, rod_end = elements_dict[index]
+
+            orientation_point = AlgebraicChecker.CreateOrientationPoint(
+                rod_start.point,
+                rod_end.point,
+                offset_ratio=orientation_offset_ratio,
+            )
+
+            orientation_vertices[index] = AlgebraicChecker.CreateVertex(
+                vertex_list,
+                orientation_point.tolist(),
+                # -1 prevents external centerline visualizers from treating Q
+                # as another point on this rod.  The dictionary above stores
+                # the actual association with the rod.
+                element_index=-1,
+            )
 
         # -------------------- generate couplers --------------------#
         couplers = ElementObject.GetCouplers(
@@ -358,16 +387,44 @@ class AlgebraicChecker(object):
                 )
 
 
-        # Preserve every physical coupler segment.
+        # Give every rod an off-axis orientation frame.
+        #
+        # The two distances Q-A and Q-B keep Q at a fixed radius from the
+        # rod axis.  Q can still rotate around A-B; that remaining motion is
+        # precisely the rod's roll coordinate.
+        for index in assembled:
+            rod_start, rod_end = elements_dict[index]
+            orientation_vertex = orientation_vertices[index]
+
+            const_length_constrains_vertex.extend(
+                [
+                    [orientation_vertex, rod_start],
+                    [orientation_vertex, rod_end],
+                ]
+            )
+
+        # Preserve every physical coupler segment and tie its azimuth to the
+        # orientation frame of both rods.
+        #
+        # For coupler (rod_1, rod_2):
+        #   C1 lies on rod_1, C2 lies on rod_2.
+        # The distances Q1-C2 and Q2-C1 prevent the coupler from rotating
+        # independently around either rod axis, while still allowing the whole
+        # rod-coupler assembly to undergo a common rigid-body rotation.
         for coupler in couplers:
+            rod_1, rod_2 = coupler
             coupler_vertex_1, coupler_vertex_2 = (
                 couplers_dict[coupler]
             )
 
-            const_length_constrains_vertex.append(
+            orientation_vertex_1 = orientation_vertices[rod_1]
+            orientation_vertex_2 = orientation_vertices[rod_2]
+
+            const_length_constrains_vertex.extend(
                 [
-                    coupler_vertex_1,
-                    coupler_vertex_2,
+                    [coupler_vertex_1, coupler_vertex_2],
+                    [orientation_vertex_1, coupler_vertex_2],
+                    [orientation_vertex_2, coupler_vertex_1],
                 ]
             )
 
@@ -530,11 +587,14 @@ class AlgebraicChecker(object):
             element = element_object_list[index]
 
             if element.is_grounded:
-                grounded_constrains_vertex.append(
-                    elements_dict[index][0]
-                )
-                grounded_constrains_vertex.append(
-                    elements_dict[index][1]
+                # Ground the complete rod frame.  Fixing only the two
+                # centerline endpoints would still leave axial roll free.
+                grounded_constrains_vertex.extend(
+                    [
+                        elements_dict[index][0],
+                        elements_dict[index][1],
+                        orientation_vertices[index],
+                    ]
                 )
 
         K_grounded = AlgebraicChecker.CreateGroundedConstrains(
@@ -558,6 +618,7 @@ class AlgebraicChecker(object):
             matrix=K,
             vertex_list=vertex_list,
             elements_dict=elements_dict,
+            orientation_vertices=orientation_vertices,
         )
 
     @staticmethod
@@ -650,7 +711,7 @@ class AlgebraicChecker(object):
 
     
     @staticmethod
-    def Check(index: int, assembled: List[int], element_object_list: List[ElementObject]) -> ElementStatus:
+    def Check(index: int, assembled: List[int], element_object_list: List[ElementObject], matrix_result: RigidityMatrixResult | None = None,) -> ElementStatus:
         """
         Check stability of element given by index.
 
@@ -673,11 +734,12 @@ class AlgebraicChecker(object):
             or two_fix_status == ElementStatus.fixed
         ):
             return two_fix_status
-
-        matrix_result = AlgebraicChecker.BuildRigidityMatrix(
-            assembled,
-            element_object_list,
-        )
+        
+        if matrix_result is None:
+            matrix_result = AlgebraicChecker.BuildRigidityMatrix(
+                assembled,
+                element_object_list,
+            )
 
         K = matrix_result.matrix
         dof = K.shape[1]
@@ -686,6 +748,56 @@ class AlgebraicChecker(object):
             return ElementStatus.fixed
 
         return ElementStatus.rotate
+
+    @staticmethod
+    def CreateOrientationPoint(
+        rod_start: List[float],
+        rod_end: List[float],
+        offset_ratio: float = 0.10,
+    ) -> np.ndarray:
+        """Create a deterministic virtual point away from a rod axis.
+
+        The point is placed at the rod midpoint plus a perpendicular offset.
+        Its remaining motion around the rod axis represents the rod's roll.
+        """
+        if offset_ratio <= 0.0:
+            raise ValueError(
+                "orientation_offset_ratio must be greater than zero."
+            )
+
+        start = np.asarray(rod_start, dtype=float)
+        end = np.asarray(rod_end, dtype=float)
+
+        rod_vector = end - start
+        rod_length = float(np.linalg.norm(rod_vector))
+
+        if rod_length == 0.0:
+            raise ValueError("Cannot orient a zero-length rod.")
+
+        rod_axis = rod_vector / rod_length
+
+        # Select the world basis direction least parallel to the rod.  This
+        # maximizes the cross-product magnitude and avoids a fragile special
+        # case for vertical rods.
+        world_axes = np.eye(3)
+        reference_axis = world_axes[
+            int(np.argmin(np.abs(world_axes @ rod_axis)))
+        ]
+
+        perpendicular = np.cross(rod_axis, reference_axis)
+        perpendicular_norm = float(np.linalg.norm(perpendicular))
+
+        if perpendicular_norm == 0.0:
+            raise ValueError(
+                "Could not construct a perpendicular orientation axis."
+            )
+
+        perpendicular /= perpendicular_norm
+
+        midpoint = 0.5 * (start + end)
+        offset = offset_ratio * rod_length
+
+        return midpoint + offset * perpendicular
 
     @staticmethod
     def CreateVertex(vertex_list: List[Vertex], point: List[float], element_index: int = -1) -> Vertex:

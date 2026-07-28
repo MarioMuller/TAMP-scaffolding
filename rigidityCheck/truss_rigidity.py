@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Iterable
 
 import numpy as np
+import time
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -34,6 +35,9 @@ class RigidityResult:
     failure_modes: tuple[np.ndarray, ...] = ()
     failure_vertices: tuple = ()
     failure_elements: dict = field(default_factory=dict)
+    
+    # IDs of the artificial off-axis orientation vertices Q.
+    failure_orientation_vertex_ids: frozenset[int] = frozenset()
     
     @property
     def nullity(self) -> int:
@@ -78,6 +82,7 @@ class TrussRigidityChecker:
                 failure_modes=(),
                 failure_vertices=(),
                 failure_elements={},
+                failure_orientation_vertex_ids=frozenset(),
             )
 
         element_objects, rod_to_index, index_to_rod = self._build_element_objects(
@@ -85,6 +90,15 @@ class TrussRigidityChecker:
             set(supported_rods or ()),
         )
         assembled_indices = [rod_to_index[rod_id] for rod_id in sorted(active)]
+        
+        matrix_result = AlgebraicChecker.BuildRigidityMatrix(
+            assembled_indices,
+            element_objects,
+        )
+        
+        K = matrix_result.matrix
+        matrix_rank = np.linalg.matrix_rank(K)
+        matrix_dof = K.shape[1]
 
         statuses = {}
         fixed_count = 0
@@ -95,16 +109,11 @@ class TrussRigidityChecker:
                 index,
                 assembled_indices.copy(),
                 element_objects,
+                matrix_result=matrix_result,
             )
             statuses[rod_id] = status
             if status == ElementStatus.fixed:
                 fixed_count += 1
-                
-                
-        matrix_result = AlgebraicChecker.BuildRigidityMatrix(
-            assembled_indices,
-            element_objects,
-        )
 
         K = matrix_result.matrix
         matrix_rank = np.linalg.matrix_rank(K)
@@ -126,6 +135,10 @@ class TrussRigidityChecker:
             failure_modes=failure_modes,
             failure_vertices=tuple(matrix_result.vertex_list),
             failure_elements=matrix_result.elements_dict,
+            failure_orientation_vertex_ids=frozenset(
+                vertex.id
+                for vertex in matrix_result.orientation_vertices.values()
+            ),
         )
 
     def is_rigid(
@@ -314,14 +327,26 @@ def _plot_failure_mode(
         * structure_size
     )
 
-    # Draw displacement arrows.
+    # Do not visualize the artificial orientation vertices Q.
+    visible_vertex_mask = np.asarray(
+        [
+            vertex.id not in result.failure_orientation_vertex_ids
+            for vertex in result.failure_vertices
+        ],
+        dtype=bool,
+    )
+
+    visible_points = points[visible_vertex_mask]
+    visible_displacements = displacements[visible_vertex_mask]
+
+    # Draw displacement arrows only for physical vertices.
     ax.quiver(
-        points[:, 0],
-        points[:, 1],
-        points[:, 2],
-        displacements[:, 0],
-        displacements[:, 1],
-        displacements[:, 2],
+        visible_points[:, 0],
+        visible_points[:, 1],
+        visible_points[:, 2],
+        visible_displacements[:, 0],
+        visible_displacements[:, 1],
+        visible_displacements[:, 2],
         color="cyan",
         linewidth=1.2,
         arrow_length_ratio=0.1,
@@ -591,8 +616,8 @@ def main() -> None:
         "json_path",
         nargs="?",
         # default="JSON/scaffold_two_floors.json",
-        # default="JSON/scaffold_test.json",
-        default="JSON/own_examples/diy_proper_full.json",
+        default="JSON/own_examples/260724_stability_ini.json",
+        # default="JSON/own_examples/diy_proper_full.json",
         help="Path to the truss JSON file.",
     )
     parser.add_argument(
@@ -645,11 +670,17 @@ def main() -> None:
     from truss import Truss
 
     truss = Truss.from_json(args.json_path)
+    
     checker = TrussRigidityChecker(truss)
 
+    start_time = time.time()
     active_rods = set(truss.elements) - set(args.remove)
     supported_rods = set(args.supported) & active_rods
     result = checker.check(active_rods, supported_rods=supported_rods, nullspace_method=args.nullspace_method)
+    
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Rigidity check completed in {elapsed_time:.4f} seconds.")
 
     print(f"JSON: {args.json_path}")
     print(f"active rods: {len(active_rods)}")
