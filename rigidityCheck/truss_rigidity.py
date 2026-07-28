@@ -9,6 +9,9 @@ from typing import Iterable
 
 import numpy as np
 import time
+from time import perf_counter
+
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -71,6 +74,7 @@ class TrussRigidityChecker:
         supported_rods: Iterable[int] | None = None,
         nullspace_method: str = "svd",
     ) -> RigidityResult:
+        total_start = perf_counter()
         active = set(active_rods)
         if not active:
             return RigidityResult(
@@ -85,23 +89,39 @@ class TrussRigidityChecker:
                 failure_orientation_vertex_ids=frozenset(),
             )
 
+        build_elements_start = perf_counter()
+
         element_objects, rod_to_index, index_to_rod = self._build_element_objects(
             active,
             set(supported_rods or ()),
         )
+
+        build_elements_end = perf_counter()
+        
         assembled_indices = [rod_to_index[rod_id] for rod_id in sorted(active)]
+        
+        build_matrix_start = perf_counter()
         
         matrix_result = AlgebraicChecker.BuildRigidityMatrix(
             assembled_indices,
             element_objects,
         )
         
+        build_matrix_end = perf_counter()
+        
         K = matrix_result.matrix
+        rank_start = perf_counter()
         matrix_rank = np.linalg.matrix_rank(K)
+        rank_end = perf_counter()
         matrix_dof = K.shape[1]
+        matrix_is_full_rank = matrix_rank == matrix_dof
 
         statuses = {}
         fixed_count = 0
+        
+        status_start = perf_counter()
+        
+        two_fix_status_cache: dict[int, ElementStatus] = {}
 
         for rod_id in sorted(active):
             index = rod_to_index[rod_id]
@@ -109,22 +129,56 @@ class TrussRigidityChecker:
                 index,
                 assembled_indices.copy(),
                 element_objects,
-                matrix_result=matrix_result,
+                matrix_is_full_rank=matrix_is_full_rank,
+                status_cache=two_fix_status_cache,
             )
             statuses[rod_id] = status
             if status == ElementStatus.fixed:
                 fixed_count += 1
-
-        K = matrix_result.matrix
-        matrix_rank = np.linalg.matrix_rank(K)
-        matrix_dof = K.shape[1]
+                
+        status_end = perf_counter()
 
         failure_modes = ()
+        
+        
+        nullspace_start = perf_counter()
 
         if matrix_rank < matrix_dof:
             failure_modes = tuple(
                 AlgebraicChecker.GetNullspaceModes(K, method=nullspace_method)
             )
+            
+        nullspace_end = perf_counter()
+        
+        total_end = perf_counter()
+
+        print("\nRigidity timing breakdown")
+        print("-------------------------")
+        print(
+            f"Build element objects: "
+            f"{build_elements_end - build_elements_start:.6f} s"
+        )
+        print(
+            f"Build rigidity matrix: "
+            f"{build_matrix_end - build_matrix_start:.6f} s"
+        )
+        print(
+            f"Matrix rank:           "
+            f"{rank_end - rank_start:.6f} s"
+        )
+        print(
+            f"Rod status checks:     "
+            f"{status_end - status_start:.6f} s"
+        )
+        print(
+            f"Nullspace:             "
+            f"{nullspace_end - nullspace_start:.6f} s"
+        )
+        print(
+            f"Total check:           "
+            f"{total_end - total_start:.6f} s"
+        )
+        print(f"Matrix shape:          {K.shape}")
 
         return RigidityResult(
             is_rigid=fixed_count == len(active),
@@ -374,111 +428,31 @@ def _plot_failure_mode(
             alpha=0.8,
         )
 
-def _plot_couplers(
-    ax,
-    truss,
-    active_rods: set[int],
-) -> None:
-    for rod_1, rod_2 in truss.couplers:
-        # Do not show couplers involving removed rods.
-        if rod_1 not in active_rods or rod_2 not in active_rods:
-            continue
-
-        n1, n2 = truss.elements[rod_1]
-        n3, n4 = truss.elements[rod_2]
-
-        segment_1 = [
-            np.asarray(truss.nodes[n1], dtype=float),
-            np.asarray(truss.nodes[n2], dtype=float),
-        ]
-        segment_2 = [
-            np.asarray(truss.nodes[n3], dtype=float),
-            np.asarray(truss.nodes[n4], dtype=float),
-        ]
-
-        point_1, point_2 = closest_points_between_segments(
-            segment_1,
-            segment_2,
-        )
-
-        point_1 = np.asarray(point_1, dtype=float)
-        point_2 = np.asarray(point_2, dtype=float)
-
-        # Draw the coupler segment.
-        ax.plot(
-            [point_1[0], point_2[0]],
-            [point_1[1], point_2[1]],
-            [point_1[2], point_2[2]],
-            color="cyan",
-            linewidth=4.0,
-            alpha=1.0,
-        )
-
-        # Highlight its attachment points.
-        points = np.vstack((point_1, point_2))
-
-        ax.scatter(
-            points[:, 0],
-            points[:, 1],
-            points[:, 2],
-            color="cyan",
-            marker="o",
-            s=35,
-            depthshade=False,
-        )
-def _plot_coupler_segments(
-    ax,
-    truss,
-    active_rods: set[int],
-) -> None:
+def _iter_couplers(truss):
     """
-    Plot the geometric segment used for each explicit coupler.
+    Yield explicit couplers as pairs of rod IDs.
 
-    This is the line between the closest point on rod 1 and the closest
-    point on rod 2.
+    Supports:
+    - truss.couplers = [(0, 1), (1, 2)]
+    - truss.couplers = [[0, 1], [1, 2]]
+    - truss.couplers = [{"rod_ids": [0, 1]}, ...]
     """
 
-    for rod_1, rod_2 in truss.couplers:
-        if rod_1 not in active_rods or rod_2 not in active_rods:
+    couplers = getattr(truss, "couplers", [])
+
+    if isinstance(couplers, dict):
+        couplers = couplers.keys()
+
+    for coupler in couplers:
+        if isinstance(coupler, dict):
+            rod_ids = coupler.get("rod_ids")
+        else:
+            rod_ids = coupler
+
+        if rod_ids is None or len(rod_ids) != 2:
             continue
 
-        rod_1_node_1, rod_1_node_2 = truss.elements[rod_1]
-        rod_2_node_1, rod_2_node_2 = truss.elements[rod_2]
-
-        rod_1_segment = [
-            np.asarray(truss.nodes[rod_1_node_1], dtype=float),
-            np.asarray(truss.nodes[rod_1_node_2], dtype=float),
-        ]
-        rod_2_segment = [
-            np.asarray(truss.nodes[rod_2_node_1], dtype=float),
-            np.asarray(truss.nodes[rod_2_node_2], dtype=float),
-        ]
-
-        point_1, point_2 = closest_points_between_segments(
-            rod_1_segment,
-            rod_2_segment,
-        )
-
-        point_1 = np.asarray(point_1, dtype=float)
-        point_2 = np.asarray(point_2, dtype=float)
-
-        ax.plot(
-            [point_1[0], point_2[0]],
-            [point_1[1], point_2[1]],
-            [point_1[2], point_2[2]],
-            color="purple",
-            linewidth=5.0,
-            alpha=1.0,
-        )
-
-        ax.scatter(
-            [point_1[0], point_2[0]],
-            [point_1[1], point_2[1]],
-            [point_1[2], point_2[2]],
-            color="purple",
-            s=40,
-            depthshade=False,
-        )
+        yield int(rod_ids[0]), int(rod_ids[1])
 
 def plot_scaffold(
     truss,
@@ -486,12 +460,20 @@ def plot_scaffold(
     removed_rods: set[int],
     supported_rods: set[int],
     result: RigidityResult,
-    label_rods: bool = True,
+    label_rods: bool = False,
+    label_non_fixed_only: bool = False,
+    show_nodes: bool = True,
+    fast_mode: bool = False,
     save_path: str | None = None,
+    show_couplers: bool = True,
+    show_failure_mode: bool = False,
+    failure_mode_index: int = 0,
+    failure_mode_scale: float = 0.15,
     show: bool = True,
 ) -> None:
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
     status_colors = {
         "fixed": "tab:green",
@@ -502,106 +484,315 @@ def plot_scaffold(
 
     fig = plt.figure(figsize=(9, 7))
     ax = fig.add_subplot(111, projection="3d")
+
     ax.set_title(
         "Rigidity check scaffold "
         f"({'rigid' if result.is_rigid else 'not rigid'}, "
         f"{result.rank}/{result.dof} fixed rods)"
     )
 
+    # Store rods in groups so that each group becomes only one artist.
+    fixed_segments = []
+    rotating_segments = []
+    floating_segments = []
+    supported_segments = []
+    removed_segments = []
+    inactive_segments = []
+    grounded_segments = []
+
+    label_data = []
+
     for rod_id, (n1, n2) in truss.elements.items():
         p1 = np.asarray(truss.nodes[n1], dtype=float)
         p2 = np.asarray(truss.nodes[n2], dtype=float)
-        xs, ys, zs = zip(p1, p2)
+        segment = [p1, p2]
 
         if rod_id in removed_rods:
-            color = "0.82"
-            linewidth = 1.0
-            linestyle = "--"
-            alpha = 0.45
-        elif rod_id in truss.grounded_rods:
-            color = "tab:blue"
-            linewidth = 3.0
-            linestyle = "-"
-            alpha = 1.0
+            removed_segments.append(segment)
+
         elif rod_id in supported_rods:
-            color = "magenta"
-            linewidth = 3.0
-            linestyle = "-"
-            alpha = 1.0
+            supported_segments.append(segment)
+
+        elif rod_id in truss.grounded_rods:
+            grounded_segments.append(segment)
+
+        elif rod_id not in active_rods:
+            inactive_segments.append(segment)
+
         else:
-            status = result.statuses.get(rod_id, ElementStatus.unassembled).name
-            color = status_colors[status]
-            linewidth = 2.0
-            linestyle = "-"
-            alpha = 1.0 if rod_id in active_rods else 0.35
+            status = result.statuses.get(
+                rod_id,
+                ElementStatus.unassembled,
+            )
 
-        ax.plot(xs, ys, zs, color=color, linewidth=linewidth, linestyle=linestyle, alpha=alpha)
+            if status == ElementStatus.fixed:
+                fixed_segments.append(segment)
+            elif status == ElementStatus.rotate:
+                rotating_segments.append(segment)
+            elif status == ElementStatus.float:
+                floating_segments.append(segment)
+            else:
+                inactive_segments.append(segment)
 
-        if label_rods:
+        should_label = label_rods
+
+        if label_non_fixed_only:
+            status = result.statuses.get(
+                rod_id,
+                ElementStatus.unassembled,
+            )
+            should_label = (
+                rod_id in supported_rods
+                or status != ElementStatus.fixed
+            )
+
+        if should_label:
             midpoint = 0.5 * (p1 + p2)
-            ax.text(midpoint[0], midpoint[1], midpoint[2], str(rod_id), fontsize=8)
-        
-                    
-        _plot_coupler_segments(
-                ax=ax,
-                truss=truss,
-                active_rods=active_rods,
-            )            
+            label_data.append((midpoint, rod_id))
 
-        # _plot_couplers(
-        #     ax=ax,
-        #     truss=truss,
-        #     active_rods=active_rods,
-        # )
+    def add_collection(
+        segments,
+        color,
+        linewidth,
+        linestyle="-",
+    ):
+        if not segments:
+            return
 
-        node_points = np.asarray(
-            [truss.nodes[node_id] for node_id in sorted(truss.nodes)],
-            dtype=float,
+        collection = Line3DCollection(
+            segments,
+            colors=color,
+            linewidths=linewidth,
+            linestyles=linestyle,
         )
-        
-    if not result.is_rigid and result.failure_modes:
-        _plot_failure_mode(
-            ax=ax,
-            result=result,
-            mode_index=0,
-            relative_scale=0.15,
-        )
+        ax.add_collection3d(collection)
 
-    node_points = np.asarray(
-        [truss.nodes[node_id] for node_id in sorted(truss.nodes)],
-        dtype=float,
-    )
-    ax.scatter(
-        node_points[:, 0],
-        node_points[:, 1],
-        node_points[:, 2],
-        color="black",
-        s=12,
-        alpha=0.65,
+    # One artist per category instead of one artist per rod.
+        
+    add_collection(
+        grounded_segments,
+        color="tab:blue",
+        linewidth=2.5,
     )
     
+    add_collection(
+        fixed_segments,
+        color=status_colors["fixed"],
+        linewidth=2.0,
+    )
+
+    add_collection(
+        rotating_segments,
+        color=status_colors["rotate"],
+        linewidth=2.5,
+    )
+
+    add_collection(
+        floating_segments,
+        color=status_colors["float"],
+        linewidth=2.5,
+    )
+
+    add_collection(
+        supported_segments,
+        color="magenta",
+        linewidth=3.5,
+    )
+
+    # Dashed rendering costs more while moving.
+    # Fast mode uses a normal solid line.
+    add_collection(
+        removed_segments,
+        color="0.78",
+        linewidth=1.0,
+        linestyle="-" if fast_mode else "--",
+    )
+
+    add_collection(
+        inactive_segments,
+        color="0.7",
+        linewidth=1.0,
+    )
+
+    node_points = np.asarray(
+        [
+            truss.nodes[node_id]
+            for node_id in sorted(truss.nodes)
+        ],
+        dtype=float,
+    )
+
+    if show_nodes:
+        ax.scatter(
+            node_points[:, 0],
+            node_points[:, 1],
+            node_points[:, 2],
+            color="black",
+            s=6 if fast_mode else 12,
+            depthshade=False,
+        )
+
+    # Text labels are expensive in Matplotlib 3D.
+    # They are created only when explicitly requested.
+    for midpoint, rod_id in label_data:
+        ax.text(
+            midpoint[0],
+            midpoint[1],
+            midpoint[2],
+            str(rod_id),
+            fontsize=7,
+        )
+        
+    coupler_segments = []
+
+    if show_couplers:
+        for rod_id_1, rod_id_2 in _iter_couplers(truss):
+            if (
+                rod_id_1 not in active_rods
+                or rod_id_2 not in active_rods
+            ):
+                continue
+
+            if (
+                rod_id_1 not in truss.elements
+                or rod_id_2 not in truss.elements
+            ):
+                continue
+
+            n11, n12 = truss.elements[rod_id_1]
+            n21, n22 = truss.elements[rod_id_2]
+
+            rod_1_segment = [
+                np.asarray(truss.nodes[n11], dtype=float),
+                np.asarray(truss.nodes[n12], dtype=float),
+            ]
+
+            rod_2_segment = [
+                np.asarray(truss.nodes[n21], dtype=float),
+                np.asarray(truss.nodes[n22], dtype=float),
+            ]
+
+            try:
+                point_1, point_2 = closest_points_between_segments(
+                    rod_1_segment,
+                    rod_2_segment,
+                )
+            except ValueError:
+                continue
+
+            coupler_segments.append(
+                [
+                    np.asarray(point_1, dtype=float),
+                    np.asarray(point_2, dtype=float),
+                ]
+            )
+
+    if coupler_segments:
+        coupler_collection = Line3DCollection(
+            coupler_segments,
+            colors="cyan",
+            linewidths=3.0,
+            linestyles="-",
+        )
+        ax.add_collection3d(coupler_collection)
+        
+    if show_failure_mode:
+        if not result.failure_modes:
+            print("No failure modes are available to plot.")
+        else:
+            _plot_failure_mode(
+                ax=ax,
+                result=result,
+                mode_index=failure_mode_index,
+                relative_scale=failure_mode_scale,
+            )
 
     _set_axes_equal(ax, node_points)
+
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
 
-    legend_items = [
-        Line2D([0], [0], color="tab:green", lw=2, label="fixed"),
-        Line2D([0], [0], color="tab:orange", lw=2, label="rotate"),
-        Line2D([0], [0], color="tab:red", lw=2, label="float"),
-        Line2D([0], [0], color="magenta", lw=3, label="supported"),
-        Line2D([0], [0], color="0.82", lw=1, ls="--", label="removed"),
-        Line2D([0], [0], color="tab:blue", lw=3, label="grounded"),
-        Line2D([0], [0], color="cyan", lw=5, marker="o", label="coupler segment"),
-        Line2D([0], [0], color="cyan", lw=2, ls="--", label="failure mode"),
-    ]
-    ax.legend(handles=legend_items, loc="upper right")
+    if fast_mode:
+        # Grid panes add redraw work and visual clutter.
+        ax.grid(False)
 
-    fig.tight_layout()
+        ax.xaxis.pane.set_visible(False)
+        ax.yaxis.pane.set_visible(False)
+        ax.zaxis.pane.set_visible(False)
+
+    legend_items = [
+        Line2D(
+            [0],
+            [0],
+            color="tab:green",
+            lw=2,
+            label="fixed",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="tab:orange",
+            lw=2,
+            label="rotate",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="tab:red",
+            lw=2,
+            label="float",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="magenta",
+            lw=3,
+            label="supported",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="0.78",
+            lw=1,
+            ls="-" if fast_mode else "--",
+            label="removed",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="blue",
+            lw=4,
+            label="grounded rod",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="cyan",
+            lw=1.25,
+            ls="-" if fast_mode else "--",
+            label="coupler",
+        ),
+    ]
+
+    ax.legend(
+        handles=legend_items,
+        loc="upper right",
+    )
+
+    # tight_layout is useful for saved figures but unnecessary
+    # for a fast interactive window.
+    if not fast_mode or save_path:
+        fig.tight_layout()
+
     if save_path:
-        fig.savefig(save_path, dpi=180)
+        fig.savefig(
+            save_path,
+            dpi=180,
+            bbox_inches="tight",
+        )
         print(f"plot saved to: {save_path}")
+
     if show:
         plt.show()
     else:
@@ -660,10 +851,49 @@ def main() -> None:
         help="Label rods with their element ids in the plot.",
     )
     parser.add_argument(
+    "--label-non-fixed-only",
+    action="store_true",
+    help="Only label rods that are not fixed or are externally supported.",
+    )
+
+    parser.add_argument(
+        "--hide-nodes",
+        action="store_true",
+        help="Do not draw scaffold node markers.",
+    )
+
+    parser.add_argument(
+        "--fast-plot",
+        action="store_true",
+        help="Use simplified rendering for smoother interactive movement.",
+    )
+    parser.add_argument(
         "--nullspace-method",
         choices=("svd", "qr"),
         default="svd",
         help="Method used to compute failure modes.",
+    )
+    parser.add_argument(
+        "--hide-couplers",
+        action="store_true",
+        help="Do not display coupler segments.",
+    )
+    
+    parser.add_argument(
+        "--failure-mode",
+        type=int,
+        metavar="INDEX",
+        help=(
+            "Plot the selected nullspace failure mode. "
+            "Failure modes are indexed from 0."
+        ),
+    )
+
+    parser.add_argument(
+        "--failure-scale",
+        type=float,
+        default=0.15,
+        help="Relative visual scale of the plotted failure mode.",
     )
     args = parser.parse_args()
 
@@ -695,26 +925,26 @@ def main() -> None:
         for rod_id, status_name in result.status_names.items():
             print(f"rod {rod_id}: {status_name}")
 
-    if not result.is_rigid and args.suggest_supports > 0:
-        suggestions = checker.choose_support_targets(
-            active_rods,
-            already_supported=supported_rods,
-            max_targets=args.suggest_supports,
-            key=_rod_height_key(truss),
-        )
-        if suggestions:
-            supported_result = checker.check(
-                active_rods,
-                supported_rods=supported_rods | set(suggestions),
-            )
-            print(f"suggested supports: {suggestions}")
-            print(
-                "with suggested supports: "
-                f"{supported_result.is_rigid}, "
-                f"fixed rods {supported_result.rank}/{supported_result.dof}"
-            )
-        else:
-            print("suggested supports: none found")
+    # if not result.is_rigid and args.suggest_supports > 0:
+    #     suggestions = checker.choose_support_targets(
+    #         active_rods,
+    #         already_supported=supported_rods,
+    #         max_targets=args.suggest_supports,
+    #         key=_rod_height_key(truss),
+    #     )
+    #     if suggestions:
+    #         supported_result = checker.check(
+    #             active_rods,
+    #             supported_rods=supported_rods | set(suggestions),
+    #         )
+    #         print(f"suggested supports: {suggestions}")
+    #         print(
+    #             "with suggested supports: "
+    #             f"{supported_result.is_rigid}, "
+    #             f"fixed rods {supported_result.rank}/{supported_result.dof}"
+    #         )
+    #     else:
+    #         print("suggested supports: none found")
 
     if args.plot or args.save_plot:
         plot_scaffold(
@@ -724,7 +954,18 @@ def main() -> None:
             supported_rods=supported_rods,
             result=result,
             label_rods=args.label_rods,
+            label_non_fixed_only=args.label_non_fixed_only,
+            show_nodes=not args.hide_nodes,
+            show_couplers=not args.hide_couplers,
+            fast_mode=args.fast_plot,
             save_path=args.save_plot,
+            show_failure_mode=args.failure_mode is not None,
+            failure_mode_index=(
+                args.failure_mode
+                if args.failure_mode is not None
+                else 0
+            ),
+            failure_mode_scale=args.failure_scale,
             show=args.plot,
         )
 

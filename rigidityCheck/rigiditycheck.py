@@ -158,38 +158,69 @@ class GroundedChecker(object):
 
 
 class TwoFixConstrainChecker(object):
-    def __init__(self) -> None:
-        super().__init__()
-
     @staticmethod
-    def Check(index: int, element_object_list: List[ElementObject], visited=[]) -> ElementStatus:
-        # -------------------- grounded: only fixed is cannot be determined --------------------#
-        grounded_status = GroundedChecker.Check(index, element_object_list)
-        if (
-            grounded_status == ElementStatus.unassembled
-            or grounded_status == ElementStatus.float
-            or grounded_status == ElementStatus.rotate
+    def Check(
+        index: int,
+        element_object_list: List[ElementObject],
+        visited: set[int] | None = None,
+        status_cache: dict[int, ElementStatus] | None = None,
+    ) -> ElementStatus:
+        if visited is None:
+            visited = set()
+
+        if status_cache is None:
+            status_cache = {}
+
+        if index in status_cache:
+            return status_cache[index]
+
+        grounded_status = GroundedChecker.Check(
+            index,
+            element_object_list,
+        )
+
+        if grounded_status in (
+            ElementStatus.unassembled,
+            ElementStatus.float,
+            ElementStatus.rotate,
         ):
+            status_cache[index] = grounded_status
             return grounded_status
 
-        # -------------------- directly grounded --------------------#
         if element_object_list[index].is_grounded:
+            status_cache[index] = ElementStatus.fixed
             return ElementStatus.fixed
 
-        # -------------------- judge the fixed constrain num --------------------#
-        fix_constrain_num = 0
-        element_object = element_object_list[index]
-        for neighbor_index in element_object.assembled_elements:
-            if neighbor_index in visited:
-                continue
-            neighbor_status = TwoFixConstrainChecker.Check(neighbor_index, element_object_list, visited + [index])
-            if neighbor_status == ElementStatus.fixed:
-                fix_constrain_num += 1
-
-        if fix_constrain_num >= 2:
-            return ElementStatus.fixed
-        else:
+        if index in visited:
             return ElementStatus.rotate
+
+        visited.add(index)
+
+        try:
+            fixed_neighbor_count = 0
+
+            for neighbor_index in (
+                element_object_list[index].assembled_elements
+            ):
+                neighbor_status = TwoFixConstrainChecker.Check(
+                    neighbor_index,
+                    element_object_list,
+                    visited,
+                    status_cache,
+                )
+
+                if neighbor_status == ElementStatus.fixed:
+                    fixed_neighbor_count += 1
+
+                    if fixed_neighbor_count >= 2:
+                        status_cache[index] = ElementStatus.fixed
+                        return ElementStatus.fixed
+
+            status_cache[index] = ElementStatus.rotate
+            return ElementStatus.rotate
+
+        finally:
+            visited.remove(index)
 
 
 class AlgebraicChecker(object):
@@ -711,7 +742,7 @@ class AlgebraicChecker(object):
 
     
     @staticmethod
-    def Check(index: int, assembled: List[int], element_object_list: List[ElementObject], matrix_result: RigidityMatrixResult | None = None,) -> ElementStatus:
+    def Check(index: int, assembled: List[int], element_object_list: List[ElementObject], matrix_is_full_rank: bool | None = None, status_cache: dict[int, ElementStatus] | None = None,) -> ElementStatus:
         """
         Check stability of element given by index.
 
@@ -727,7 +758,11 @@ class AlgebraicChecker(object):
             assembled.append(index)
 
         # -------------------- grounded: only rotate is cannot be determined --------------------#
-        two_fix_status = TwoFixConstrainChecker.Check(index, element_object_list, visited=[])
+        two_fix_status = TwoFixConstrainChecker.Check(
+            index,
+            element_object_list,
+            status_cache=status_cache,
+        )
         if (
             two_fix_status == ElementStatus.unassembled
             or two_fix_status == ElementStatus.float
@@ -735,19 +770,23 @@ class AlgebraicChecker(object):
         ):
             return two_fix_status
         
-        if matrix_result is None:
+         # Backward-compatible fallback for isolated uses of this method.
+        if matrix_is_full_rank is None:
             matrix_result = AlgebraicChecker.BuildRigidityMatrix(
                 assembled,
                 element_object_list,
             )
+            K = matrix_result.matrix
+            matrix_is_full_rank = (
+                np.linalg.matrix_rank(K) == K.shape[1]
+            )
 
-        K = matrix_result.matrix
-        dof = K.shape[1]
 
-        if np.linalg.matrix_rank(K) == dof:
-            return ElementStatus.fixed
-
-        return ElementStatus.rotate
+        return (
+                ElementStatus.fixed
+                if matrix_is_full_rank
+                else ElementStatus.rotate
+            )
 
     @staticmethod
     def CreateOrientationPoint(
