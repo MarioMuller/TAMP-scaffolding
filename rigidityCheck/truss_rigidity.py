@@ -203,7 +203,8 @@ class TrussRigidityChecker:
             failure_elements=matrix_result.elements_dict,
             failure_orientation_vertex_ids=frozenset(
                 vertex.id
-                for vertex in matrix_result.orientation_vertices.values()
+                for orientation_pair in matrix_result.orientation_vertices.values()
+                for vertex in orientation_pair
             ),
         )
 
@@ -490,10 +491,9 @@ def _plot_failure_mode(
             [displaced_p1[0], displaced_p2[0]],
             [displaced_p1[1], displaced_p2[1]],
             [displaced_p1[2], displaced_p2[2]],
-            color="cyan",
+            color="darkgoldenrod",
             linewidth=2.0,
-            linestyle="--",
-            alpha=0.8,
+            linestyle="-",
         )
 
 def _iter_couplers(truss):
@@ -543,10 +543,12 @@ def plot_scaffold(
     from matplotlib.lines import Line2D
     from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
+
+    # floating and rotating is not implemented in current version. Both are combined as "moving" in the plot.
     status_colors = {
-        "fixed": "tab:green",
+        "fixed": "yellowgreen",
         "rotate": "tab:orange",
-        "float": "tab:red",
+        # "float": "tab:red",
         "unassembled": "0.65",
     }
 
@@ -562,7 +564,7 @@ def plot_scaffold(
     # Store rods in groups so that each group becomes only one artist.
     fixed_segments = []
     rotating_segments = []
-    floating_segments = []
+    # floating_segments = []
     supported_segments = []
     removed_segments = []
     inactive_segments = []
@@ -597,8 +599,8 @@ def plot_scaffold(
                 fixed_segments.append(segment)
             elif status == ElementStatus.rotate:
                 rotating_segments.append(segment)
-            elif status == ElementStatus.float:
-                floating_segments.append(segment)
+            # elif status == ElementStatus.float:
+            #     floating_segments.append(segment)
             else:
                 inactive_segments.append(segment)
 
@@ -639,7 +641,7 @@ def plot_scaffold(
         
     add_collection(
         grounded_segments,
-        color="tab:blue",
+        color="cornflowerblue",
         linewidth=2.5,
     )
     
@@ -655,11 +657,11 @@ def plot_scaffold(
         linewidth=2.5,
     )
 
-    add_collection(
-        floating_segments,
-        color=status_colors["float"],
-        linewidth=2.5,
-    )
+    # add_collection(
+    #     floating_segments,
+    #     color=status_colors["float"],
+    #     linewidth=2.5,
+    # )
 
     add_collection(
         supported_segments,
@@ -758,7 +760,7 @@ def plot_scaffold(
     if coupler_segments:
         coupler_collection = Line3DCollection(
             coupler_segments,
-            colors="cyan",
+            colors="darkviolet",
             linewidths=3.0,
             linestyles="-",
         )
@@ -793,7 +795,7 @@ def plot_scaffold(
         Line2D(
             [0],
             [0],
-            color="tab:green",
+            color="yellowgreen",
             lw=2,
             label="fixed",
         ),
@@ -802,15 +804,15 @@ def plot_scaffold(
             [0],
             color="tab:orange",
             lw=2,
-            label="rotate",
+            label="moving", # "moving" combines both "rotate" and "float" in the current implementation
         ),
-        Line2D(
-            [0],
-            [0],
-            color="tab:red",
-            lw=2,
-            label="float",
-        ),
+        # Line2D(
+        #     [0],
+        #     [0],
+        #     color="tab:red",
+        #     lw=2,
+        #     label="float",
+        # ),
         Line2D(
             [0],
             [0],
@@ -829,17 +831,24 @@ def plot_scaffold(
         Line2D(
             [0],
             [0],
-            color="blue",
-            lw=4,
+            color="cornflowerblue",
+            lw=2,
             label="grounded rod",
         ),
         Line2D(
             [0],
             [0],
-            color="cyan",
-            lw=1.25,
-            ls="-" if fast_mode else "--",
+            color="darkviolet",
+            lw=2,
             label="coupler",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="darkgoldenrod",
+            lw=2,
+            ls="-",
+            label="failure mode",
         ),
     ]
 
@@ -875,8 +884,8 @@ def main() -> None:
         "json_path",
         nargs="?",
         # default="JSON/scaffold_two_floors.json",
-        default="JSON/own_examples/260724_stability_ini.json",
-        # default="JSON/own_examples/diy_proper_full.json",
+        # default="JSON/own_examples/260724_stability_ini.json",
+        default="JSON/own_examples/diy_proper_full.json",
         help="Path to the truss JSON file.",
     )
     parser.add_argument(
@@ -919,9 +928,9 @@ def main() -> None:
         help="Label rods with their element ids in the plot.",
     )
     parser.add_argument(
-    "--label-non-fixed-only",
-    action="store_true",
-    help="Only label rods that are not fixed or are externally supported.",
+        "--label-non-fixed-only",
+        action="store_true",
+        help="Only label rods that are not fixed or are externally supported.",
     )
 
     parser.add_argument(
@@ -974,7 +983,52 @@ def main() -> None:
     start_time = time.time()
     active_rods = set(truss.elements) - set(args.remove)
     supported_rods = set(args.supported) & active_rods
-    result = checker.check(active_rods, supported_rods=supported_rods, nullspace_method=args.nullspace_method)
+    try:
+        result = checker.check(
+            active_rods,
+            supported_rods=supported_rods,
+            nullspace_method=args.nullspace_method,
+        )
+
+    except ValueError as error:
+        print()
+        print("Scaffold validation failed")
+        print("--------------------------")
+        print(error)
+
+        if args.plot or args.save_plot:
+            empty_result = RigidityResult(
+                is_rigid=False,
+                rank=0,
+                dof=len(active_rods),
+                rows=0,
+                statuses={
+                    rod_id: ElementStatus.unassembled
+                    for rod_id in active_rods
+                },
+                failure_modes=(),
+                failure_vertices=(),
+                failure_elements={},
+                failure_orientation_vertex_ids=frozenset(),
+            )
+
+            plot_scaffold(
+                truss=truss,
+                active_rods=active_rods,
+                removed_rods=set(args.remove),
+                supported_rods=supported_rods,
+                result=empty_result,
+                label_rods=args.label_rods,
+                label_non_fixed_only=args.label_non_fixed_only,
+                show_nodes=not args.hide_nodes,
+                show_couplers=not args.hide_couplers,
+                fast_mode=args.fast_plot,
+                save_path=args.save_plot,
+                show_failure_mode=False,
+                show=args.plot,
+            )
+
+        sys.exit(1)
     
     end_time = time.time()
     elapsed_time = end_time - start_time

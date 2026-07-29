@@ -279,19 +279,35 @@ class AlgebraicChecker(object):
         for index in assembled:
             rod_start, rod_end = elements_dict[index]
 
-            orientation_point = AlgebraicChecker.CreateOrientationPoint(
-                rod_start.point,
-                rod_end.point,
-                offset_ratio=orientation_offset_ratio,
+            orientation_point_1, orientation_point_2 = (
+                AlgebraicChecker.CreateOrientationPoints(
+                    rod_start.point,
+                    rod_end.point,
+                    offset_ratio=orientation_offset_ratio,
+                )
             )
 
-            orientation_vertices[index] = AlgebraicChecker.CreateVertex(
+            orientation_vertex_1 = AlgebraicChecker.CreateVertex(
                 vertex_list,
-                orientation_point.tolist(),
+                orientation_point_1.tolist(),
                 # -1 prevents external centerline visualizers from treating Q
                 # as another point on this rod.  The dictionary above stores
                 # the actual association with the rod.
                 element_index=-1,
+            )
+
+            orientation_vertex_2 = AlgebraicChecker.CreateVertex(
+                vertex_list,
+                orientation_point_2.tolist(),
+                # -1 prevents external centerline visualizers from treating Q
+                # as another point on this rod.  The dictionary above stores
+                # the actual association with the rod.
+                element_index=-1,
+            )
+
+            orientation_vertices[index] = (
+                orientation_vertex_1,
+                orientation_vertex_2,
             )
 
         # -------------------- generate couplers --------------------#
@@ -320,6 +336,57 @@ class AlgebraicChecker(object):
             )
 
             couplers_dict[coupler] = [vertex_1, vertex_2]
+            
+            
+        #catch rod sections with no length
+        minimum_endpoint_distance = 1e-4  # geometry is in mm
+
+        for coupler, coupler_vertices in couplers_dict.items():
+            rod_1, rod_2 = coupler
+            coupler_vertex_1, coupler_vertex_2 = coupler_vertices
+
+            for rod_index, coupler_vertex in (
+                (rod_1, coupler_vertex_1),
+                (rod_2, coupler_vertex_2),
+            ):
+                rod_start, rod_end = elements_dict[rod_index]
+
+                coupler_point = np.asarray(
+                    coupler_vertex.point,
+                    dtype=float,
+                )
+                start_point = np.asarray(
+                    rod_start.point,
+                    dtype=float,
+                )
+                end_point = np.asarray(
+                    rod_end.point,
+                    dtype=float,
+                )
+
+                distance_to_start = float(
+                    np.linalg.norm(coupler_point - start_point)
+                )
+                distance_to_end = float(
+                    np.linalg.norm(coupler_point - end_point)
+                )
+
+                if min(
+                    distance_to_start,
+                    distance_to_end,
+                ) <= minimum_endpoint_distance:
+                    endpoint_name = (
+                        "start"
+                        if distance_to_start <= distance_to_end
+                        else "end"
+                    )
+
+                    raise ValueError(
+                        "Invalid scaffold geometry: "
+                        f"coupler {coupler} lies at the {endpoint_name} "
+                        f"of rod {rod_index}. "
+                        "This would create a zero-length rod section."
+                    )
 
         vertex_num = len(vertex_list)
 
@@ -395,6 +462,35 @@ class AlgebraicChecker(object):
                 key=rod_parameter
             )
 
+            minimum_segment_length = 1e-4  # mm
+
+            for vertex_1, vertex_2 in zip(
+                vertices_on_rod,
+                vertices_on_rod[1:],
+            ):
+                point_1 = np.asarray(
+                    vertex_1.point,
+                    dtype=float,
+                )
+                point_2 = np.asarray(
+                    vertex_2.point,
+                    dtype=float,
+                )
+
+                segment_length = float(
+                    np.linalg.norm(point_2 - point_1)
+                )
+
+                if segment_length <= minimum_segment_length:
+                    raise ValueError(
+                        "Invalid scaffold geometry: "
+                        f"rod {index} contains coincident split points. "
+                        f"Vertices {vertex_1.id} and {vertex_2.id} are "
+                        f"{segment_length:.6g} mm apart. "
+                        "A coupler may lie at a rod endpoint, or multiple "
+                        "couplers may occupy the same position."
+                    )
+
             rod_vertices_in_order[index] = vertices_on_rod
 
 
@@ -425,12 +521,22 @@ class AlgebraicChecker(object):
         # precisely the rod's roll coordinate.
         for index in assembled:
             rod_start, rod_end = elements_dict[index]
-            orientation_vertex = orientation_vertices[index]
+            orientation_vertex_1, orientation_vertex_2 = (
+                orientation_vertices[index]
+            )
 
             const_length_constrains_vertex.extend(
                 [
-                    [orientation_vertex, rod_start],
-                    [orientation_vertex, rod_end],
+                    # Attach Q1 to the rod.
+                    [orientation_vertex_1, rod_start],
+                    [orientation_vertex_1, rod_end],
+
+                    # Attach Q2 to the rod.
+                    [orientation_vertex_2, rod_start],
+                    [orientation_vertex_2, rod_end],
+
+                    # Prevent Q1 and Q2 from rolling independently.
+                    [orientation_vertex_1, orientation_vertex_2],
                 ]
             )
 
@@ -448,17 +554,23 @@ class AlgebraicChecker(object):
                 couplers_dict[coupler]
             )
 
-            orientation_vertex_1 = orientation_vertices[rod_1]
-            orientation_vertex_2 = orientation_vertices[rod_2]
+            rod_1_q1, rod_1_q2 = orientation_vertices[rod_1]
+            rod_2_q1, rod_2_q2 = orientation_vertices[rod_2]
 
             const_length_constrains_vertex.extend(
                 [
+                    # Physical coupler length.
                     [coupler_vertex_1, coupler_vertex_2],
-                    [orientation_vertex_1, coupler_vertex_2],
-                    [orientation_vertex_2, coupler_vertex_1],
+
+                    # Coupler orientation relative to rod 1.
+                    [rod_1_q1, coupler_vertex_2],
+                    [rod_1_q2, coupler_vertex_2],
+
+                    # Coupler orientation relative to rod 2.
+                    [rod_2_q1, coupler_vertex_1],
+                    [rod_2_q2, coupler_vertex_1],
                 ]
             )
-
 
         K_const_length = (
             AlgebraicChecker.CreateConstLengthConstrains(
@@ -620,11 +732,16 @@ class AlgebraicChecker(object):
             if element.is_grounded:
                 # Ground the complete rod frame.  Fixing only the two
                 # centerline endpoints would still leave axial roll free.
+                orientation_vertex_1, orientation_vertex_2 = (
+                orientation_vertices[index]
+                )
+
                 grounded_constrains_vertex.extend(
                     [
                         elements_dict[index][0],
                         elements_dict[index][1],
-                        orientation_vertices[index],
+                        orientation_vertex_1,
+                        orientation_vertex_2,
                     ]
                 )
 
@@ -789,15 +906,17 @@ class AlgebraicChecker(object):
             )
 
     @staticmethod
-    def CreateOrientationPoint(
+    def CreateOrientationPoints(
         rod_start: List[float],
         rod_end: List[float],
         offset_ratio: float = 0.10,
-    ) -> np.ndarray:
-        """Create a deterministic virtual point away from a rod axis.
+    ) -> tuple[np.ndarray, np.ndarray]:
+        start = np.asarray(rod_start, dtype=float)
+        end = np.asarray(rod_end, dtype=float)
+        """Creates two deterministic virtual point away from a rod axis.
 
-        The point is placed at the rod midpoint plus a perpendicular offset.
-        Its remaining motion around the rod axis represents the rod's roll.
+        The points are placed at the rod midpoint plus a perpendicular offset.
+        The remaining motion around the rod axis represents the rod's roll.
         """
         if offset_ratio <= 0.0:
             raise ValueError(
@@ -823,20 +942,20 @@ class AlgebraicChecker(object):
             int(np.argmin(np.abs(world_axes @ rod_axis)))
         ]
 
-        perpendicular = np.cross(rod_axis, reference_axis)
-        perpendicular_norm = float(np.linalg.norm(perpendicular))
+        radial_1 = np.cross(rod_axis, reference_axis)
+        radial_1 /= np.linalg.norm(radial_1)
 
-        if perpendicular_norm == 0.0:
-            raise ValueError(
-                "Could not construct a perpendicular orientation axis."
-            )
-
-        perpendicular /= perpendicular_norm
+        # Second radial direction, perpendicular to both the rod and radial_1.
+        radial_2 = np.cross(rod_axis, radial_1)
+        radial_2 /= np.linalg.norm(radial_2)
 
         midpoint = 0.5 * (start + end)
         offset = offset_ratio * rod_length
 
-        return midpoint + offset * perpendicular
+        q1 = midpoint + offset * radial_1
+        q2 = midpoint + offset * radial_2
+
+        return q1, q2
 
     @staticmethod
     def CreateVertex(vertex_list: List[Vertex], point: List[float], element_index: int = -1) -> Vertex:
