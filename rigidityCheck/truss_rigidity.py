@@ -116,25 +116,37 @@ class TrussRigidityChecker:
         matrix_dof = K.shape[1]
         matrix_is_full_rank = matrix_rank == matrix_dof
 
-        statuses = {}
-        fixed_count = 0
         
         status_start = perf_counter()
-        
-        two_fix_status_cache: dict[int, ElementStatus] = {}
+                
+        if matrix_rank == matrix_dof:
+            failure_modes = ()
 
-        for rod_id in sorted(active):
-            index = rod_to_index[rod_id]
-            status = AlgebraicChecker.Check(
-                index,
-                assembled_indices.copy(),
-                element_objects,
-                matrix_is_full_rank=matrix_is_full_rank,
-                status_cache=two_fix_status_cache,
+            statuses = {
+                rod_id: ElementStatus.fixed
+                for rod_id in active
+            }
+
+        else:
+            failure_modes = tuple(
+                AlgebraicChecker.GetNullspaceModes(
+                    K,
+                    method=nullspace_method,
+                )
             )
-            statuses[rod_id] = status
-            if status == ElementStatus.fixed:
-                fixed_count += 1
+
+            statuses = self._statuses_from_nullspace(
+                failure_modes=failure_modes,
+                matrix_result=matrix_result,
+                index_to_rod=index_to_rod,
+                active_rods=active,
+                tolerance=1e-7,
+            )
+
+        fixed_count = sum(
+            status == ElementStatus.fixed
+            for status in statuses.values()
+        )
                 
         status_end = perf_counter()
 
@@ -312,6 +324,62 @@ class TrussRigidityChecker:
             
         print (f"Coupled rods: {coupled_rods}")  # Debugging statement
         return coupled_rods
+    
+    def _statuses_from_nullspace(
+        self,
+        failure_modes: tuple[np.ndarray, ...],
+        matrix_result,
+        index_to_rod: dict[int, int],
+        active_rods: set[int],
+        tolerance: float = 1e-7,
+    ) -> dict[int, ElementStatus]:
+        statuses = {
+            rod_id: ElementStatus.fixed
+            for rod_id in active_rods
+        }
+
+        if not failure_modes:
+            return statuses
+
+        modes = np.column_stack(failure_modes)
+        mode_count = modes.shape[1]
+
+        vertex_displacements = modes.reshape(
+            (-1, 3, mode_count)
+        )
+
+        vertex_motion = np.linalg.norm(
+            vertex_displacements,
+            axis=(1, 2),
+        )
+
+        element_vertices: dict[int, set[int]] = defaultdict(set)
+
+        # Rod endpoint vertices.
+        for element_index, vertices in matrix_result.elements_dict.items():
+            for vertex in vertices:
+                element_vertices[element_index].add(vertex.id)
+
+        # Coupler and orientation vertices that belong to a rod.
+        for vertex in matrix_result.vertex_list:
+            if vertex.element_index >= 0:
+                element_vertices[vertex.element_index].add(vertex.id)
+
+        for element_index, vertex_ids in element_vertices.items():
+            rod_id = index_to_rod[element_index]
+
+            if rod_id not in active_rods:
+                continue
+
+            maximum_motion = max(
+                vertex_motion[vertex_id]
+                for vertex_id in vertex_ids
+            )
+
+            if maximum_motion > tolerance:
+                statuses[rod_id] = ElementStatus.rotate
+
+        return statuses
 
 
 def _rod_height_key(truss):
