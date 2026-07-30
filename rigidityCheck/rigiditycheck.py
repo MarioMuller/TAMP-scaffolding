@@ -645,49 +645,6 @@ class AlgebraicChecker(object):
             rotation_constrains_vertex,
             vertex_num,
         )
-
-        # # -------------------- collinear constraints --------------------#
-        # collinear_constrains_vertex = []
-
-        # for coupler in couplers:
-        #     coupler_vertex_1, coupler_vertex_2 = couplers_dict[coupler]
-
-        #     if coupler_vertex_1.element_index in elements_dict:
-        #         vertex_start = elements_dict[
-        #             coupler_vertex_1.element_index
-        #         ][0]
-        #         vertex_end = elements_dict[
-        #             coupler_vertex_1.element_index
-        #         ][1]
-
-        #         collinear_constrains_vertex.append(
-        #             [
-        #                 vertex_start,
-        #                 coupler_vertex_1,
-        #                 vertex_end,
-        #             ]
-        #         )
-
-        #     if coupler_vertex_2.element_index in elements_dict:
-        #         vertex_start = elements_dict[
-        #             coupler_vertex_2.element_index
-        #         ][0]
-        #         vertex_end = elements_dict[
-        #             coupler_vertex_2.element_index
-        #         ][1]
-
-        #         collinear_constrains_vertex.append(
-        #             [
-        #                 vertex_start,
-        #                 coupler_vertex_2,
-        #                 vertex_end,
-        #             ]
-        #         )
-
-        # K_collinear = AlgebraicChecker.CreateCollinearConstrains(
-        #     collinear_constrains_vertex,
-        #     vertex_num,
-        # )
         
         # -------------------- collinear constraints --------------------#
         collinear_constrains_vertex = []
@@ -751,16 +708,20 @@ class AlgebraicChecker(object):
         )
 
         # -------------------- combine matrices --------------------#
-        K = K_const_length
+        matrix_blocks = [
+            block
+            for block in (
+                K_const_length,
+                K_rotation,
+                K_collinear,
+                K_grounded,
+            )
+            if block is not None
+        ]
 
-        if K_rotation is not None:
-            K = np.vstack((K, K_rotation))
-
-        if K_collinear is not None:
-            K = np.vstack((K, K_collinear))
-
-        if K_grounded is not None:
-            K = np.vstack((K, K_grounded))
+        K = np.vstack(matrix_blocks)
+        
+        print(f"Rigidity matrix K shape: {K.shape}")
 
         return RigidityMatrixResult(
             matrix=K,
@@ -769,6 +730,82 @@ class AlgebraicChecker(object):
             orientation_vertices=orientation_vertices,
         )
 
+    @staticmethod
+    def AnalyzeQR(
+        K: np.ndarray,
+        tolerance: float | None = None,
+    ) -> tuple[int, tuple[np.ndarray, ...]]:
+        from scipy.linalg import qr
+
+        # K.T has shape (DOF, constraints).
+        # The final columns of Q span null(K).
+        Q, R, _ = qr(
+            K.T,
+            mode="full",
+            pivoting=True,
+            overwrite_a=False,
+            check_finite=False,
+        )
+
+        diagonal = np.abs(np.diag(R))
+
+        if tolerance is None:
+            largest = diagonal.max() if diagonal.size else 0.0
+            tolerance = (
+                max(K.shape)
+                * np.finfo(K.dtype).eps
+                * largest
+            )
+
+        rank = int(np.count_nonzero(diagonal > tolerance))
+
+        failure_modes = tuple(
+            Q[:, column].copy()
+            for column in range(rank, Q.shape[1])
+        )
+
+        return rank, failure_modes
+
+    @staticmethod
+    def AnalyzeSVD(
+        K: np.ndarray,
+        tolerance: float | None = None,
+    ) -> tuple[int, tuple[np.ndarray, ...]]:
+        _, singular_values, vh = np.linalg.svd(
+            K,
+            full_matrices=False,
+        )
+
+
+        import os
+
+        print(
+            "OPENBLAS_NUM_THREADS:",
+            os.environ.get("OPENBLAS_NUM_THREADS"),
+        )
+
+
+        if tolerance is None:
+            largest = (
+                singular_values[0]
+                if singular_values.size
+                else 0.0
+            )
+            tolerance = (
+                max(K.shape)
+                * np.finfo(K.dtype).eps
+                * largest
+            )
+
+        rank = int(np.count_nonzero(singular_values > tolerance))
+
+        failure_modes = tuple(
+            mode.copy()
+            for mode in vh[rank:]
+        )
+
+        return rank, failure_modes
+        
     @staticmethod
     def GetNullspaceModes(
         K: np.ndarray,
@@ -965,8 +1002,15 @@ class AlgebraicChecker(object):
         return new_vertex
 
     @staticmethod
-    def CreateConstLengthConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> Union[np.ndarray, None]:
-        K = None
+    def CreateConstLengthConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> np.ndarray | None: 
+        
+        constraint_count = len(constrains_vertex)
+        
+        if constraint_count == 0:
+            return None
+        
+        K = np.zeros((constraint_count, vertex_num * 3), dtype=float)
+        
         for vertices in constrains_vertex:
             vertex_i: Vertex = vertices[0]
             vertex_j: Vertex = vertices[1]
@@ -977,87 +1021,96 @@ class AlgebraicChecker(object):
             i = vertex_i.id
             j = vertex_j.id
 
-            K_row = np.zeros((1, vertex_num * 3))
-            K_row[0, 3 * i : 3 * i + 3] = p_i.transpose() - p_j.transpose()
-            K_row[0, 3 * j : 3 * j + 3] = -(p_i.transpose() - p_j.transpose())
-            if K is None:
-                K = K_row
-            else:
-                K = np.vstack((K, K_row))
+        for row, (vertex_i, vertex_j) in enumerate(constrains_vertex):
+            difference = (
+                np.asarray(vertex_i.point, dtype=float)
+                - np.asarray(vertex_j.point, dtype=float)
+            )
+
+            i_start = 3 * vertex_i.id
+            j_start = 3 * vertex_j.id
+
+            K[row, i_start:i_start + 3] = difference
+            K[row, j_start:j_start + 3] = -difference
 
         return K
 
     @staticmethod
-    def CreateRotationConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> Union[np.ndarray, None]:
-        K = None
-        for vertices in constrains_vertex:
-            vertex_i: Vertex = vertices[0]
-            vertex_j: Vertex = vertices[1]
-            vertex_k: Vertex = vertices[2]
-
-            p_i = np.array(vertex_i.point).reshape((3, 1))
-            p_j = np.array(vertex_j.point).reshape((3, 1))
-            p_k = np.array(vertex_k.point).reshape((3, 1))
-
-            i = vertex_i.id
-            j = vertex_j.id
-            k = vertex_k.id
-
-            K_row = np.zeros((1, vertex_num * 3))
-            K_row[0, 3 * i : 3 * i + 3] = (p_j - p_k).transpose()
-            K_row[0, 3 * j : 3 * j + 3] = ((p_i - p_j) - (p_j - p_k)).transpose()
-            K_row[0, 3 * k : 3 * k + 3] = -(p_i - p_j).transpose()
-
-            if K is None:
-                K = K_row
-            else:
-                K = np.vstack((K, K_row))
-
-        return K
-
-    @staticmethod
-    def CreateCollinearConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> Union[np.ndarray, None]:
-        K = None
-        for vertices in constrains_vertex:
+    def CreateRotationConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> np.ndarray | None:
+        
+        constraint_count = len(constrains_vertex)
+        
+        if constraint_count == 0:
+            return None
+        
+        K = np.zeros((constraint_count, vertex_num * 3), dtype=float)
+        
+        for row, vertices in enumerate(constrains_vertex):
             vertex_i: Vertex = vertices[0]
             vertex_j: Vertex = vertices[1]
             vertex_k: Vertex = vertices[2]
 
-            p_i = np.array(vertex_i.point).reshape((3, 1))
-            p_j = np.array(vertex_j.point).reshape((3, 1))
-            p_k = np.array(vertex_k.point).reshape((3, 1))
+            p_i = np.asarray(vertex_i.point, dtype=float)
+            p_j = np.asarray(vertex_j.point, dtype=float)
+            p_k = np.asarray(vertex_k.point, dtype=float)
 
-            i = vertex_i.id
-            j = vertex_j.id
-            k = vertex_k.id
+            i_start = 3 * vertex_i.id
+            j_start = 3 * vertex_j.id
+            k_start = 3 * vertex_k.id
 
-            K_block = np.zeros((3, vertex_num * 3))
-            K_block[:, 3 * i : 3 * i + 3] = -AlgebraicChecker.CreateAntisymmetricMat(p_j - p_k)
-            K_block[:, 3 * j : 3 * j + 3] = AlgebraicChecker.CreateAntisymmetricMat(p_i - p_k)
-            K_block[:, 3 * k : 3 * k + 3] = -AlgebraicChecker.CreateAntisymmetricMat(p_i - p_j)
-
-            if K is None:
-                K = K_block
-            else:
-                K = np.vstack((K, K_block))
+            K[row, i_start:i_start + 3] = (p_j - p_k)
+            K[row, j_start:j_start + 3] = ((p_i - p_j) - (p_j - p_k))
+            K[row, k_start:k_start + 3] = -(p_i - p_j)
 
         return K
 
     @staticmethod
-    def CreateGroundedConstrains(constrains_vertex: List[Vertex], vertex_num: int) -> Union[np.ndarray, None]:
-        K = None
-        for vertex in constrains_vertex:
-            vertex: Vertex
-            p_i = np.array(vertex.point).reshape((3, 1))
-            i = vertex.id
+    def CreateCollinearConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> np.ndarray | None:
+                
+        constraint_count = len(constrains_vertex)
+        
+        if constraint_count == 0:
+            return None
+        
+        K = np.zeros((3 * constraint_count, vertex_num * 3), dtype=float)
+        
+        for constraint_index, (vertex_i, vertex_j, vertex_k) in enumerate(constrains_vertex):
+            p_i = np.asarray(vertex_i.point, dtype=float)
+            p_j = np.asarray(vertex_j.point, dtype=float)
+            p_k = np.asarray(vertex_k.point, dtype=float)
+            
+            row_start = 3 * constraint_index
+            row_slice = slice(row_start, row_start + 3)
 
-            K_block = np.zeros((3, vertex_num * 3))
-            K_block[:, 3 * i : 3 * i + 3] = np.eye(3)
+            i_start = 3 * vertex_i.id
+            j_start = 3 * vertex_j.id
+            k_start = 3 * vertex_k.id
 
-            if K is None:
-                K = K_block
-            else:
-                K = np.vstack((K, K_block))
+            
+            # Fill in the corresponding rows in K
+            K[row_slice, i_start:i_start + 3] = (-AlgebraicChecker.CreateAntisymmetricMat(p_j - p_k))
+            K[row_slice, j_start:j_start + 3] = (AlgebraicChecker.CreateAntisymmetricMat(p_i - p_k))
+            K[row_slice, k_start:k_start + 3] = (-AlgebraicChecker.CreateAntisymmetricMat(p_i - p_j))
+            
+        return K
+
+    @staticmethod
+    def CreateGroundedConstrains(constrains_vertex: List[Vertex], vertex_num: int) -> np.ndarray | None:
+        
+        constraint_count = len(constrains_vertex)
+        
+        if constraint_count == 0:
+            return None
+        
+        K = np.zeros((3*constraint_count, vertex_num * 3), dtype=float)
+        
+        identity_matrix = np.eye(3)
+        
+        for constraint_index, vertex in enumerate(constrains_vertex):
+            row_start = 3 * constraint_index
+            column_start = 3 * vertex.id
+
+            K[row_start:row_start + 3, column_start:column_start + 3] = identity_matrix
 
         return K
 

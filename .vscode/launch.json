@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Rigidity check",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "/home/mario/venv_robotic_022/bin/python",
+            "program": "${workspaceFolder}/rigidityCheck/truss_rigidity.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {
+                "OPENBLAS_NUM_THREADS": "4"
+            },
+            "args": [
+                // "--plot",
+                "--label-rods",
+                "--remove",
+                "4",
+                "7",
+                "12",
+                "45",
+                "--supported",
+                "--suggest-supports",
+                "2"
+            ]
+        }
+    ]
+}

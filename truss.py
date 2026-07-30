@@ -35,6 +35,6 @@ class Truss:
             # Store every pair in a consistent order.
             couplers.add(tuple(sorted((rod_1, rod_2))))      
             
-        print(f"couplers: {couplers}")  
+        # print(f"couplers: {couplers}")  
 
         return cls(nodes, rods, grounded_rods, couplers)

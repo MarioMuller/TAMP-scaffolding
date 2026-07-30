@@ -72,7 +72,6 @@ class TrussRigidityChecker:
         self,
         active_rods: Iterable[int],
         supported_rods: Iterable[int] | None = None,
-        nullspace_method: str = "svd",
     ) -> RigidityResult:
         total_start = perf_counter()
         active = set(active_rods)
@@ -110,31 +109,21 @@ class TrussRigidityChecker:
         build_matrix_end = perf_counter()
         
         K = matrix_result.matrix
-        rank_start = perf_counter()
-        matrix_rank = np.linalg.matrix_rank(K)
-        rank_end = perf_counter()
         matrix_dof = K.shape[1]
-        matrix_is_full_rank = matrix_rank == matrix_dof
-
         
-        status_start = perf_counter()
-                
-        if matrix_rank == matrix_dof:
-            failure_modes = ()
+        analysis_start = perf_counter()
 
+        matrix_rank, failure_modes = AlgebraicChecker.QR(K)
+        print("QR")
+
+        analysis_end = perf_counter()
+
+        if matrix_rank == matrix_dof:
             statuses = {
                 rod_id: ElementStatus.fixed
                 for rod_id in active
             }
-
         else:
-            failure_modes = tuple(
-                AlgebraicChecker.GetNullspaceModes(
-                    K,
-                    method=nullspace_method,
-                )
-            )
-
             statuses = self._statuses_from_nullspace(
                 failure_modes=failure_modes,
                 matrix_result=matrix_result,
@@ -142,25 +131,6 @@ class TrussRigidityChecker:
                 active_rods=active,
                 tolerance=1e-7,
             )
-
-        fixed_count = sum(
-            status == ElementStatus.fixed
-            for status in statuses.values()
-        )
-                
-        status_end = perf_counter()
-
-        failure_modes = ()
-        
-        
-        nullspace_start = perf_counter()
-
-        if matrix_rank < matrix_dof:
-            failure_modes = tuple(
-                AlgebraicChecker.GetNullspaceModes(K, method=nullspace_method)
-            )
-            
-        nullspace_end = perf_counter()
         
         total_end = perf_counter()
 
@@ -175,16 +145,8 @@ class TrussRigidityChecker:
             f"{build_matrix_end - build_matrix_start:.6f} s"
         )
         print(
-            f"Matrix rank:           "
-            f"{rank_end - rank_start:.6f} s"
-        )
-        print(
-            f"Rod status checks:     "
-            f"{status_end - status_start:.6f} s"
-        )
-        print(
-            f"Nullspace:             "
-            f"{nullspace_end - nullspace_start:.6f} s"
+            f"Analysis:           "
+            f"{analysis_end - analysis_start:.6f} s"
         )
         print(
             f"Total check:           "
@@ -193,9 +155,9 @@ class TrussRigidityChecker:
         print(f"Matrix shape:          {K.shape}")
 
         return RigidityResult(
-            is_rigid=fixed_count == len(active),
-            rank=fixed_count,
-            dof=len(active),
+            is_rigid=matrix_rank == matrix_dof,
+            rank=matrix_rank,
+            dof=matrix_dof,
             rows=K.shape[0],
             statuses=statuses,
             failure_modes=failure_modes,
@@ -323,7 +285,7 @@ class TrussRigidityChecker:
             coupled_rods[rod_1].add(rod_2)
             coupled_rods[rod_2].add(rod_1)
             
-        print (f"Coupled rods: {coupled_rods}")  # Debugging statement
+        # print (f"Coupled rods: {coupled_rods}")  # Debugging statement
         return coupled_rods
     
     def _statuses_from_nullspace(
@@ -884,8 +846,8 @@ def main() -> None:
         "json_path",
         nargs="?",
         # default="JSON/scaffold_two_floors.json",
-        # default="JSON/own_examples/260724_stability_ini.json",
-        default="JSON/own_examples/diy_proper_full.json",
+        default="JSON/own_examples/260724_stability_ini.json",
+        # default="JSON/own_examples/diy_proper_full.json",
         help="Path to the truss JSON file.",
     )
     parser.add_argument(
@@ -945,12 +907,6 @@ def main() -> None:
         help="Use simplified rendering for smoother interactive movement.",
     )
     parser.add_argument(
-        "--nullspace-method",
-        choices=("svd", "qr"),
-        default="svd",
-        help="Method used to compute failure modes.",
-    )
-    parser.add_argument(
         "--hide-couplers",
         action="store_true",
         help="Do not display coupler segments.",
@@ -987,7 +943,6 @@ def main() -> None:
         result = checker.check(
             active_rods,
             supported_rods=supported_rods,
-            nullspace_method=args.nullspace_method,
         )
 
     except ValueError as error:
@@ -1033,13 +988,18 @@ def main() -> None:
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Rigidity check completed in {elapsed_time:.4f} seconds.")
+    
+    fixed_rods = sum(
+        status == ElementStatus.fixed
+        for status in result.statuses.values()
+    )
 
     print(f"JSON: {args.json_path}")
     print(f"active rods: {len(active_rods)}")
     print(f"removed rods: {sorted(args.remove)}")
     print(f"supported rods: {sorted(supported_rods)}")
     print(f"is rigid: {result.is_rigid}")
-    print(f"fixed rods: {result.rank}/{result.dof}")
+    print(f"fixed rods: {fixed_rods}/{len(result.statuses)}")
     print(f"non-fixed rods: {result.nullity}")
     print(f"failure modes: {len(result.failure_modes)}")
 
