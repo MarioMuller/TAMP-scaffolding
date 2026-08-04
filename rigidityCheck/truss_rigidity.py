@@ -113,7 +113,7 @@ class TrussRigidityChecker:
         
         analysis_start = perf_counter()
 
-        matrix_rank, failure_modes = AlgebraicChecker.QR(K)
+        matrix_rank, failure_modes = AlgebraicChecker.AnalyzeQR(K)
         print("QR")
 
         analysis_end = perf_counter()
@@ -517,11 +517,102 @@ def plot_scaffold(
     fig = plt.figure(figsize=(9, 7))
     ax = fig.add_subplot(111, projection="3d")
 
+    # For window maximising and placement
+    manager = fig.canvas.manager
+    window = manager.window
+
+    window.geometry("+0+0")
+    window.after(
+        100,
+        lambda: window.attributes("-zoomed", True),
+    )
+
+    # 
+    def close_plot(event=None):
+        plt.close(fig)
+
+    fig.canvas.mpl_connect(
+        "key_press_event",
+        lambda event: close_plot()
+        if event.key in {"escape", "q"}
+        else None,
+    )
+    
     ax.set_title(
         "Rigidity check scaffold "
         f"({'rigid' if result.is_rigid else 'not rigid'}, "
         f"{result.rank}/{result.dof} fixed rods)"
     )
+    
+    # zoom by scrolling
+    def on_scroll(event):
+        if event.inaxes != ax:
+            return
+
+        zoom_factor = 0.85 if event.button == "up" else 1.18
+
+        x_min, x_max = ax.get_xlim3d()
+        y_min, y_max = ax.get_ylim3d()
+        z_min, z_max = ax.get_zlim3d()
+
+        center = np.array([
+            0.5 * (x_min + x_max),
+            0.5 * (y_min + y_max),
+            0.5 * (z_min + z_max),
+        ])
+
+        spans = np.array([
+            x_max - x_min,
+            y_max - y_min,
+            z_max - z_min,
+        ])
+
+        # Mouse position inside the axes, normalized to [-0.5, 0.5].
+        bbox = ax.get_window_extent()
+
+        mouse_x = (event.x - bbox.x0) / bbox.width - 0.5
+        mouse_y = (event.y - bbox.y0) / bbox.height - 0.5
+
+        azimuth = np.deg2rad(ax.azim)
+        elevation = np.deg2rad(ax.elev)
+
+        # Approximate screen-right direction in world coordinates.
+        right = np.array([
+            -np.sin(azimuth),
+            np.cos(azimuth),
+            0.0,
+        ])
+
+        # Approximate screen-up direction in world coordinates.
+        up = np.array([
+            -np.sin(elevation) * np.cos(azimuth),
+            -np.sin(elevation) * np.sin(azimuth),
+            np.cos(elevation),
+        ])
+
+        scene_scale = float(np.max(spans))
+
+        target = (
+            center
+            + mouse_x * scene_scale * right
+            + mouse_y * scene_scale * up
+        )
+
+        old_min = np.array([x_min, y_min, z_min])
+        old_max = np.array([x_max, y_max, z_max])
+
+        # Scale all limits around the cursor target.
+        new_min = target + (old_min - target) * zoom_factor
+        new_max = target + (old_max - target) * zoom_factor
+
+        ax.set_xlim3d(new_min[0], new_max[0])
+        ax.set_ylim3d(new_min[1], new_max[1])
+        ax.set_zlim3d(new_min[2], new_max[2])
+
+        fig.canvas.draw_idle()
+
+
+    fig.canvas.mpl_connect("scroll_event", on_scroll)
 
     # Store rods in groups so that each group becomes only one artist.
     fixed_segments = []
@@ -1019,11 +1110,17 @@ def main() -> None:
     #             active_rods,
     #             supported_rods=supported_rods | set(suggestions),
     #         )
+            
+    #         fixed_rods = sum(
+    #             status == ElementStatus.fixed
+    #             for status in result.statuses.values()
+    #         )
+             
     #         print(f"suggested supports: {suggestions}")
     #         print(
     #             "with suggested supports: "
     #             f"{supported_result.is_rigid}, "
-    #             f"fixed rods {supported_result.rank}/{supported_result.dof}"
+    #             f"fixed rods {fixed_rods}/{len(supported_result.statuses)}, "
     #         )
     #     else:
     #         print("suggested supports: none found")

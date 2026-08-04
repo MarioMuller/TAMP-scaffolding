@@ -6,6 +6,7 @@ from collections import deque, namedtuple
 from typing import List, Tuple, Union
 
 import numpy as np
+import time
 try:
     from .Datastructures import ElementObject
     from .Datastructures import ElementStatus

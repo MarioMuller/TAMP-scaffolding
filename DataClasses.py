@@ -14,6 +14,22 @@ class RodPathRecord:
     rod_id: int
     segments: list = field(default_factory=list)
     events: list = field(default_factory=list)
+    
+@dataclass
+class StructuralRemovalStep:
+    rod_id: int
+
+    rods_before: frozenset[int]
+    rods_after: frozenset[int]
+
+    supports_before: dict[str, int]
+    supports_after: dict[str, int]
+
+    added_supports: dict[str, int]
+    released_supports: dict[str, int]
+
+    rank_after: int
+    dof_after: int
 
 @dataclass
 class AssemblyPlan:
@@ -186,6 +202,9 @@ class SearchNode:
     support_q: dict = field(default_factory=dict)
 
     records: list = field(default_factory=list)
+    
+    # Builder-independent structural transitions
+    structural_steps: list = field(default_factory=list)
     
     def unused_helpers(self, helper_grippers):
         return [

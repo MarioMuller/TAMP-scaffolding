@@ -1,16 +1,27 @@
 from truss import Truss
 from collections import defaultdict, deque
 import heapq
-from DataClasses import SearchNode
+from DataClasses import SearchNode, StructuralRemovalStep
 from rigidityCheck.truss_rigidity import TrussRigidityChecker
 
 class AssemblyPlanner:
-    def __init__(self, truss, builder=None):
+    def __init__(self, truss, builder=None, max_supports=2):
         self.truss = truss
         self.builder = builder
-        self.motion_records = {}
-        self.currently_supported_rod = None
+        self.max_supports = max_supports
         self.rigidity = TrussRigidityChecker(truss)
+
+        self.virtual_supports = tuple(
+            f"support_{index + 1}"
+            for index in range(max_supports)
+        )
+
+    @property
+    def helper_grippers(self):
+        if self.builder is None:
+            return self.virtual_supports
+
+        return tuple(self.builder.support_grippers)
 
     # create graph structure
     def build_graph(self, active_rods):
@@ -79,6 +90,8 @@ class AssemblyPlanner:
 
         open_list = []
         counter = 0
+        
+        structural_steps=[],
 
         # initialize search
 
@@ -90,6 +103,13 @@ class AssemblyPlanner:
             support_q={},
             records=[],
         )
+        
+        visited = {
+            (
+                initial_node.state,
+                frozenset(initial_node.supported.values()),
+            )
+        }
 
         # Add all possible first removals to the open list
         for candidate_rod in initial_state:
@@ -109,23 +129,42 @@ class AssemblyPlanner:
             if not feasible:
                 continue
 
+            motion_record = result["motion_record"]
+
             new_node = SearchNode(
                 state=new_state,
                 sequence=node.sequence + [candidate_rod],
                 q=result["q_final"],
                 supported=result["supported"],
                 support_q=result["support_q"],
-                records=node.records + [result["record"]],
+                records=(
+                    node.records
+                    + ([motion_record] if motion_record is not None else [])
+                ),
+                structural_steps=(
+                    node.structural_steps
+                    + [result["structural_step"]]
+                ),
             )
+            
+            state_key = (
+                new_node.state,
+                frozenset(new_node.supported.values()),
+            )
+
+            if state_key in visited:
+                continue
+
+            visited.add(state_key)
 
             if len(new_state) == 0:
                 self.final_node = new_node
                 return new_node.sequence
 
-            # debug stopping condition
-            if len(new_node.sequence) >= 2:
-                self.final_node = new_node
-                return new_node.sequence
+            # # debug stopping condition
+            # if len(new_node.sequence) >= 10:
+            #     self.final_node = new_node
+            #     return new_node.sequence
 
             for next_rod in new_state:
                 priority = self.removal_priority(new_node, next_rod)
@@ -138,167 +177,143 @@ class AssemblyPlanner:
         return None
 
     def is_removal_feasible(self, node, candidate_rod):
-        """
-        Test whether candidate_rod can be removed from the current scaffold state without violatung stability constraints
-
-        node.state:
-            rods currently installed before removing candidate_rod
-
-        new_state:
-            rods remaining after removing candidate_rod
-
-        """
-
-        # form as follows: "h2_a1_ur_gripper_center": 6
-        current_supports = dict(node.supported or {})
-
-        continuing_supports = {}
-        releasable_supports = {}
-
-        for support_gripper, supported_rod in current_supports.items():
-            if supported_rod == candidate_rod:
-                # This support robot is holding the rod that the main robot will remove.
-                # Once the main robot grasps the candidate, this support robot can release the rod
-                releasable_supports[support_gripper] = supported_rod
-            else:
-                # This support robot is holding another rod.
-                # -> must keep doing so
-                continuing_supports[support_gripper] = supported_rod
-
         current_state = node.state
         new_state = frozenset(current_state - {candidate_rod})
 
-        HELPER_GRIPPERS = self.builder.support_grippers
+        current_supports = dict(node.supported)
 
-        # Check whether the candidate rod is currently supported by a helper gripper.
-        candidate_is_supported = self.is_supported_candidate(node, candidate_rod)
-        
-        print(f"Candidate rod {candidate_rod} is supported: {candidate_is_supported}")
-        
-        # If the candidate rod is currently supported, find which gripper is holding it.
-        if candidate_is_supported:
-            gripper_supporting_candidate = self.support_gripper_id_for_candidate(node, candidate_rod)
-            
-        else:
-            gripper_supporting_candidate = None
-            
-        # Support state after the main robot has grasped the candidate.
-        # Continuing supports stay active and must NOT be moved.
-        # Releasable supports are only those holding the candidate rod itself.
-        supported_after_candidate_grasp = dict(continuing_supports)
+        continuing_supports = {
+            support: rod_id
+            for support, rod_id in current_supports.items()
+            if rod_id != candidate_rod
+        }
 
-        if self.is_valid_state(
+        releasable_supports = {
+            support: rod_id
+            for support, rod_id in current_supports.items()
+            if rod_id == candidate_rod
+        }
+
+        candidate_is_supported = bool(releasable_supports)
+        old_support_gripper = next(iter(releasable_supports), None)
+
+        # A support holding the removed candidate becomes available again.
+        free_supports = [
+            support
+            for support in self.helper_grippers
+            if support not in continuing_supports
+        ]
+
+        continuing_supported_rods = set(
+            continuing_supports.values()
+        )
+
+        # First test whether existing continuing supports are enough.
+        result_without_new_support = self.rigidity.check(
             new_state,
-            supported_rods=supported_after_candidate_grasp.values(),
-        ):
+            supported_rods=continuing_supported_rods,
+        )
+
+        if result_without_new_support.is_rigid:
             affected_rods = []
+
+        elif not free_supports:
+            print(
+                f"Rod {candidate_rod} cannot be removed: "
+                "the remaining scaffold is not rigid and no support is free."
+            )
+            return False, None
+
         else:
-            affected_rods = self.choose_placeholder_support_targets(
-                node=node,
-                removed_rod=candidate_rod,
-                new_state=new_state,
-                max_targets=2,
-                probability_two=0.0,
+            affected_rods = self.rigidity.choose_support_targets(
+                active_rods=new_state,
+                already_supported=continuing_supported_rods,
+                max_targets=len(free_supports),
+                key=self.heuristic,
             )
 
-        supported_after_new_assignments = (
-            set(supported_after_candidate_grasp.values()) | set(affected_rods)
-        )
-        rigidity_check = self.rigidity.check(
+        new_support_assignments = {
+            support: rod_id
+            for support, rod_id in zip(
+                free_supports,
+                affected_rods,
+            )
+        }
+
+        next_supported = dict(continuing_supports)
+        next_supported.update(new_support_assignments)
+
+        rigidity_result = self.rigidity.check(
             new_state,
-            supported_rods=supported_after_new_assignments,
+            supported_rods=next_supported.values(),
         )
 
-        if not rigidity_check.is_rigid:
+        if not rigidity_result.is_rigid:
             print(
-                f"Removing rod {candidate_rod} would leave a non-rigid scaffold "
-                f"(rank {rigidity_check.rank}/{rigidity_check.dof})."
+                f"Removing rod {candidate_rod} is structurally infeasible: "
+                f"rank {rigidity_result.rank}/{rigidity_result.dof}, "
+                f"supports {sorted(next_supported.values())}."
             )
             return False, None
 
         print(
-            f"After removing rod {candidate_rod}, rigidity requests support for rods: "
-            f"{affected_rods if affected_rods else 'none'} "
-            f"(rank {rigidity_check.rank}/{rigidity_check.dof})"
+            f"Remove rod {candidate_rod}: "
+            f"remaining supports = {next_supported or 'none'}"
         )
 
-        # Only grippers that are not continuing supports may be assigned to new support.
-        # This includes:
-        #   - completely unused support robots
-        #   - support robots that were holding the candidate rod and can release after grasp
-        free_support_grippers = [
-            gripper
-            for gripper in HELPER_GRIPPERS
-            if gripper not in continuing_supports
-        ]
+        # ---------------------------------------------------------
+        # Optional motion-planning validation
+        # ---------------------------------------------------------
 
-        new_support_assignments = {}
+        if self.builder is None:
+            q_final = None
+            support_q = {}
+            motion_record = None
 
-        for affected_rod in affected_rods:
-            # Already supported by a continuing support robot.
-            if affected_rod in supported_after_candidate_grasp.values():
-                continue
-
-            if not free_support_grippers:
-                print(
-                    f"Would like to support rod {affected_rod}, "
-                    "but no helper gripper is available."
-                )
-                return False, None
-
-            free_gripper = free_support_grippers.pop(0)
-
-            new_support_assignments[free_gripper] = affected_rod
-            supported_after_candidate_grasp[free_gripper] = affected_rod      
-
-        # print debug information about support assignments
-        if new_support_assignments:
-            supported_rods = list(new_support_assignments.values())
-
-            print(
-                f"Before removing rod {candidate_rod}, support will be added for rods: "
-                f"{supported_rods}"
+        else:
+            motion_result = self.builder.try_remove_and_commit_rod(
+                current_state=current_state,
+                new_state=new_state,
+                rod_id=candidate_rod,
+                q_start=node.q,
+                supported=node.supported,
+                support_q=node.support_q,
+                candidate_is_supported=candidate_is_supported,
+                old_support_gripper=old_support_gripper,
+                continuing_supports=continuing_supports,
+                releasable_supports=releasable_supports,
+                new_support_assignments=new_support_assignments,
+                use_rrt=False,
+                do_shortcut=False,
             )
 
-            for support_gripper, support_rod in new_support_assignments.items():
-                print(
-                    f"  {support_gripper} supports rod {support_rod}"
-                )
-        else:
-            print(f"Before removing rod {candidate_rod}, no new support is added.")
+            if motion_result is None:
+                return False, None
 
-        result = self.builder.try_remove_and_commit_rod(
-            current_state=current_state,
-            new_state=new_state,
+            q_final = motion_result["q_final"]
+            next_supported = motion_result["supported"]
+            support_q = motion_result["support_q"]
+            motion_record = motion_result["record"]
+
+        structural_step = StructuralRemovalStep(
             rod_id=candidate_rod,
-            q_start=node.q,
-            supported=node.supported,
-            support_q=node.support_q,
-            candidate_is_supported=candidate_is_supported,
-            old_support_gripper=gripper_supporting_candidate,
-            continuing_supports=continuing_supports,
-            releasable_supports=releasable_supports,
-            new_support_assignments=new_support_assignments,
-            use_rrt=False,
-            do_shortcut=False,
+            rods_before=frozenset(current_state),
+            rods_after=frozenset(new_state),
+            supports_before=dict(node.supported),
+            supports_after=dict(next_supported),
+            added_supports=dict(new_support_assignments),
+            released_supports=dict(releasable_supports),
+            rank_after=rigidity_result.rank,
+            dof_after=rigidity_result.dof,
         )
 
-        if result is None:
-            print(f"Removal infeasible for rod {candidate_rod}")
-            return False, None
-
-        print(f"Removal feasible for rod {candidate_rod}")
-        return True, result
-    
-    def support_gripper_id_for_candidate(self, node, candidate_rod):
-        """
-        Return the support gripper currently holding candidate_rod, if any.
-        """
-        for gripper, supported_rod in node.supported.items():
-            if supported_rod == candidate_rod:
-                return gripper
-
-        return None
+        return True, {
+            "q_final": q_final,
+            "supported": dict(next_supported),
+            "support_q": support_q,
+            "motion_record": motion_record,
+            "structural_step": structural_step,
+        }
 
 
 
