@@ -188,32 +188,60 @@ class TrussRigidityChecker:
         supported = set(already_supported or ())
         chosen: list[int] = []
 
-        if self.is_rigid(active, supported_rods=supported):
-            return chosen
+        # Calculate the initial state only once.
+        current_result = self.check(
+            active,
+            supported_rods=supported,
+        )
 
-        while len(chosen) < max_targets:
-            base = self.check(active, supported_rods=supported)
-            best_rod = None
-            best_result = base
+        while (
+            not current_result.is_rigid
+            and len(chosen) < max_targets
+        ):
+            # Supporting an already fixed rod cannot remove a failure mode.
+            candidates = [
+                rod
+                for rod in active
+                if (
+                    rod not in supported
+                    and current_result.statuses[rod]
+                    != ElementStatus.fixed
+                )
+            ]
 
-            candidates = [rod for rod in active if rod not in supported]
+            # Highest non-fixed rod is tested first.
             if key is not None:
                 candidates.sort(key=key, reverse=True)
 
+            best_rod = None
+            best_result = current_result
+
             for rod in candidates:
-                result = self.check(active, supported_rods=supported | {rod})
+                result = self.check(
+                    active,
+                    supported_rods=supported | {rod},
+                )
+
+                # Full rank is the best possible result.
+                # Because candidates are height-sorted, this is also the
+                # highest candidate that makes the structure rigid.
+                if result.is_rigid:
+                    chosen.append(rod)
+                    return chosen
+
                 if result.rank > best_result.rank:
                     best_rod = rod
                     best_result = result
 
-            if best_rod is None or best_result.rank <= base.rank:
+            # No tested support increased the rank.
+            if best_rod is None:
                 break
 
             chosen.append(best_rod)
             supported.add(best_rod)
 
-            if best_result.is_rigid:
-                break
+            # Reuse the result instead of running the same QR again.
+            current_result = best_result
 
         return chosen
 
@@ -936,8 +964,8 @@ def main() -> None:
     parser.add_argument(
         "json_path",
         nargs="?",
-        # default="JSON/scaffold_two_floors.json",
-        default="JSON/own_examples/260724_stability_ini.json",
+        default="JSON/own_examples/260804_FoC_demo.json",
+        # default="JSON/own_examples/260724_stability_ini.json",
         # default="JSON/own_examples/diy_proper_full.json",
         help="Path to the truss JSON file.",
     )

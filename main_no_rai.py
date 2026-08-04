@@ -1,10 +1,11 @@
 from truss import Truss
 from backward_search import AssemblyPlanner
 from rigidityCheck.structural_replay import display_structural_assembly
+import time
 
 
 truss = Truss.from_json(
-    "JSON/own_examples/260724_stability_ini.json"
+    "JSON/own_examples/260804_FoC_demo.json"
 )
 
 searcher = AssemblyPlanner(
@@ -13,7 +14,10 @@ searcher = AssemblyPlanner(
     max_supports=2,
 )
 
+start_time = time.time()
 removal_sequence = searcher.backward_search()
+end_time = time.time()
+print(f"Backward search took {end_time - start_time:.2f} seconds.")
 
 if removal_sequence is None:
     raise RuntimeError("No structurally feasible sequence found.")

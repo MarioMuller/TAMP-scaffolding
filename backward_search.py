@@ -51,15 +51,26 @@ class AssemblyPlanner:
 
     # TODO: Combine this with heuristic
     def removal_priority(self, node, rod_id):
-        """
-        Supported rods should be tried before unsupported rods.
-        Within each group, use the normal height heuristic.
-        """
-        supported_rank = 0 if self.is_supported_candidate(node, rod_id) else 1
+        grounded_rank = (
+            1 if rod_id in self.truss.grounded_rods else 0
+        )
+
+        connection_count = self.active_connection_count(
+            node,
+            rod_id,
+        )
+
+        supported_rank = (
+            0 if self.is_supported_candidate(node, rod_id) else 1
+        )
+
         return (
             len(node.state),
+            grounded_rank,       # non-grounded removed first
+            connection_count,    # fewer active connections first
             supported_rank,
-            -self.heuristic(rod_id),
+            -self.heuristic(rod_id),  # higher rods removed first
+            rod_id,
         )
 
     def choose_placeholder_support_targets(
@@ -175,6 +186,19 @@ class AssemblyPlanner:
                 counter += 1
 
         return None
+    
+    def active_connection_count(self, node, rod_id):
+        """Number of rods currently coupled to rod_id."""
+        return sum(
+            1
+            for rod_1, rod_2 in self.truss.couplers
+            if (
+                rod_1 == rod_id and rod_2 in node.state
+            )
+            or (
+                rod_2 == rod_id and rod_1 in node.state
+            )
+        )
 
     def is_removal_feasible(self, node, candidate_rod):
         current_state = node.state
