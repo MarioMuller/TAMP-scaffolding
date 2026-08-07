@@ -113,7 +113,9 @@ class TrussRigidityChecker:
         
         analysis_start = perf_counter()
 
-        matrix_rank, failure_modes = AlgebraicChecker.AnalyzeQR(K)
+        matrix_rank, failure_modes = AlgebraicChecker.AnalyzeSparseQR(K)
+        # matrix_rank = np.linalg.matrix_rank(K)
+        # failure_modes = None    
         print("QR")
 
         analysis_end = perf_counter()
@@ -134,25 +136,25 @@ class TrussRigidityChecker:
         
         total_end = perf_counter()
 
-        print("\nRigidity timing breakdown")
-        print("-------------------------")
-        print(
-            f"Build element objects: "
-            f"{build_elements_end - build_elements_start:.6f} s"
-        )
-        print(
-            f"Build rigidity matrix: "
-            f"{build_matrix_end - build_matrix_start:.6f} s"
-        )
-        print(
-            f"Analysis:           "
-            f"{analysis_end - analysis_start:.6f} s"
-        )
-        print(
-            f"Total check:           "
-            f"{total_end - total_start:.6f} s"
-        )
-        print(f"Matrix shape:          {K.shape}")
+        # print("\nRigidity timing breakdown")
+        # print("-------------------------")
+        # print(
+        #     f"Build element objects: "
+        #     f"{build_elements_end - build_elements_start:.6f} s"
+        # )
+        # print(
+        #     f"Build rigidity matrix: "
+        #     f"{build_matrix_end - build_matrix_start:.6f} s"
+        # )
+        # print(
+        #     f"Analysis:           "
+        #     f"{analysis_end - analysis_start:.6f} s"
+        # )
+        # print(
+        #     f"Total check:           "
+        #     f"{total_end - total_start:.6f} s"
+        # )
+        # print(f"Matrix shape:          {K.shape}")
 
         return RigidityResult(
             is_rigid=matrix_rank == matrix_dof,

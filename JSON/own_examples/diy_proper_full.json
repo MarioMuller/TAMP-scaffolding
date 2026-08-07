@@ -286,19 +286,9 @@
       "rod_id": 17,
       "layer_id": 1,
       "grounded": false
-    },
-    {
-      "end_node_ids": [36, 37],
-      "rod_id": 18,
-      "layer_id": 1,
-      "grounded": false
-    },
-    {
-      "end_node_ids": [38, 39],
-      "rod_id": 19,
-      "layer_id": 1,
-      "grounded": false
     }
+    
+    
   ],
 
   "coupler_list": [
@@ -336,11 +326,6 @@
     { "rod_ids": [6, 16] },
 
     { "rod_ids": [11, 17] },
-    { "rod_ids": [6, 17] },
-    { "rod_ids": [1, 18] },
-    { "rod_ids": [9, 18] },
-
-    { "rod_ids": [3, 19] },
-    { "rod_ids": [8, 19] }
+    { "rod_ids": [6, 17] }
   ]
 }

@@ -7,6 +7,8 @@ from typing import List, Tuple, Union
 
 import numpy as np
 import time
+from scipy.sparse import coo_matrix, csr_matrix, vstack
+
 try:
     from .Datastructures import ElementObject
     from .Datastructures import ElementStatus
@@ -233,6 +235,7 @@ class AlgebraicChecker(object):
         assembled: List[int],
         element_object_list: List[ElementObject],
         orientation_offset_ratio: float = 0.10,
+        use_virtual_orientation_vertices: bool = False,
     ) -> RigidityMatrixResult:
         """
         Build the rigidity matrix for the assembled structure.
@@ -277,39 +280,40 @@ class AlgebraicChecker(object):
         # it is not a point on the split rod centerline.
         orientation_vertices = {}
 
-        for index in assembled:
-            rod_start, rod_end = elements_dict[index]
+        if use_virtual_orientation_vertices:
+            for index in assembled:
+                rod_start, rod_end = elements_dict[index]
 
-            orientation_point_1, orientation_point_2 = (
-                AlgebraicChecker.CreateOrientationPoints(
-                    rod_start.point,
-                    rod_end.point,
-                    offset_ratio=orientation_offset_ratio,
+                orientation_point_1, orientation_point_2 = (
+                    AlgebraicChecker.CreateOrientationPoints(
+                        rod_start.point,
+                        rod_end.point,
+                        offset_ratio=orientation_offset_ratio,
+                    )
                 )
-            )
 
-            orientation_vertex_1 = AlgebraicChecker.CreateVertex(
-                vertex_list,
-                orientation_point_1.tolist(),
-                # -1 prevents external centerline visualizers from treating Q
-                # as another point on this rod.  The dictionary above stores
-                # the actual association with the rod.
-                element_index=-1,
-            )
+                orientation_vertex_1 = AlgebraicChecker.CreateVertex(
+                    vertex_list,
+                    orientation_point_1.tolist(),
+                    # -1 prevents external centerline visualizers from treating Q
+                    # as another point on this rod.  The dictionary above stores
+                    # the actual association with the rod.
+                    element_index=-1,
+                )
 
-            orientation_vertex_2 = AlgebraicChecker.CreateVertex(
-                vertex_list,
-                orientation_point_2.tolist(),
-                # -1 prevents external centerline visualizers from treating Q
-                # as another point on this rod.  The dictionary above stores
-                # the actual association with the rod.
-                element_index=-1,
-            )
+                orientation_vertex_2 = AlgebraicChecker.CreateVertex(
+                    vertex_list,
+                    orientation_point_2.tolist(),
+                    # -1 prevents external centerline visualizers from treating Q
+                    # as another point on this rod.  The dictionary above stores
+                    # the actual association with the rod.
+                    element_index=-1,
+                )
 
-            orientation_vertices[index] = (
-                orientation_vertex_1,
-                orientation_vertex_2,
-            )
+                orientation_vertices[index] = (
+                    orientation_vertex_1,
+                    orientation_vertex_2,
+                )
 
         # -------------------- generate couplers --------------------#
         couplers = ElementObject.GetCouplers(
@@ -520,26 +524,27 @@ class AlgebraicChecker(object):
         # The two distances Q-A and Q-B keep Q at a fixed radius from the
         # rod axis.  Q can still rotate around A-B; that remaining motion is
         # precisely the rod's roll coordinate.
-        for index in assembled:
-            rod_start, rod_end = elements_dict[index]
-            orientation_vertex_1, orientation_vertex_2 = (
-                orientation_vertices[index]
-            )
+        if use_virtual_orientation_vertices:
+            for index in assembled:
+                rod_start, rod_end = elements_dict[index]
+                orientation_vertex_1, orientation_vertex_2 = (
+                    orientation_vertices[index]
+                )
 
-            const_length_constrains_vertex.extend(
-                [
-                    # Attach Q1 to the rod.
-                    [orientation_vertex_1, rod_start],
-                    [orientation_vertex_1, rod_end],
+                const_length_constrains_vertex.extend(
+                    [
+                        # Attach Q1 to the rod.
+                        [orientation_vertex_1, rod_start],
+                        [orientation_vertex_1, rod_end],
 
-                    # Attach Q2 to the rod.
-                    [orientation_vertex_2, rod_start],
-                    [orientation_vertex_2, rod_end],
+                        # Attach Q2 to the rod.
+                        [orientation_vertex_2, rod_start],
+                        [orientation_vertex_2, rod_end],
 
-                    # Prevent Q1 and Q2 from rolling independently.
-                    [orientation_vertex_1, orientation_vertex_2],
-                ]
-            )
+                        # Prevent Q1 and Q2 from rolling independently.
+                        [orientation_vertex_1, orientation_vertex_2],
+                    ]
+                )
 
         # Preserve every physical coupler segment and tie its azimuth to the
         # orientation frame of both rods.
@@ -555,23 +560,29 @@ class AlgebraicChecker(object):
                 couplers_dict[coupler]
             )
 
-            rod_1_q1, rod_1_q2 = orientation_vertices[rod_1]
-            rod_2_q1, rod_2_q2 = orientation_vertices[rod_2]
-
             const_length_constrains_vertex.extend(
                 [
                     # Physical coupler length.
                     [coupler_vertex_1, coupler_vertex_2],
-
-                    # Coupler orientation relative to rod 1.
-                    [rod_1_q1, coupler_vertex_2],
-                    [rod_1_q2, coupler_vertex_2],
-
-                    # Coupler orientation relative to rod 2.
-                    [rod_2_q1, coupler_vertex_1],
-                    [rod_2_q2, coupler_vertex_1],
                 ]
             )
+            
+            if use_virtual_orientation_vertices:
+                
+                rod_1_q1, rod_1_q2 = orientation_vertices[rod_1]
+                rod_2_q1, rod_2_q2 = orientation_vertices[rod_2]
+                            
+                const_length_constrains_vertex.extend(
+                    [
+                        # Tie coupler to rod 1's orientation frame.
+                        [rod_1_q1, coupler_vertex_2],
+                        [rod_1_q2, coupler_vertex_2],
+
+                        # Tie coupler to rod 2's orientation frame.
+                        [rod_2_q1, coupler_vertex_1],
+                        [rod_2_q2, coupler_vertex_1],
+                    ]
+                )
 
         K_const_length = (
             AlgebraicChecker.CreateConstLengthConstrains(
@@ -690,18 +701,25 @@ class AlgebraicChecker(object):
             if element.is_grounded:
                 # Ground the complete rod frame.  Fixing only the two
                 # centerline endpoints would still leave axial roll free.
-                orientation_vertex_1, orientation_vertex_2 = (
-                orientation_vertices[index]
-                )
-
                 grounded_constrains_vertex.extend(
                     [
                         elements_dict[index][0],
                         elements_dict[index][1],
-                        orientation_vertex_1,
-                        orientation_vertex_2,
                     ]
                 )
+                
+                if use_virtual_orientation_vertices:
+                    
+                    orientation_vertex_1, orientation_vertex_2 = (
+                                    orientation_vertices[index]
+                                    )
+                    
+                    grounded_constrains_vertex.extend(
+                        [
+                            orientation_vertex_1,
+                            orientation_vertex_2,
+                        ]
+                    )
 
         K_grounded = AlgebraicChecker.CreateGroundedConstrains(
             grounded_constrains_vertex,
@@ -720,7 +738,10 @@ class AlgebraicChecker(object):
             if block is not None
         ]
 
-        K = np.vstack(matrix_blocks)
+        K = vstack(
+            matrix_blocks,
+            format="csc",
+        )
         
         print(f"Rigidity matrix K shape: {K.shape}")
 
@@ -730,6 +751,36 @@ class AlgebraicChecker(object):
             elements_dict=elements_dict,
             orientation_vertices=orientation_vertices,
         )
+
+    @staticmethod
+    def AnalyzeSparseQR(
+        K,
+        tolerance: float | None = None,
+    ) -> tuple[int, tuple[np.ndarray, ...]]:
+        import sparseqr
+        from scipy.sparse import csc_matrix
+
+        K = csc_matrix(K)
+
+        # K.T has:
+        # rows    = degrees of freedom
+        # columns = constraints
+        #
+        # Full Q is required because Q[:, rank:] spans null(K).
+        Q, R, permutation, rank = sparseqr.qr(
+            K.T,
+            tolerance=tolerance,
+            economy=False,
+        )
+
+        rank = int(rank)
+
+        failure_modes = tuple(
+            Q.getcol(column).toarray().ravel()
+            for column in range(rank, Q.shape[1])
+        )
+
+        return rank, failure_modes
 
     @staticmethod
     def AnalyzeQR(
@@ -1002,27 +1053,24 @@ class AlgebraicChecker(object):
         vertex_list.append(new_vertex)
         return new_vertex
 
+
     @staticmethod
-    def CreateConstLengthConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> np.ndarray | None: 
-        
+    def CreateConstLengthConstrains(
+        constrains_vertex: List[List[Vertex]],
+        vertex_num: int,
+    ) -> csr_matrix | None:
         constraint_count = len(constrains_vertex)
-        
+
         if constraint_count == 0:
             return None
-        
-        K = np.zeros((constraint_count, vertex_num * 3), dtype=float)
-        
-        for vertices in constrains_vertex:
-            vertex_i: Vertex = vertices[0]
-            vertex_j: Vertex = vertices[1]
 
-            p_i = np.array(vertex_i.point).reshape((3, 1))
-            p_j = np.array(vertex_j.point).reshape((3, 1))
+        rows = []
+        columns = []
+        values = []
 
-            i = vertex_i.id
-            j = vertex_j.id
-
-        for row, (vertex_i, vertex_j) in enumerate(constrains_vertex):
+        for row, (vertex_i, vertex_j) in enumerate(
+            constrains_vertex
+        ):
             difference = (
                 np.asarray(vertex_i.point, dtype=float)
                 - np.asarray(vertex_j.point, dtype=float)
@@ -1031,89 +1079,170 @@ class AlgebraicChecker(object):
             i_start = 3 * vertex_i.id
             j_start = 3 * vertex_j.id
 
-            K[row, i_start:i_start + 3] = difference
-            K[row, j_start:j_start + 3] = -difference
+            for axis in range(3):
+                rows.append(row)
+                columns.append(i_start + axis)
+                values.append(difference[axis])
 
-        return K
+                rows.append(row)
+                columns.append(j_start + axis)
+                values.append(-difference[axis])
+
+        return coo_matrix(
+            (values, (rows, columns)),
+            shape=(constraint_count, vertex_num * 3),
+            dtype=float,
+        ).tocsr()
 
     @staticmethod
-    def CreateRotationConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> np.ndarray | None:
-        
+    def CreateRotationConstrains(
+        constrains_vertex: List[List[Vertex]],
+        vertex_num: int,
+    ) -> csr_matrix | None:
         constraint_count = len(constrains_vertex)
-        
+
         if constraint_count == 0:
             return None
-        
-        K = np.zeros((constraint_count, vertex_num * 3), dtype=float)
-        
+
+        rows = []
+        columns = []
+        values = []
+
         for row, vertices in enumerate(constrains_vertex):
-            vertex_i: Vertex = vertices[0]
-            vertex_j: Vertex = vertices[1]
-            vertex_k: Vertex = vertices[2]
+            vertex_i, vertex_j, vertex_k = vertices
 
             p_i = np.asarray(vertex_i.point, dtype=float)
             p_j = np.asarray(vertex_j.point, dtype=float)
             p_k = np.asarray(vertex_k.point, dtype=float)
 
-            i_start = 3 * vertex_i.id
-            j_start = 3 * vertex_j.id
-            k_start = 3 * vertex_k.id
+            coefficient_i = p_j - p_k
+            coefficient_j = (
+                (p_i - p_j)
+                - (p_j - p_k)
+            )
+            coefficient_k = -(p_i - p_j)
 
-            K[row, i_start:i_start + 3] = (p_j - p_k)
-            K[row, j_start:j_start + 3] = ((p_i - p_j) - (p_j - p_k))
-            K[row, k_start:k_start + 3] = -(p_i - p_j)
+            for vertex, coefficient in (
+                (vertex_i, coefficient_i),
+                (vertex_j, coefficient_j),
+                (vertex_k, coefficient_k),
+            ):
+                column_start = 3 * vertex.id
 
-        return K
+                for axis in range(3):
+                    value = coefficient[axis]
+
+                    if value != 0.0:
+                        rows.append(row)
+                        columns.append(column_start + axis)
+                        values.append(value)
+
+        return coo_matrix(
+            (values, (rows, columns)),
+            shape=(constraint_count, vertex_num * 3),
+            dtype=float,
+        ).tocsr()
 
     @staticmethod
-    def CreateCollinearConstrains(constrains_vertex: List[List[Vertex]], vertex_num: int) -> np.ndarray | None:
-                
+    def CreateCollinearConstrains(
+        constrains_vertex: List[List[Vertex]],
+        vertex_num: int,
+    ) -> csr_matrix | None:
         constraint_count = len(constrains_vertex)
-        
+
         if constraint_count == 0:
             return None
-        
-        K = np.zeros((3 * constraint_count, vertex_num * 3), dtype=float)
-        
-        for constraint_index, (vertex_i, vertex_j, vertex_k) in enumerate(constrains_vertex):
+
+        rows: list[int] = []
+        columns: list[int] = []
+        values: list[float] = []
+
+        for constraint_index, (
+            vertex_i,
+            vertex_j,
+            vertex_k,
+        ) in enumerate(constrains_vertex):
             p_i = np.asarray(vertex_i.point, dtype=float)
             p_j = np.asarray(vertex_j.point, dtype=float)
             p_k = np.asarray(vertex_k.point, dtype=float)
-            
+
+            coefficient_i = (
+                -AlgebraicChecker.CreateAntisymmetricMat(
+                    p_j - p_k
+                )
+            )
+
+            coefficient_j = (
+                AlgebraicChecker.CreateAntisymmetricMat(
+                    p_i - p_k
+                )
+            )
+
+            coefficient_k = (
+                -AlgebraicChecker.CreateAntisymmetricMat(
+                    p_i - p_j
+                )
+            )
+
             row_start = 3 * constraint_index
-            row_slice = slice(row_start, row_start + 3)
 
-            i_start = 3 * vertex_i.id
-            j_start = 3 * vertex_j.id
-            k_start = 3 * vertex_k.id
+            for vertex, coefficient_matrix in (
+                (vertex_i, coefficient_i),
+                (vertex_j, coefficient_j),
+                (vertex_k, coefficient_k),
+            ):
+                column_start = 3 * vertex.id
 
-            
-            # Fill in the corresponding rows in K
-            K[row_slice, i_start:i_start + 3] = (-AlgebraicChecker.CreateAntisymmetricMat(p_j - p_k))
-            K[row_slice, j_start:j_start + 3] = (AlgebraicChecker.CreateAntisymmetricMat(p_i - p_k))
-            K[row_slice, k_start:k_start + 3] = (-AlgebraicChecker.CreateAntisymmetricMat(p_i - p_j))
-            
-        return K
+                for local_row in range(3):
+                    for local_column in range(3):
+                        value = coefficient_matrix[
+                            local_row,
+                            local_column,
+                        ]
+
+                        if value != 0.0:
+                            rows.append(row_start + local_row)
+                            columns.append(
+                                column_start + local_column
+                            )
+                            values.append(float(value))
+
+        return coo_matrix(
+            (values, (rows, columns)),
+            shape=(
+                3 * constraint_count,
+                3 * vertex_num,
+            ),
+            dtype=float,
+        ).tocsr()
 
     @staticmethod
-    def CreateGroundedConstrains(constrains_vertex: List[Vertex], vertex_num: int) -> np.ndarray | None:
-        
-        constraint_count = len(constrains_vertex)
-        
-        if constraint_count == 0:
+    def CreateGroundedConstrains(
+        constrains_vertex: List[Vertex],
+        vertex_num: int,
+    ) -> csr_matrix | None:
+        if not constrains_vertex:
             return None
-        
-        K = np.zeros((3*constraint_count, vertex_num * 3), dtype=float)
-        
-        identity_matrix = np.eye(3)
-        
-        for constraint_index, vertex in enumerate(constrains_vertex):
-            row_start = 3 * constraint_index
-            column_start = 3 * vertex.id
 
-            K[row_start:row_start + 3, column_start:column_start + 3] = identity_matrix
+        row_count = 3 * len(constrains_vertex)
 
-        return K
+        rows = []
+        columns = []
+        values = []
+
+        for vertex_index, vertex in enumerate(
+            constrains_vertex
+        ):
+            for axis in range(3):
+                rows.append(3 * vertex_index + axis)
+                columns.append(3 * vertex.id + axis)
+                values.append(1.0)
+
+        return coo_matrix(
+            (values, (rows, columns)),
+            shape=(row_count, vertex_num * 3),
+            dtype=float,
+        ).tocsr()
 
     @staticmethod
     def CreateAntisymmetricMat(vec: np.ndarray) -> np.ndarray:
