@@ -15,7 +15,7 @@ truss = Truss.from_json(
 searcher = AssemblyPlanner(
     truss=truss,
     builder=None,
-    max_supports=3,
+    max_supports=2,
 )
 
 start_time = time.time()

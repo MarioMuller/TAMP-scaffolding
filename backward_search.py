@@ -67,6 +67,15 @@ class AssemblyPlanner:
         self.debug_capture_active = False
         self.debug_capture_steps = []
         
+        self.rod_neighbors = {
+            rod_id: set()
+            for rod_id in self.truss.elements
+        }
+
+        for rod_1, rod_2 in self.truss.couplers:
+            self.rod_neighbors[rod_1].add(rod_2)
+            self.rod_neighbors[rod_2].add(rod_1)
+        
     def process_debug_hotkey(self, hotkey):
         if hotkey is None:
             return
@@ -140,36 +149,138 @@ class AssemblyPlanner:
         n1, n2 = self.truss.elements[rod_id]
         return 0.5 * (self.truss.nodes[n1][2] + self.truss.nodes[n2][2])
     
+    
+    def topology_after_removal(self, node, candidate_rod):
+        """Return a lower bound on required supports after a removal."""
+        remaining = set(node.state)
+        remaining.remove(candidate_rod)
+
+        continuing_supported = {
+            rod_id
+            for rod_id in node.supported.values()
+            if rod_id in remaining
+        }
+
+        anchors = (
+            self.truss.grounded_rods & remaining
+        ) | continuing_supported
+
+        unseen = set(remaining)
+        unanchored_components = 0
+        unanchored_rods = 0
+
+        while unseen:
+            first = unseen.pop()
+            component = {first}
+            stack = [first]
+
+            while stack:
+                rod = stack.pop()
+
+                neighbours = (
+                    self.rod_neighbors[rod]
+                    & remaining
+                    & unseen
+                )
+
+                unseen.difference_update(neighbours)
+                component.update(neighbours)
+                stack.extend(neighbours)
+
+            if component.isdisjoint(anchors):
+                unanchored_components += 1
+                unanchored_rods += len(component)
+
+        predicted_support_count = (
+            len(continuing_supported)
+            + unanchored_components
+        )
+
+        return predicted_support_count, unanchored_rods
+    
+    def distance_from_ground(self, active_rods):
+        """Shortest coupler-graph distance from an active grounded rod."""
+        active = set(active_rods)
+        distances = {}
+        queue = deque()
+
+        for rod in self.truss.grounded_rods & active:
+            distances[rod] = 0
+            queue.append(rod)
+
+        while queue:
+            rod = queue.popleft()
+
+            for neighbour in self.rod_neighbors[rod] & active:
+                if neighbour not in distances:
+                    distances[neighbour] = distances[rod] + 1
+                    queue.append(neighbour)
+
+        return distances
+    
     def is_supported_candidate(self, node, rod_id):
         return rod_id in node.supported.values()
 
     # TODO: Combine this with heuristic
     def removal_priority(self, node, rod_id):
-        support_count = len(
-            set(node.supported.values())
+        predicted_supports, unanchored_rods = (
+            self.topology_after_removal(node, rod_id)
         )
 
-        grounded_rank = (
-            1 if rod_id in self.truss.grounded_rods else 0
-        )
+        ground_distances = self.distance_from_ground(node.state)
 
-        connection_count = self.active_connection_count(
-            node,
+        # Disconnected supported sections should be dismantled early.
+        distance = ground_distances.get(
             rod_id,
+            len(node.state) + 1,
         )
 
-        supported_rank = (
-            0 if self.is_supported_candidate(node, rod_id) else 1
+        connection_count = len(
+            self.rod_neighbors[rod_id] & node.state
         )
 
         return (
-            len(node.state),      # 1. Prefer deeper search states
-            support_count,        # 2. Prefer states requiring fewer supports
-            grounded_rank,        # 3. Remove non-grounded rods first
-            connection_count,     # 4. Remove rods with fewer connections
-            supported_rank,
-            -self.heuristic(rod_id),
+            len(node.state),          # Prefer deeper search nodes
+            predicted_supports,       # Prefer fewer required supports
+            unanchored_rods,          # Prefer less disconnected material
+            connection_count,         # Prefer peripheral rods
+            -distance,                # Prefer rods far from the base
+            -self.heuristic(rod_id),  # Prefer higher rods
             rod_id,
+        )
+                
+    def removal_candidates(self, node):
+        # non_grounded = [
+        #     rod_id
+        #     for rod_id in node.state
+        #     if rod_id not in self.truss.grounded_rods
+        # ]
+
+        # # Grounded rods become available only at the very end.
+        # candidates = (
+        #     non_grounded
+        #     if non_grounded
+        #     else list(node.state)
+        # )
+
+        candidates = list(node.state)
+
+        feasible_candidates = []
+
+        for rod_id in candidates:
+            predicted_supports, _ = self.topology_after_removal(
+                node,
+                rod_id,
+            )
+
+            # This is a safe rejection: every disconnected component
+            # needs at least one external anchor.
+            if predicted_supports <= len(self.helper_grippers):
+                feasible_candidates.append(rod_id)
+
+        return sorted(
+            feasible_candidates,
+            key=lambda rod_id: self.removal_priority(node, rod_id),
         )
 
     def choose_placeholder_support_targets(
@@ -234,7 +345,7 @@ class AssemblyPlanner:
         attempted_transitions = set()
 
         # Add all possible first removals to the open list
-        for candidate_rod in initial_state:
+        for candidate_rod in self.removal_candidates(initial_node):
             priority = self.removal_priority(initial_node, candidate_rod)
             heapq.heappush(open_list, (priority, counter, initial_node, candidate_rod))
             counter += 1
@@ -341,7 +452,7 @@ class AssemblyPlanner:
                 #     self.final_node = new_node
                 #     return new_node.sequence
 
-                for next_rod in new_state:
+                for next_rod in self.removal_candidates(new_node):
                     priority = self.removal_priority(new_node, next_rod)
                     heapq.heappush(
                         open_list,
