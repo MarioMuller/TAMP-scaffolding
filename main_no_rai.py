@@ -9,8 +9,40 @@ from pathlib import Path
 truss = Truss.from_json(
     # "JSON/own_examples/260724_stability_ini.json"
     # "JSON/own_examples/diy_proper_full.json"
-    "JSON/own_examples/260804_FoC_demo.json"
+    # "JSON/own_examples/260804_FoC_demo.json"
+    "JSON/own_examples/260804_RobArchDemo_ini.json"
 )
+
+ # Filter to chose a subset of rods to include in the search. This is useful for testing
+selected_rods = {
+    0, 1, 2, 5, 6, 7, 8, 9, 13, 15
+    # 45, 33, 55, 53, 47, 35, 50, 46, 34, 49, 38, 51, 39, 52, 54
+}
+
+unknown_rods = selected_rods - set(truss.elements)
+if unknown_rods:
+    raise ValueError(
+        f"Selected rods do not exist: {sorted(unknown_rods)}"
+    )
+
+# Keep only the selected rods.
+truss.elements = {
+    rod_id: endpoints
+    for rod_id, endpoints in truss.elements.items()
+    if rod_id in selected_rods
+}
+
+# Keep grounding only for selected rods.
+truss.grounded_rods &= selected_rods
+
+# Keep couplers only when both connected rods are selected.
+truss.couplers = {
+    (rod_1, rod_2)
+    for rod_1, rod_2 in truss.couplers
+    if rod_1 in selected_rods and rod_2 in selected_rods
+}
+
+print("Included rods:", sorted(truss.elements))
 
 searcher = AssemblyPlanner(
     truss=truss,
@@ -54,7 +86,8 @@ display_structural_assembly(
     removal_steps=searcher.final_node.structural_steps,
     scale=0.0011,
     label_rods=True,
-    video_path=None,
+    # video_path="FoC_demo_assembly.mp4",
+    video_path = None,
     seconds_per_step=0.8,
     fps=30,
 )

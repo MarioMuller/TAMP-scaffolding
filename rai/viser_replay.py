@@ -45,17 +45,39 @@ class ViserPlanReplayer:
 
         return "robot"
 
+    # def _apply_events_to_rod_states(self, rod_states, events):
+    #     for event in events:
+    #         rod_id = self._event_rod_id(event)
+    #         if rod_id is None:
+    #             continue
+
+    #         if event.action == "attach":
+    #             rod_states[rod_id] = self._rod_state_from_parent(event.parent)
+
+    #         elif event.action == "detach":
+    #             rod_states[rod_id] = "free"
+    
     def _apply_events_to_rod_states(self, rod_states, events):
+        # Match the physical replay ordering: detach first.
         for event in events:
-            rod_id = self._event_rod_id(event)
-            if rod_id is None:
+            if event.action != "detach":
                 continue
 
-            if event.action == "attach":
-                rod_states[rod_id] = self._rod_state_from_parent(event.parent)
-
-            elif event.action == "detach":
+            rod_id = self._event_rod_id(event)
+            if rod_id is not None:
                 rod_states[rod_id] = "free"
+
+        # Attach afterward so a same-segment handover ends with the
+        # rod assigned to its new parent.
+        for event in events:
+            if event.action != "attach":
+                continue
+
+            rod_id = self._event_rod_id(event)
+            if rod_id is not None:
+                rod_states[rod_id] = self._rod_state_from_parent(
+                    event.parent
+                )
 
     def _all_rod_ids_used_by_recorder(self, recorder):
         rod_ids = set()

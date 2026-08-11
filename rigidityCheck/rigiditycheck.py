@@ -280,6 +280,8 @@ class AlgebraicChecker(object):
         # it is not a point on the split rod centerline.
         orientation_vertices = {}
 
+        print("use_virtual_orientation_vertices", use_virtual_orientation_vertices)
+        
         if use_virtual_orientation_vertices:
             for index in assembled:
                 rod_start, rod_end = elements_dict[index]

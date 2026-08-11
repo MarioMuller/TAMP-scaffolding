@@ -5,6 +5,7 @@ from matplotlib.lines import Line2D
 from matplotlib.widgets import Button, Slider
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from matplotlib.animation import FFMpegWriter
+import copy
 
 
 def display_structural_assembly(

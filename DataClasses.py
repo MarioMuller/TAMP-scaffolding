@@ -92,7 +92,18 @@ class AssemblyPlan:
                 # segment 0 = main carries rod to final pose
                 # segment 1 = support robot moves in
                 # after segment 1 = handover
-                handover_segment_id = 1 if len(assembly_record.segments) > 1 else 0
+                # handover_segment_id = 1 if len(assembly_record.segments) > 1 else 0
+                
+                forward_release_segment = (
+                    support_release_events[0].segment_id
+                )
+
+                handover_segment_id = max(
+                    0,
+                    len(assembly_record.segments)
+                    - 2
+                    - forward_release_segment,
+                )
             else:
                 support_grippers = []
                 handover_segment_id = place_segment_id

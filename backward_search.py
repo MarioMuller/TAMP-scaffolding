@@ -1,6 +1,7 @@
 from truss import Truss
 from collections import defaultdict, deque
 import heapq
+import time
 from DataClasses import SearchNode, StructuralRemovalStep
 from rigidityCheck.truss_rigidity import TrussRigidityChecker
 
@@ -52,11 +53,34 @@ class TerminalHotkey:
             )
 
 class AssemblyPlanner:
-    def __init__(self, truss, builder=None, max_supports=2):
+    def __init__(
+        self,
+        truss,
+        builder=None,
+        max_supports=2,
+        rigidity_cache_size=2000,
+    ):
         self.truss = truss
         self.builder = builder
         self.max_supports = max_supports
-        self.rigidity = TrussRigidityChecker(truss)
+        self.rigidity = TrussRigidityChecker(
+            truss,
+            max_cache_entries=rigidity_cache_size,
+        )
+        self.final_node = None
+        self.search_stop_reason = None
+        self.search_expansions = 0
+
+        # Static rod-level adjacency used by the topology heuristic. Two rods
+        # are neighbours when a coupler connects them.
+        self.rod_neighbors = {
+            rod_id: set()
+            for rod_id in self.truss.elements
+        }
+        for rod_1, rod_2 in self.truss.couplers:
+            if rod_1 in self.rod_neighbors and rod_2 in self.rod_neighbors:
+                self.rod_neighbors[rod_1].add(rod_2)
+                self.rod_neighbors[rod_2].add(rod_1)
 
         self.virtual_supports = tuple(
             f"support_{index + 1}"
@@ -66,15 +90,6 @@ class AssemblyPlanner:
         # debug
         self.debug_capture_active = False
         self.debug_capture_steps = []
-        
-        self.rod_neighbors = {
-            rod_id: set()
-            for rod_id in self.truss.elements
-        }
-
-        for rod_1, rod_2 in self.truss.couplers:
-            self.rod_neighbors[rod_1].add(rod_2)
-            self.rod_neighbors[rod_2].add(rod_1)
         
     def process_debug_hotkey(self, hotkey):
         if hotkey is None:
@@ -149,9 +164,21 @@ class AssemblyPlanner:
         n1, n2 = self.truss.elements[rod_id]
         return 0.5 * (self.truss.nodes[n1][2] + self.truss.nodes[n2][2])
     
-    
+    def is_supported_candidate(self, node, rod_id):
+        return rod_id in node.supported.values()
+
     def topology_after_removal(self, node, candidate_rod):
-        """Return a lower bound on required supports after a removal."""
+        """Return a lower bound on supports needed after removing one rod.
+
+        Every connected component that contains neither a grounded rod nor a
+        currently supported rod needs at least one new external support. The
+        rigidity checker remains the authority on actual feasibility.
+        """
+        if candidate_rod not in node.state:
+            raise ValueError(
+                f"Rod {candidate_rod} is not active in the current state."
+            )
+
         remaining = set(node.state)
         remaining.remove(candidate_rod)
 
@@ -160,9 +187,8 @@ class AssemblyPlanner:
             for rod_id in node.supported.values()
             if rod_id in remaining
         }
-
         anchors = (
-            self.truss.grounded_rods & remaining
+            set(self.truss.grounded_rods) & remaining
         ) | continuing_supported
 
         unseen = set(remaining)
@@ -175,14 +201,12 @@ class AssemblyPlanner:
             stack = [first]
 
             while stack:
-                rod = stack.pop()
-
+                rod_id = stack.pop()
                 neighbours = (
-                    self.rod_neighbors[rod]
+                    self.rod_neighbors[rod_id]
                     & remaining
                     & unseen
                 )
-
                 unseen.difference_update(neighbours)
                 component.update(neighbours)
                 stack.extend(neighbours)
@@ -195,41 +219,99 @@ class AssemblyPlanner:
             len(continuing_supported)
             + unanchored_components
         )
-
         return predicted_support_count, unanchored_rods
-    
+
     def distance_from_ground(self, active_rods):
-        """Shortest coupler-graph distance from an active grounded rod."""
+        """Return coupler-graph distances from active grounded rods."""
         active = set(active_rods)
         distances = {}
         queue = deque()
 
-        for rod in self.truss.grounded_rods & active:
-            distances[rod] = 0
-            queue.append(rod)
+        for rod_id in set(self.truss.grounded_rods) & active:
+            distances[rod_id] = 0
+            queue.append(rod_id)
 
         while queue:
-            rod = queue.popleft()
+            rod_id = queue.popleft()
 
-            for neighbour in self.rod_neighbors[rod] & active:
+            for neighbour in self.rod_neighbors[rod_id] & active:
                 if neighbour not in distances:
-                    distances[neighbour] = distances[rod] + 1
+                    distances[neighbour] = distances[rod_id] + 1
                     queue.append(neighbour)
 
         return distances
     
-    def is_supported_candidate(self, node, rod_id):
-        return rod_id in node.supported.values()
-
-    # TODO: Combine this with heuristic
-    def removal_priority(self, node, rod_id):
-        predicted_supports, unanchored_rods = (
-            self.topology_after_removal(node, rod_id)
+    def support_history_cost(self, node):
+        """Measure support use along the current branch."""
+        peak_supports = max(
+            (
+                len(step.supports_after)
+                for step in node.structural_steps
+            ),
+            default=len(node.supported),
         )
 
-        ground_distances = self.distance_from_ground(node.state)
+        support_steps = sum(
+            len(step.supports_after)
+            for step in node.structural_steps
+        )
 
-        # Disconnected supported sections should be dismantled early.
+        support_additions = sum(
+            len(step.added_supports)
+            for step in node.structural_steps
+        )
+
+        return peak_supports, support_steps, support_additions
+
+    def removal_priority(
+        self,
+        node,
+        rod_id,
+        topology=None,
+        ground_distances=None,
+    ):
+        """Return a priority tuple; lower values are preferred."""
+        if topology is None:
+            topology = self.topology_after_removal(node, rod_id)
+
+        predicted_supports, unanchored_rods = topology
+
+        if ground_distances is None:
+            ground_distances = self.distance_from_ground(node.state)
+
+        (
+            peak_supports,
+            support_steps,
+            support_additions,
+        ) = self.support_history_cost(node)
+
+        continuing_supported_rods = {
+            supported_rod
+            for supported_rod in node.supported.values()
+            if (
+                supported_rod in node.state
+                and supported_rod != rod_id
+            )
+        }
+
+        predicted_new_supports = max(
+            0,
+            predicted_supports - len(continuing_supported_rods),
+        )
+
+        projected_peak_supports = max(
+            peak_supports,
+            predicted_supports,
+        )
+
+        projected_support_steps = (
+            support_steps + predicted_supports
+        )
+
+        projected_support_additions = (
+            support_additions + predicted_new_supports
+        )
+
         distance = ground_distances.get(
             rod_id,
             len(node.state) + 1,
@@ -239,49 +321,81 @@ class AssemblyPlanner:
             self.rod_neighbors[rod_id] & node.state
         )
 
+        supported_rank = (
+            0 if self.is_supported_candidate(node, rod_id) else 1
+        )
+
+        grounded_rank = (
+            1 if rod_id in self.truss.grounded_rods else 0
+        )
+
         return (
-            len(node.state),          # Prefer deeper search nodes
-            predicted_supports,       # Prefer fewer required supports
-            unanchored_rods,          # Prefer less disconnected material
-            connection_count,         # Prefer peripheral rods
-            -distance,                # Prefer rods far from the base
-            -self.heuristic(rod_id),  # Prefer higher rods
+            len(node.state),               # Then prefer deeper branches.
+            projected_peak_supports,       # Minimize simultaneous supports.
+            projected_support_steps,       # Minimize support duration.
+            projected_support_additions,   # Minimize support deployments.
+            # grounded_rank,                 # Remove grounded rods late backward.
+            unanchored_rods,
+            supported_rank,
+            connection_count,
+            -distance,                     # Remove high rods early backward.
+            -self.heuristic(rod_id),
             rod_id,
         )
-                
-    def removal_candidates(self, node):
-        # non_grounded = [
-        #     rod_id
-        #     for rod_id in node.state
-        #     if rod_id not in self.truss.grounded_rods
-        # ]
 
-        # # Grounded rods become available only at the very end.
-        # candidates = (
-        #     non_grounded
-        #     if non_grounded
-        #     else list(node.state)
-        # )
+    def removal_candidates_with_priorities(self, node):
+        """Return promising candidates and their computed priorities.
+
+        A candidate is rejected without QR only when its disconnected components
+        provably require more supports than are available.
+        """
 
         candidates = list(node.state)
-
-        feasible_candidates = []
+        ground_distances = self.distance_from_ground(node.state)
+        ranked_candidates = []
 
         for rod_id in candidates:
-            predicted_supports, _ = self.topology_after_removal(
+            # A grounded rod must remain until all non-grounded rods directly
+            # attached to it have been removed.
+            #
+            # Reversed into assembly, this guarantees that the grounded rod is
+            # placed before rods attached to it.
+            if rod_id in self.truss.grounded_rods:
+                active_non_grounded_neighbours = {
+                    neighbour
+                    for neighbour in (
+                        self.rod_neighbors[rod_id] & node.state
+                    )
+                    if neighbour not in self.truss.grounded_rods
+                }
+
+                if active_non_grounded_neighbours:
+                    continue
+
+            topology = self.topology_after_removal(node, rod_id)
+            
+            predicted_supports, _ = topology
+
+            if predicted_supports > len(self.helper_grippers):
+                continue
+
+            priority = self.removal_priority(
                 node,
                 rod_id,
+                topology=topology,
+                ground_distances=ground_distances,
             )
+            ranked_candidates.append((priority, rod_id))
 
-            # This is a safe rejection: every disconnected component
-            # needs at least one external anchor.
-            if predicted_supports <= len(self.helper_grippers):
-                feasible_candidates.append(rod_id)
+        ranked_candidates.sort(key=lambda item: item[0])
+        return ranked_candidates
 
-        return sorted(
-            feasible_candidates,
-            key=lambda rod_id: self.removal_priority(node, rod_id),
-        )
+    def removal_candidates(self, node):
+        """Return candidate rod IDs in heuristic order."""
+        return [
+            rod_id
+            for _, rod_id in self.removal_candidates_with_priorities(node)
+        ]
 
     def choose_placeholder_support_targets(
         self,
@@ -300,11 +414,26 @@ class AssemblyPlanner:
     
 
     # greedy backward search
-    def backward_search(self, capture_key=None):
+    def backward_search(
+        self,
+        capture_key=None,
+        max_runtime=1800.0,
+        max_expansions_without_progress=20_000,
+    ):
         
         """
         Run the backward search
         """
+        if max_runtime is not None and max_runtime <= 0:
+            raise ValueError("max_runtime must be positive or None.")
+        if (
+            max_expansions_without_progress is not None
+            and max_expansions_without_progress <= 0
+        ):
+            raise ValueError(
+                "max_expansions_without_progress must be positive or None."
+            )
+
         hotkey_context = (
             TerminalHotkey(capture_key)
             if capture_key is not None
@@ -313,6 +442,26 @@ class AssemblyPlanner:
         
         # initial state: all rods in final position
         initial_state = frozenset(self.truss.elements.keys())
+        
+        final_result = self.rigidity.check(
+            initial_state,
+            supported_rods=set(),
+        )
+
+        self.final_structure_is_rigid_without_supports = (
+            final_result.is_rigid
+        )
+
+        if not final_result.is_rigid:
+            print(
+                "\nWarning: The final truss configuration is not rigid "
+                "without supports. Required supports will remain in the "
+                "final visualization frame."
+            )
+            input(
+                "Press Enter to continue the search anyway, "
+                "or Ctrl+C to abort..."
+            )
 
         open_list = []
         counter = 0
@@ -322,17 +471,31 @@ class AssemblyPlanner:
         initial_node = SearchNode(
             state=initial_state,
             sequence=[],
-            q=None,
+            q=(
+                self.builder.C.getJointState().copy()
+                if self.builder is not None
+                else None
+            ),
             supported={},
             support_q={},
             records=[],
             structural_steps=[],
         )
+
+        self.final_node = initial_node
+        self.search_stop_reason = None
+        self.search_expansions = 0
+
+        start_time = time.monotonic()
+        best_node = initial_node
+        best_remaining = len(initial_state)
+        last_progress_expansion = 0
         
         def configuration_key(state, supported_rods):
+            state = frozenset(state)
             return (
                 state,
-                frozenset(supported_rods),
+                frozenset(supported_rods) & state,
             )
 
         visited = {
@@ -344,11 +507,19 @@ class AssemblyPlanner:
         
         attempted_transitions = set()
 
-        # Add all possible first removals to the open list
-        for candidate_rod in self.removal_candidates(initial_node):
-            priority = self.removal_priority(initial_node, candidate_rod)
-            heapq.heappush(open_list, (priority, counter, initial_node, candidate_rod))
-            counter += 1
+        def enqueue_removals(node):
+            nonlocal counter
+
+            for priority, candidate_rod in (
+                self.removal_candidates_with_priorities(node)
+            ):
+                heapq.heappush(
+                    open_list,
+                    (priority, counter, node, candidate_rod),
+                )
+                counter += 1
+
+        enqueue_removals(initial_node)
 
         with hotkey_context as hotkey:
             print(
@@ -359,9 +530,33 @@ class AssemblyPlanner:
 
             # loop until solution found or open list exhausted
             while open_list:
+                elapsed = time.monotonic() - start_time
+                if max_runtime is not None and elapsed >= max_runtime:
+                    self.search_stop_reason = "runtime_limit"
+                    self.final_node = best_node
+                    print("Search runtime limit reached.")
+                    print(f"Deepest state: {best_remaining} rods remaining.")
+                    return None
+
+                if (
+                    max_expansions_without_progress is not None
+                    and self.search_expansions - last_progress_expansion
+                    >= max_expansions_without_progress
+                ):
+                    self.search_stop_reason = "stagnation_limit"
+                    self.final_node = best_node
+                    print("Search stopped because no deeper state was found.")
+                    print(f"Deepest state: {best_remaining} rods remaining.")
+                    return None
+
                 priority, _, node, candidate_rod = heapq.heappop(
                     open_list
                 )
+
+                # Reject stale or malformed heap entries before doing any
+                # structural work.
+                if candidate_rod not in node.state:
+                    continue
 
                 parent_key = configuration_key(
                     node.state,
@@ -382,17 +577,13 @@ class AssemblyPlanner:
                     node.state - {candidate_rod}
                 )
 
-                state_key = configuration_key(
-                    new_state,
-                    (
-                        rod_id
-                        for rod_id in node.supported.values()
-                        if rod_id != candidate_rod
-                    ),
-                )
+                if len(new_state) != len(node.state) - 1:
+                    raise RuntimeError(
+                        f"Removal of rod {candidate_rod} did not reduce "
+                        "the state by exactly one rod."
+                    )
 
-                if state_key in visited:
-                    continue
+                self.search_expansions += 1
 
                 feasible, result = self.is_removal_feasible(
                     node,
@@ -443,8 +634,19 @@ class AssemblyPlanner:
 
                 visited.add(state_key)
 
+                if len(new_state) < best_remaining:
+                    best_node = new_node
+                    best_remaining = len(new_state)
+                    last_progress_expansion = self.search_expansions
+                    self.final_node = best_node
+                    print(
+                        f"New deepest state: {best_remaining} rods remaining "
+                        f"after {self.search_expansions} attempted transitions."
+                    )
+
                 if len(new_state) == 0:
                     self.final_node = new_node
+                    self.search_stop_reason = "complete"
                     return new_node.sequence
 
                 # # debug stopping condition
@@ -452,28 +654,17 @@ class AssemblyPlanner:
                 #     self.final_node = new_node
                 #     return new_node.sequence
 
-                for next_rod in self.removal_candidates(new_node):
-                    priority = self.removal_priority(new_node, next_rod)
-                    heapq.heappush(
-                        open_list,
-                        (priority, counter, new_node, next_rod)
-                    )
-                    counter += 1
+                enqueue_removals(new_node)
 
+        self.search_stop_reason = "open_list_exhausted"
+        self.final_node = best_node
+        print("Search exhausted all queued configurations.")
+        print(f"Deepest state: {best_remaining} rods remaining.")
         return None
     
     def active_connection_count(self, node, rod_id):
         """Number of rods currently coupled to rod_id."""
-        return sum(
-            1
-            for rod_1, rod_2 in self.truss.couplers
-            if (
-                rod_1 == rod_id and rod_2 in node.state
-            )
-            or (
-                rod_2 == rod_id and rod_1 in node.state
-            )
-        )
+        return len(self.rod_neighbors[rod_id] & node.state)
 
     def is_removal_feasible(self, node, candidate_rod):
         current_state = node.state
@@ -532,6 +723,7 @@ class AssemblyPlanner:
 
         if result_without_new_support.is_rigid:
             affected_rods = []
+            rigidity_result = result_without_new_support
 
         elif not free_supports:
             print(
@@ -545,14 +737,18 @@ class AssemblyPlanner:
                 added_supports={},
             )
             
-            return False, None
+            return False, {
+                "structural_step": structural_step,
+            }
 
         else:
-            affected_rods = self.rigidity.choose_support_targets(
+            affected_rods, rigidity_result = self.rigidity.choose_support_targets(
                 active_rods=new_state,
                 already_supported=continuing_supported_rods,
                 max_targets=len(free_supports),
                 key=self.heuristic,
+                initial_result=result_without_new_support,
+                return_result=True,
             )
 
         new_support_assignments = {
@@ -565,11 +761,6 @@ class AssemblyPlanner:
 
         next_supported = dict(continuing_supports)
         next_supported.update(new_support_assignments)
-
-        rigidity_result = self.rigidity.check(
-            new_state,
-            supported_rods=next_supported.values(),
-        )
 
         structural_step = make_structural_step(
             rigidity_result=rigidity_result,
@@ -619,7 +810,9 @@ class AssemblyPlanner:
             )
 
             if motion_result is None:
-                return False, None
+                return False, {
+                    "structural_step": structural_step,
+                }
 
             q_final = motion_result["q_final"]
             next_supported = motion_result["supported"]
@@ -658,5 +851,3 @@ if __name__ == "__main__":
     removal_sequence = searcher.backward_search()
     assembly_sequence = list(reversed(removal_sequence)) if removal_sequence else None
     print("Assembly:", assembly_sequence)
-
-

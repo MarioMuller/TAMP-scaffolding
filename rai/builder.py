@@ -258,7 +258,7 @@ class RaiTrussBuilder:
         # ------------------------------------------------------------
 
         main_grasp_segment_id = phase_info["main_grasp_segment"]
-        pickup_segment_id = phase_info["pickup_segment"]
+        # pickup_segment_id = phase_info["pickup_segment"]
 
         # Main robot grasps the candidate rod while it is still part of the scaffold.
         self._attach_and_record(
@@ -272,19 +272,21 @@ class RaiTrussBuilder:
         # If this candidate rod was previously supported, the old support releases it
         # after the main robot has taken over.
         if candidate_is_supported and old_support_gripper is not None:
-            old_release_segment_id = phase_info.get("old_support_away_segment")
+            # old_release_segment_id = phase_info.get("old_support_away_segment")
 
-            # If the old support gripper is reused for a newly affected rod,
-            # there is no safe-away phase. It releases the candidate when it starts
-            # moving to the new support target.
-            if (
-                old_release_segment_id is None
-                and old_support_gripper in phase_info.get("new_support_segments", {})
-            ):
-                old_release_segment_id = phase_info["new_support_segments"][old_support_gripper] - 1
+            # # If the old support gripper is reused for a newly affected rod,
+            # # there is no safe-away phase. It releases the candidate when it starts
+            # # moving to the new support target.
+            # if (
+            #     old_release_segment_id is None
+            #     and old_support_gripper in phase_info.get("new_support_segments", {})
+            # ):
+            #     old_release_segment_id = phase_info["new_support_segments"][old_support_gripper] - 1
 
-            if old_release_segment_id is None:
-                old_release_segment_id = main_grasp_segment_id
+            # if old_release_segment_id is None:
+            #     old_release_segment_id = main_grasp_segment_id
+            
+            old_release_segment_id = main_grasp_segment_id
 
             record.events.append(
                 AttachmentEvent(
@@ -313,9 +315,11 @@ class RaiTrussBuilder:
                 child=f"rod_{support_rod_id}",
             )
 
-        # Candidate rod detaches from the scaffold only immediately before the
-        # pickup/removal segment. This prevents early detach in viser.
-        detach_candidate_segment_id = max(0, pickup_segment_id - 1)
+        # # Candidate rod detaches from the scaffold only immediately before the
+        # # pickup/removal segment. This prevents early detach in viser.
+        # detach_candidate_segment_id = max(0, pickup_segment_id - 1)
+        
+        detach_candidate_segment_id = main_grasp_segment_id
 
         record.events.append(
             AttachmentEvent(

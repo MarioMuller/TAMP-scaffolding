@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field
 from typing import Iterable
 
@@ -65,18 +65,76 @@ class TrussRigidityChecker:
     - rigidity is evaluated through AlgebraicChecker.Check
     """
 
-    def __init__(self, truss):
+    def __init__(self, truss, max_cache_entries: int = 2000):
         self.truss = truss
+        if max_cache_entries < 0:
+            raise ValueError("max_cache_entries must be non-negative.")
+
+        self.max_cache_entries = max_cache_entries
+        self._result_cache: OrderedDict[
+            tuple[frozenset[int], frozenset[int]],
+            RigidityResult,
+        ] = OrderedDict()
+        self.check_calls = 0
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+    def clear_cache(self) -> None:
+        """Drop cached results and reset the cache statistics."""
+        self._result_cache.clear()
+        self.check_calls = 0
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+    def cache_info(self) -> dict[str, int]:
+        """Return counters useful for measuring the cache benefit."""
+        return {
+            "check_calls": self.check_calls,
+            "cache_hits": self.cache_hits,
+            "cache_misses": self.cache_misses,
+            "cached_entries": len(self._result_cache),
+            "max_cache_entries": self.max_cache_entries,
+        }
+
+    def _store_cached_result(
+        self,
+        cache_key: tuple[frozenset[int], frozenset[int]],
+        result: RigidityResult,
+    ) -> None:
+        if self.max_cache_entries == 0:
+            return
+
+        self._result_cache[cache_key] = result
+        self._result_cache.move_to_end(cache_key)
+
+        while len(self._result_cache) > self.max_cache_entries:
+            self._result_cache.popitem(last=False)
 
     def check(
         self,
         active_rods: Iterable[int],
         supported_rods: Iterable[int] | None = None,
     ) -> RigidityResult:
+        self.check_calls += 1
+
+        # A structural configuration is completely identified by the active
+        # rods and the active rods held by supports. Ordering and supports on
+        # already removed rods have no structural effect.
+        active_key = frozenset(active_rods)
+        supported_key = frozenset(supported_rods or ()) & active_key
+        cache_key = (active_key, supported_key)
+
+        cached_result = self._result_cache.get(cache_key)
+        if cached_result is not None:
+            self.cache_hits += 1
+            self._result_cache.move_to_end(cache_key)
+            return cached_result
+
+        self.cache_misses += 1
         total_start = perf_counter()
-        active = set(active_rods)
+        active = set(active_key)
         if not active:
-            return RigidityResult(
+            result = RigidityResult(
                 is_rigid=True,
                 rank=0,
                 dof=0,
@@ -87,12 +145,14 @@ class TrussRigidityChecker:
                 failure_elements={},
                 failure_orientation_vertex_ids=frozenset(),
             )
+            self._store_cached_result(cache_key, result)
+            return result
 
         build_elements_start = perf_counter()
 
         element_objects, rod_to_index, index_to_rod = self._build_element_objects(
             active,
-            set(supported_rods or ()),
+            set(supported_key),
         )
 
         build_elements_end = perf_counter()
@@ -156,7 +216,7 @@ class TrussRigidityChecker:
         # )
         # print(f"Matrix shape:          {K.shape}")
 
-        return RigidityResult(
+        result = RigidityResult(
             is_rigid=matrix_rank == matrix_dof,
             rank=matrix_rank,
             dof=matrix_dof,
@@ -171,6 +231,8 @@ class TrussRigidityChecker:
                 for vertex in orientation_pair
             ),
         )
+        self._store_cached_result(cache_key, result)
+        return result
 
     def is_rigid(
         self,
@@ -185,16 +247,25 @@ class TrussRigidityChecker:
         already_supported: Iterable[int] | None = None,
         max_targets: int = 2,
         key=None,
-    ) -> list[int]:
+        initial_result: RigidityResult | None = None,
+        return_result: bool = False,
+    ) -> list[int] | tuple[list[int], RigidityResult]:
         active = set(active_rods)
-        supported = set(already_supported or ())
+        supported = set(already_supported or ()) & active
         chosen: list[int] = []
 
-        # Calculate the initial state only once.
-        current_result = self.check(
-            active,
-            supported_rods=supported,
-        )
+        # The caller may already have calculated this exact baseline state.
+        current_result = initial_result
+        if current_result is None:
+            current_result = self.check(
+                active,
+                supported_rods=supported,
+            )
+
+        def finish():
+            if return_result:
+                return chosen, current_result
+            return chosen
 
         while (
             not current_result.is_rigid
@@ -229,7 +300,8 @@ class TrussRigidityChecker:
                 # highest candidate that makes the structure rigid.
                 if result.is_rigid:
                     chosen.append(rod)
-                    return chosen
+                    current_result = result
+                    return finish()
 
                 if result.rank > best_result.rank:
                     best_rod = rod
@@ -245,7 +317,7 @@ class TrussRigidityChecker:
             # Reuse the result instead of running the same QR again.
             current_result = best_result
 
-        return chosen
+        return finish()
 
     def _build_element_objects(
         self,
@@ -966,9 +1038,11 @@ def main() -> None:
     parser.add_argument(
         "json_path",
         nargs="?",
-        default="JSON/own_examples/260804_FoC_demo.json",
+        # default="JSON/own_examples/260804_FoC_demo.json",
         # default="JSON/own_examples/260724_stability_ini.json",
         # default="JSON/own_examples/diy_proper_full.json",
+        default="JSON/own_examples/260804_RobArchDemo_ini.json",
+        
         help="Path to the truss JSON file.",
     )
     parser.add_argument(
@@ -1053,8 +1127,15 @@ def main() -> None:
 
     from truss import Truss
 
+    print("EXECUTING:", os.path.abspath(__file__), flush=True)
+    print("CWD:", os.getcwd(), flush=True)
+
     truss = Truss.from_json(args.json_path)
-    
+
+    print("Resolved JSON:", os.path.realpath(args.json_path), flush=True)
+    print("Node 0:", truss.nodes[0], flush=True)
+    print("Rod IDs:", sorted(truss.elements), flush=True)
+
     checker = TrussRigidityChecker(truss)
 
     start_time = time.time()

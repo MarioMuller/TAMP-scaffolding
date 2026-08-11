@@ -206,10 +206,28 @@ class KeyframePlanner:
         self.copy_frame_pose(rod, candidate_hold_target)
 
         # TODO: Give it more flexibility if only one needs to grab at connector
+        rod_length = self.rods.get_rod_length(rod_id)
+
+        # Keep both grasps away from the rod ends.
+        end_margin = min(0.12, 0.20 * rod_length)
+
+        # Use the preferred 0.8 m separation when possible,
+        # otherwise use the largest separation that fits.
+        grasp_separation = min(
+            0.8,
+            rod_length - 2.0 * end_margin,
+        )
+
+        if grasp_separation <= 0.0:
+            raise ValueError(
+                f"Rod {rod_id} is too short for a dual-arm grasp: "
+                f"length={rod_length}"
+            )
+
         g1, g2 = self.rods.create_dual_arm_grasp_frames(
             rod_id,
-            d1_from_end=0.12,
-            d12_between_arms=0.8,
+            d1_from_end=end_margin,
+            d12_between_arms=grasp_separation,
         )
 
         # Fixed target frames for already-active continuing supports.
@@ -436,22 +454,40 @@ class KeyframePlanner:
 
         # During support phases, the candidate rod held by the main robot
         # must stay fixed in its installed scaffold pose.
-        for support_gripper, t_support in support_phase_by_gripper.items():
-            komo.addObjective(
-                [t_support],
-                ry.FS.positionDiff,
-                [rod, candidate_hold_target],
-                ry.OT.eq,
-                [1e2],
-            )
+        # for support_gripper, t_support in support_phase_by_gripper.items():
+        #     komo.addObjective(
+        #         [t_support],
+        #         ry.FS.positionDiff,
+        #         [rod, candidate_hold_target],
+        #         ry.OT.eq,
+        #         [1e2],
+        #     )
 
-            komo.addObjective(
-                [t_support],
-                ry.FS.quaternionDiff,
-                [rod, candidate_hold_target],
-                ry.OT.eq,
-                [1e1],
-            )
+        #     komo.addObjective(
+        #         [t_support],
+        #         ry.FS.quaternionDiff,
+        #         [rod, candidate_hold_target],
+        #         ry.OT.eq,
+        #         [1e1],
+        #     )
+            
+        last_installed_phase = t_pickup - 1.0
+
+        komo.addObjective(
+            [t_grasp, last_installed_phase],
+            ry.FS.positionDiff,
+            [rod, candidate_hold_target],
+            ry.OT.eq,
+            [1e2],
+        )
+
+        komo.addObjective(
+            [t_grasp, last_installed_phase],
+            ry.FS.quaternionDiff,
+            [rod, candidate_hold_target],
+            ry.OT.eq,
+            [1e2],
+        )
 
         # ------------------------------------------------------------
         # Main grasps candidate rod and keeps it until pickup.
