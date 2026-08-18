@@ -15,8 +15,9 @@ truss = Truss.from_json(
 
  # Filter to chose a subset of rods to include in the search. This is useful for testing
 selected_rods = {
-    0, 1, 2, 5, 6, 7, 8, 9, 13, 15
+    # 0, 1, 2, 5, 6, 7, 8, 9, 13, 15
     # 45, 33, 55, 53, 47, 35, 50, 46, 34, 49, 38, 51, 39, 52, 54
+    0, 5, 13, 15, 7, 6, 2, 1 
 }
 
 unknown_rods = selected_rods - set(truss.elements)

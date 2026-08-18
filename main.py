@@ -13,43 +13,45 @@ def main():
         "JSON/own_examples/260804_RobArchDemo_ini.json"
     )
     
-    # # Filter to chose a subset of rods to include in the search. This is useful for testing
-    # selected_rods = {
-    #     45, 33, 55, 53, 47, 50, 49, 46 #, 34, 35, 38, 51, 39, 52, 54 # single cube
-    # }
+    filter = True
+    
+    if filter:
+    
+        # Filter to chose a subset of rods to include in the search. This is useful for testing
+        selected_rods = {
+            0, 5, 13, 15, 7, 6, #2, 1, # 45, 33, 55, 53, 47, 50, 49, 46 #, 34, 35, 38, 51, 39, 52, 54 # single cube
+        }
 
-    # unknown_rods = selected_rods - set(truss.elements)
-    # if unknown_rods:
-    #     raise ValueError(
-    #         f"Selected rods do not exist: {sorted(unknown_rods)}"
-    #     )
+        unknown_rods = selected_rods - set(truss.elements)
+        if unknown_rods:
+            raise ValueError(
+                f"Selected rods do not exist: {sorted(unknown_rods)}"
+            )
 
-    # # Keep only the selected rods.
-    # truss.elements = {
-    #     rod_id: endpoints
-    #     for rod_id, endpoints in truss.elements.items()
-    #     if rod_id in selected_rods
-    # }
+        # Keep only the selected rods.
+        truss.elements = {
+            rod_id: endpoints
+            for rod_id, endpoints in truss.elements.items()
+            if rod_id in selected_rods
+        }
 
-    # # Keep grounding only for selected rods.
-    # truss.grounded_rods &= selected_rods
+        # Keep grounding only for selected rods.
+        truss.grounded_rods &= selected_rods
 
-    # # Keep couplers only when both connected rods are selected.
-    # truss.couplers = {
-    #     (rod_1, rod_2)
-    #     for rod_1, rod_2 in truss.couplers
-    #     if rod_1 in selected_rods and rod_2 in selected_rods
-    # }
+        # Keep couplers only when both connected rods are selected.
+        truss.couplers = {
+            (rod_1, rod_2)
+            for rod_1, rod_2 in truss.couplers
+            if rod_1 in selected_rods and rod_2 in selected_rods
+        }
 
-    # print("Included rods:", sorted(truss.elements))
+        print("Included rods:", sorted(truss.elements))
 
     # RAI scene used during backward search.
     builder = RaiTrussBuilder(
         truss=truss,
-        radius=0.005,
-        scale=0.0011,
     )
-    builder.import_robots()
+    builder.import_robots(debug = False)
 
     searcher = AssemblyPlanner(
         truss=truss,

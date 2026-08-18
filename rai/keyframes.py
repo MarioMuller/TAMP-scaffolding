@@ -2,6 +2,7 @@
 
 import numpy as np
 import robotic as ry
+from time import perf_counter
 import time
 
 
@@ -31,48 +32,96 @@ class KeyframePlanner:
         self,
         komo,
         attempts=1000,
-        mult=3,
-        offset=-1.5,
-        view=True,
+        view=False,
         view_accepted=False,
+        seed=None,
     ):
+        q_dim = len(self.C.getJointState())
+        limits = np.asarray(
+            self.C.getJointLimits(),
+            dtype=float,
+        )
+
+        if limits.shape == (2, q_dim):
+            lower = limits[0].copy()
+            upper = limits[1].copy()
+
+        else:
+            raise RuntimeError(
+                f"Unexpected joint-limit shape {limits.shape}; "
+                f"expected (2, {q_dim}) or ({q_dim}, 2)"
+            )
+
+        if not np.all(np.isfinite(lower)):
+            raise RuntimeError(
+                "Some lower joint limits are not finite"
+            )
+
+        if not np.all(np.isfinite(upper)):
+            raise RuntimeError(
+                "Some upper joint limits are not finite"
+            )
+
+        if np.any(lower >= upper):
+            invalid = np.where(lower >= upper)[0]
+
+            raise RuntimeError(
+                f"Invalid joint limits at indices {invalid.tolist()}"
+            )
+
+        rng = np.random.default_rng(seed)
+        
+        q0 = np.asarray(
+            self.C.getJointState(),
+            dtype=float,
+        ).copy()
+
         for attempt in range(attempts):
-
-            if attempt > -1:
-                dim = len(self.C.getJointState())
-                x_init = np.random.rand(dim) * mult + offset
-                # print(x_init)
-                komo.initWithConstant(x_init)
+            if attempt == 0:
+                # First attempt: configured initial robot positions.
+                x_init = q0.copy()
             
-            # komo.view(True, f"KOMO initialization, attempt {attempt}")
+            else:
+                # Gleichverteiltes Sample für jeden Freiheitsgrad innerhalb
+                # seines vollständigen erlaubten Bereichs.
+                x_init = rng.uniform(
+                    low=lower,
+                    high=upper,
+                    size=q_dim,
+                )
 
+            komo.initWithConstant(x_init)
 
-            solver = ry.NLP_Solver(komo.nlp(), verbose=0)
+            solver = ry.NLP_Solver(
+                komo.nlp(),
+                verbose=0,
+            )
 
             try:
                 retval = solver.solve()
-            except RuntimeError as e:
-                msg = str(e)
-                if "checkNan" in msg or "inconsistent number" in msg:
-                    print(f"\033[1m\033[34mKOMO attempt {attempt} crashed with NaN; skipping this restart\033[0m")
-                    continue
-                raise
-            
-            retval = retval.dict()
+                retval = retval.dict()
+
+            except RuntimeError as error:
+                print(
+                    f"KOMO attempt {attempt} failed with error: {error}"
+                )
+                continue
 
             print(retval)
-
+            view = False
             if view:
-                print(retval)
-                komo.view(True, "IK solution")
-
+                komo.view(
+                    True,
+                    f"KOMO initialization, attempt {attempt}",
+                )
+                
             if retval["feasible"]:  # retval["ineq"] < 1 and retval["eq"] < 1 and
 
                 if view_accepted:
                     komo.view(False, "IK solution")
 
                 keyframes = komo.getPath()
-                return keyframes
+                #return keyframes
 
         print("FAILED to find solution")
 
@@ -124,7 +173,248 @@ class KeyframePlanner:
         self.copy_frame_pose(source_frame_name, target_frame_name)
 
         return target_frame_name
+    
+    def get_remove_keyframes_dual_test(
+        self,
+        rod_id,
+        supported=None,
+        support_q=None,
+        candidate_is_supported=False,
+        old_support_gripper=None,
+        continuing_supports=None,
+        releasable_supports=None,
+        new_support_assignments=None,
+        support_fraction=0.5,
+    ):
+        """Deterministic synthetic replacement for get_remove_keyframes_dual()."""
 
+        supported = dict(supported or {})
+        support_q = dict(support_q or {})
+        continuing_supports = dict(continuing_supports or {})
+        releasable_supports = dict(releasable_supports or {})
+        new_support_assignments = dict(new_support_assignments or {})
+
+        q0 = self.C.getJointState().copy()
+
+        # Main arm 2 is deliberately excluded.
+        moving_grippers = [
+            "a1_ur_gripper_center",
+            "h1_a1_ur_gripper_center",
+            "h2_a1_ur_gripper_center",
+        ]
+
+        missing_grippers = [
+            gripper
+            for gripper in moving_grippers
+            if self.C.getFrame(gripper) is None
+        ]
+
+        if missing_grippers:
+            raise RuntimeError(
+                f"Missing test grippers: {missing_grippers}"
+            )
+
+        # ------------------------------------------------------------
+        # Deterministic target positions
+        # ------------------------------------------------------------
+
+        structure_points = (
+            np.asarray(
+                list(self.rods.truss.nodes.values()),
+                dtype=float,
+            )
+            * self.rods.scale
+        )
+
+        structure_center_x = 0.5 * (
+            structure_points[:, 0].min()
+            + structure_points[:, 0].max()
+        )
+
+        structure_min_y = structure_points[:, 1].min()
+
+        # Entire target cluster is placed two metres beyond the
+        # structure's negative-Y boundary.
+        cluster_center = np.array([
+            structure_center_x,
+            structure_min_y - 2.0,
+            0.88,
+        ])
+
+        # Consecutive target frames are exactly 60 cm apart in Y.
+        target_offsets = {
+            "a1_ur_gripper_center": np.array([
+                0.0,
+                -0.20,
+                0.0,
+            ]),
+            "h1_a1_ur_gripper_center": np.array([
+                0.0,
+                0.0,
+                0.0,
+            ]),
+            "h2_a1_ur_gripper_center": np.array([
+                0.0,
+                0.2,
+                0.0,
+            ]),
+        }
+
+        target_by_gripper = {}
+        target_positions = {}
+
+        for index, gripper in enumerate(moving_grippers):
+            target_position = (
+                cluster_center
+                + target_offsets[gripper]
+            )
+
+            target_name = (
+                f"test_target_rod_{rod_id}_{index}"
+            )
+
+            if target_name not in self.C.getFrameNames():
+                self.C.addFrame(
+                    target_name,
+                    "world",
+                )
+
+            gripper_frame = self.C.getFrame(gripper)
+            target_frame = self.C.getFrame(target_name)
+
+            target_frame.setPosition(
+                target_position
+            )
+
+            # Preserve the gripper's current orientation.
+            target_frame.setQuaternion(
+                gripper_frame.getQuaternion()
+            )
+
+            target_frame.setShape(
+                ry.ST.marker,
+                [0.12],
+            )
+
+            target_frame.setContact(0)
+
+            target_by_gripper[gripper] = target_name
+            target_positions[gripper] = target_position
+
+            print(
+                f"Test target for {gripper}: "
+                f"{target_position}"
+            )
+
+        main_h1_distance = np.linalg.norm(
+            target_positions["a1_ur_gripper_center"]
+            - target_positions["h1_a1_ur_gripper_center"]
+        )
+
+        h1_h2_distance = np.linalg.norm(
+            target_positions["h1_a1_ur_gripper_center"]
+            - target_positions["h2_a1_ur_gripper_center"]
+        )
+
+        print(
+            f"Target distances: "
+            f"main-h1={main_h1_distance:.2f} m, "
+            f"h1-h2={h1_h2_distance:.2f} m"
+        )
+
+        
+        # ------------------------------------------------------------
+        # Construct synthetic KOMO problem
+        # ------------------------------------------------------------
+
+        komo = ry.KOMO(
+            self.C,
+            phases=1,
+            slicesPerPhase=1,
+            kOrder=2,
+            enableCollisions=True,
+        )
+
+        komo.addControlObjective(
+            [],
+            0,
+            1e-3,
+        )
+
+        komo.addControlObjective(
+            [],
+            1,
+            1e-2,
+        )
+
+        komo.addObjective(
+            [],
+            ry.FS.jointLimits,
+            [],
+            ry.OT.ineq,
+            [1e0],
+        )
+
+        komo.addObjective(
+            [],
+            ry.FS.accumulatedCollisions,
+            [],
+            ry.OT.ineq,
+            [1e1],
+        )
+
+        for gripper in moving_grippers:
+            
+            target_name = target_by_gripper[gripper]
+
+            komo.addObjective(
+                [1],
+                ry.FS.positionDiff,
+                [gripper, target_name],
+                ry.OT.eq,
+                [1e2],
+            )
+
+            # komo.addObjective(
+            #     [1],
+            #     ry.FS.quaternionDiff,
+            #     [gripper, target_name],
+            #     ry.OT.eq,
+            #     [1e1],
+            # )
+
+        keyframes = self.solve_komo(
+            komo,
+            attempts=6,
+            view=True,
+        )
+
+        # ------------------------------------------------------------
+        # Match the original return interface
+        # ------------------------------------------------------------
+
+        new_supported = {}
+        new_supported.update(continuing_supports)
+        new_supported.update(new_support_assignments)
+        
+        phase_info = {
+            "main_grasp_segment": 0,
+            "old_support_away_segment": None,
+            "new_support_segments": {
+                support_gripper: 0
+                for support_gripper in new_support_assignments
+            },
+            "pickup_segment": 0,
+        }
+
+        return (
+            keyframes,
+            q0,
+            new_supported,
+            phase_info,
+        )   
+   
+   
     def get_remove_keyframes_dual(
         self,
         rod_id,
@@ -357,7 +647,6 @@ class KeyframePlanner:
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
         komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
-        #TODO try
 
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.

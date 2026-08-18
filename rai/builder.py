@@ -13,7 +13,7 @@ import time
 
 class RaiTrussBuilder:
 
-    def __init__(self, truss, radius=0.0015, scale=0.00351):
+    def __init__(self, truss, radius=0.005, scale=0.001):
         
         self.truss = truss
         self.radius = radius
@@ -25,34 +25,34 @@ class RaiTrussBuilder:
         self.rods = RodManager(self.C, truss, radius=radius, scale=scale)
 
         self.keyframes = KeyframePlanner(self.C, self.rods)
-        self.paths = PathPlanner(self.C)
-        self.replayer = PlanReplayer(self.C, self.rods)
+        # self.paths = PathPlanner(self.C)
+        # self.replayer = PlanReplayer(self.C, self.rods)
         self.viser_replayer = ViserPlanReplayer(self.C, self.rods)
 
     def import_main_husky(self):
         self.scene.import_main_husky()
         # self.scene.import_main_husky_baseless()
 
-    def import_support_husky(self, name="h2", base_q=(3.0, -3.0, 0.0)):
+    def import_support_husky(self, name="h2", color=None, base_q=(-6.0, -0.0, 0)):
         self.scene.import_support_husky(
             name=name,
             base_q=base_q,
+            color=color,
         )
 
     def import_pineapple_model(self):
         self.scene.import_pineapple_model()
         
 
-    def import_robots(self):
-        debug = False
-
+    def import_robots(self, debug=False):
+        
         if debug:
             self.import_pineapple_model()
             
         else:
             self.import_main_husky()
-            self.import_support_husky(name="h1")
-            self.import_support_husky(name="h2", base_q=(-3.0, -3.0, 0.0))
+            self.import_support_husky(name="h1", color=[0.15, 0.35, 0.95], base_q=(-8.0, 0.0, 0.0))
+            self.import_support_husky(name="h2", color=[0.95, 0.35, 0.15], base_q=(0.0, 3.0, 0.0))
 
         self._detect_support_grippers()
 
@@ -74,7 +74,7 @@ class RaiTrussBuilder:
             if self.C.getFrame("table") is not None:
                 self.C.attach("table", f"rod_{rod_id}")
 
-        self.C.view()
+        # self.C.view()
         # time.sleep(5)
 
     def _attach_and_record(
@@ -186,6 +186,7 @@ class RaiTrussBuilder:
         new_support_assignments = dict(new_support_assignments or {})
 
         # Build scene with candidate rod still installed.
+        # TODO - Could be sped up by not building from scratch each time, but instead just removing/adding rods as needed.
         print(f"Trying to remove rod {rod_id} from scaffold")
         self.reset_scene_with_rods(current_state)
 
@@ -218,7 +219,7 @@ class RaiTrussBuilder:
         # constraints that keep those grippers/rods fixed. builder.py only passes
         # the information to keyframes.py
         
-        keyframes, q0, _keyframe_new_supported, phase_info = self.keyframes.get_remove_keyframes_dual(
+        keyframes, q0, _keyframe_new_supported, phase_info = self.keyframes.get_remove_keyframes_dual( #get_remove_keyframes_dual
             rod_id=rod_id,
             supported=supported,
             support_q=support_q,
@@ -234,7 +235,6 @@ class RaiTrussBuilder:
 
         # 4. Convert keyframes into path segments.
         q_current = self.C.getJointState().copy()
-
         for i, q_goal in enumerate(keyframes):
             if use_rrt:
                 path = self.paths.plan_segment(

@@ -418,7 +418,7 @@ class AssemblyPlanner:
         self,
         capture_key=None,
         max_runtime=1800.0,
-        max_expansions_without_progress=20_000,
+        max_expansions_without_progress=20000,
     ):
         
         """

@@ -1,6 +1,6 @@
 base_link 	{  }
 base_link_1 (base_link) 	{ , shape:mesh, mesh:'meshes/base_link_1.ply', visual }
-base_link_0 (base_link) 	{ Q:[0, 0, 0.04, 0, 0, 0, 1]  , shape:box, size:[1, 0.5709, 0.33375, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+base_link_0 (base_link) 	{ Q:[0, 0, 0.08, 0, 0, 0, 1]  , shape:box, size:[1, 0.7, 0.4, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 base_link>front_left_wheel (base_link) 	{  Q:[0.256, 0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
 base_link>front_right_wheel (base_link) 	{  Q:[0.256, -0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
 base_link>rear_left_wheel (base_link) 	{  Q:[-0.256, 0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
@@ -32,14 +32,14 @@ rear_left_wheel (base_link>rear_left_wheel) 	{  }
 rear_right_wheel (base_link>rear_right_wheel) 	{  }
 front_left_wheel_link (front_left_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, -0.707107], mass:2.637, inertiaTensor:[0.02467, 0, 0, 0.04411, 0, 0.02467] }
 front_left_wheel_link_1 (front_left_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], shape:mesh, mesh:'meshes/front_left_wheel_link_1.ply', visual }
-front_left_wheel_link_0 (front_left_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#front_left_wheel_link_0 (front_left_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 front_right_wheel_link (front_right_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], mass:2.637, inertiaTensor:[0.02467, 0, 0, 0.04411, 0, 0.02467] }
 front_right_wheel_link_1 (front_right_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], shape:mesh, mesh:'meshes/front_right_wheel_link_1.ply', visual }
-front_right_wheel_link_0 (front_right_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#front_right_wheel_link_0 (front_right_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 rear_left_wheel_link (rear_left_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], mass:2.637, inertiaTensor:[0.02467, 0, 0, 0.04411, 0, 0.02467] }
 rear_left_wheel_link_1 (rear_left_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], shape:mesh, mesh:'meshes/rear_left_wheel_link_1.ply', visual }
-rear_left_wheel_link_0 (rear_left_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#rear_left_wheel_link_0 (rear_left_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 rear_right_wheel_link (rear_right_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], mass:2.637, inertiaTensor:[0.02467, 0, 0, 0.04411, 0, 0.02467] }
 rear_right_wheel_link_1 (rear_right_wheel) 	{  Q:[-0, -0, -0, -0.707107, 0, 0, 0.707107], shape:mesh, mesh:'meshes/rear_right_wheel_link_1.ply', visual }
-rear_right_wheel_link_0 (rear_right_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#rear_right_wheel_link_0 (rear_right_wheel) 	{  Q:[-0, -0, -0, 0, 0.707107, 0, 0.707107], shape:cylinder, size:[0, 0, 0.1143, 0.1651], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 
