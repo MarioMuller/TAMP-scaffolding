@@ -59,26 +59,42 @@ class AssemblyPlanner:
         builder=None,
         max_supports=2,
         rigidity_cache_size=2000,
+        support_grippers=None,
+        forbidden_transitions=None,
     ):
         self.truss = truss
         self.builder = builder
         self.max_supports = max_supports
+
         self.rigidity = TrussRigidityChecker(
             truss,
             max_cache_entries=rigidity_cache_size,
         )
+
         self.final_node = None
         self.search_stop_reason = None
         self.search_expansions = 0
 
-        # Static rod-level adjacency used by the topology heuristic. Two rods
-        # are neighbours when a coupler connects them.
+        self._support_grippers_override = (
+            tuple(support_grippers)
+            if support_grippers is not None
+            else None
+        )
+
+        self.forbidden_transitions = set(
+            forbidden_transitions or []
+        )
+
         self.rod_neighbors = {
             rod_id: set()
             for rod_id in self.truss.elements
         }
+
         for rod_1, rod_2 in self.truss.couplers:
-            if rod_1 in self.rod_neighbors and rod_2 in self.rod_neighbors:
+            if (
+                rod_1 in self.rod_neighbors
+                and rod_2 in self.rod_neighbors
+            ):
                 self.rod_neighbors[rod_1].add(rod_2)
                 self.rod_neighbors[rod_2].add(rod_1)
 
@@ -86,8 +102,7 @@ class AssemblyPlanner:
             f"support_{index + 1}"
             for index in range(max_supports)
         )
-        
-        # debug
+
         self.debug_capture_active = False
         self.debug_capture_steps = []
         
@@ -136,10 +151,59 @@ class AssemblyPlanner:
 
     @property
     def helper_grippers(self):
-        if self.builder is None:
-            return self.virtual_supports
+        if self._support_grippers_override is not None:
+            return self._support_grippers_override
 
-        return tuple(self.builder.support_grippers)
+        if self.builder is not None:
+            return tuple(self.builder.support_grippers)
+
+        return self.virtual_supports
+    
+    @staticmethod
+    def structural_state_key(state, supported):
+        """
+        Structural state including which physical support robot holds which rod.
+        """
+        state = frozenset(state)
+
+        active_supports = frozenset(
+            (gripper, rod_id)
+            for gripper, rod_id in supported.items()
+            if rod_id in state
+        )
+
+        return (
+            state,
+            active_supports,
+        )
+
+
+    @classmethod
+    def structural_transition_key(
+        cls,
+        state,
+        supported,
+        candidate_rod,
+    ):
+        return (
+            cls.structural_state_key(
+                state,
+                supported,
+            ),
+            int(candidate_rod),
+        )
+
+
+    @classmethod
+    def structural_transition_key_from_step(
+        cls,
+        structural_step,
+    ):
+        return cls.structural_transition_key(
+            state=structural_step.rods_before,
+            supported=structural_step.supports_before,
+            candidate_rod=structural_step.rod_id,
+        )
 
     # create graph structure
     def build_graph(self, active_rods):
@@ -452,16 +516,16 @@ class AssemblyPlanner:
             final_result.is_rigid
         )
 
-        if not final_result.is_rigid:
-            print(
-                "\nWarning: The final truss configuration is not rigid "
-                "without supports. Required supports will remain in the "
-                "final visualization frame."
-            )
-            input(
-                "Press Enter to continue the search anyway, "
-                "or Ctrl+C to abort..."
-            )
+        # if not final_result.is_rigid:
+        #     print(
+        #         "\nWarning: The final truss configuration is not rigid "
+        #         "without supports. Required supports will remain in the "
+        #         "final visualization frame."
+        #     )
+        #     input(
+        #         "Press Enter to continue the search anyway, "
+        #         "or Ctrl+C to abort..."
+        #     )
 
         open_list = []
         counter = 0
@@ -499,9 +563,9 @@ class AssemblyPlanner:
             )
 
         visited = {
-            configuration_key(
+            self.structural_state_key(
                 initial_node.state,
-                initial_node.supported.values(),
+                initial_node.supported,
             )
         }
         
@@ -563,10 +627,15 @@ class AssemblyPlanner:
                     node.supported.values(),
                 )
 
-                transition_key = (
-                    parent_key,
-                    candidate_rod,
+                transition_key = self.structural_transition_key(
+                    state=node.state,
+                    supported=node.supported,
+                    candidate_rod=candidate_rod,
                 )
+
+                # This transition previously failed during RAI validation.
+                if transition_key in self.forbidden_transitions:
+                    continue
 
                 if transition_key in attempted_transitions:
                     continue
@@ -624,9 +693,9 @@ class AssemblyPlanner:
                     ),
                 )
                 
-                state_key = configuration_key(
+                state_key = self.structural_state_key(
                     new_node.state,
-                    new_node.supported.values(),
+                    new_node.supported,
                 )
 
                 if state_key in visited:

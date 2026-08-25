@@ -20,12 +20,153 @@ class PhaseSchedule:
     @property
     def n_phases(self):
         return len(self.names)
-
-
+        
 class KeyframePlanner:
+    DEFAULT_BASE_CIRCLE_RADIUS = 1.2
+
     def __init__(self, C, rod_manager):
         self.C = C
         self.rods = rod_manager
+
+    @staticmethod
+    def _yaw_from_quaternion(quaternion):
+        """Return world-Z yaw from a [w, x, y, z] quaternion."""
+        w, x, y, z = np.asarray(quaternion, dtype=float)
+
+        return np.arctan2(
+            2.0 * (w * z + x * y),
+            1.0 - 2.0 * (y * y + z * z),
+        )
+
+    def _mobile_base_joint_names(self):
+        return [
+            frame_name
+            for frame_name in self.C.getFrameNames()
+            if (
+                frame_name == "husky_base_XYPhi_joint"
+                or frame_name.endswith("_base_XYPhi_joint")
+            )
+        ]
+
+    def _base_joint_for_gripper(self, gripper):
+        if gripper.startswith(("a1_", "a2_")):
+            base_joint = "husky_base_XYPhi_joint"
+
+        else:
+            robot_prefix = gripper.split("_", maxsplit=1)[0]
+            base_joint = f"{robot_prefix}_base_XYPhi_joint"
+
+        if self.C.getFrame(base_joint) is None:
+            raise RuntimeError(
+                f"Could not find mobile base {base_joint} "
+                f"for gripper {gripper}"
+            )
+
+        return base_joint
+
+    def _sample_bases_around_targets(
+        self,
+        x_init,
+        q0,
+        base_target_positions,
+        rng,
+        radius,
+    ):
+        """
+        Keep randomly sampled arm joints, but replace the mobile-base
+        configurations with samples on circles around the grasp targets.
+        """
+        if radius <= 0.0:
+            raise ValueError("base circle radius must be positive")
+
+        q_saved = self.C.getJointState().copy()
+
+        try:
+            # Obtain the current base configurations from q0.
+            self.C.setJointState(q0)
+
+            base_q0 = {}
+
+            for base_joint in self._mobile_base_joint_names():
+                frame = self.C.getFrame(base_joint)
+
+                position = np.asarray(
+                    frame.getPosition(),
+                    dtype=float,
+                )
+
+                yaw = self._yaw_from_quaternion(
+                    frame.getQuaternion()
+                )
+
+                base_q0[base_joint] = np.array([
+                    position[0],
+                    position[1],
+                    yaw,
+                ])
+
+            # Apply the fully random initialization first.
+            self.C.setJointState(x_init)
+
+            # Restore every base to its current pose. Therefore idle robots
+            # are not randomly moved.
+            for base_joint, base_state in base_q0.items():
+                self.C.setJointState(
+                    base_state,
+                    [base_joint],
+                )
+
+            # Override bases of robots that need to grasp a new rod.
+            for base_joint, target_position in (
+                base_target_positions.items()
+            ):
+                center = np.asarray(
+                    target_position,
+                    dtype=float,
+                )
+
+                circle_angle = rng.uniform(
+                    -np.pi,
+                    np.pi,
+                )
+
+                base_x = (
+                    center[0]
+                    + radius * np.cos(circle_angle)
+                )
+
+                base_y = (
+                    center[1]
+                    + radius * np.sin(circle_angle)
+                )
+
+                # The Husky's local +X direction is treated as its front.
+                yaw_to_center = np.arctan2(
+                    center[1] - base_y,
+                    center[0] - base_x,
+                )
+
+                # Your base limits use [-3.14, 3.14].
+                yaw_to_center = np.clip(
+                    yaw_to_center,
+                    -3.14,
+                    3.14,
+                )
+
+                self.C.setJointState(
+                    [
+                        base_x,
+                        base_y,
+                        yaw_to_center,
+                    ],
+                    [base_joint],
+                )
+
+            return self.C.getJointState().copy()
+
+        finally:
+            # Do not leave the actual configuration at the sampled state.
+            self.C.setJointState(q_saved)
 
     # based on implementation of vhartman
     def solve_komo(
@@ -35,6 +176,8 @@ class KeyframePlanner:
         view=False,
         view_accepted=False,
         seed=None,
+        base_target_positions=None,
+        base_circle_radius=DEFAULT_BASE_CIRCLE_RADIUS,
     ):
         q_dim = len(self.C.getJointState())
         limits = np.asarray(
@@ -71,26 +214,74 @@ class KeyframePlanner:
 
         rng = np.random.default_rng(seed)
         
+        base_target_positions = dict(
+            base_target_positions or {}
+        )
+        
         q0 = np.asarray(
             self.C.getJointState(),
             dtype=float,
         ).copy()
 
         for attempt in range(attempts):
-            if attempt == 0:
-                # First attempt: configured initial robot positions.
-                x_init = q0.copy()
+            # if attempt == 0:
+            #     # First attempt: configured initial robot positions.
+            #     x_init = q0.copy()
             
+            # else:
+            #     # Initially sample all joints normally. The base values are then
+            #     # replaced with samples around the relevant grasp targets.
+            #     x_init = rng.uniform(
+            #         low=lower,
+            #         high=upper,
+            #         size=q_dim,
+            #     )
+
+            #     x_init = self._sample_bases_around_targets(
+            #         x_init=x_init,
+            #         q0=q0,
+            #         base_target_positions=base_target_positions,
+            #         rng=rng,
+            #         radius=base_circle_radius,
+            #     )
+                
+            if attempt == 0:
+                x_init = q0.copy()
+
+            elif attempt < 20:
+                # Moderate perturbation around the current configuration.
+                x_init = q0 + rng.normal(
+                    0.0,
+                    0.25,
+                    size=q_dim,
+                )
+
+                x_init = np.clip(
+                    x_init,
+                    lower,
+                    upper,
+                )
+
             else:
-                # Gleichverteiltes Sample für jeden Freiheitsgrad innerhalb
-                # seines vollständigen erlaubten Bereichs.
+                # Occasional full random restart.
                 x_init = rng.uniform(
                     low=lower,
                     high=upper,
                     size=q_dim,
                 )
 
+            x_init = self._sample_bases_around_targets(
+                x_init=x_init,
+                q0=q0,
+                base_target_positions=base_target_positions,
+                rng=rng,
+                radius=base_circle_radius,
+            )
+
             komo.initWithConstant(x_init)
+            
+            # komo.view()
+            # time.sleep(10)
 
             solver = ry.NLP_Solver(
                 komo.nlp(),
@@ -108,10 +299,10 @@ class KeyframePlanner:
                 continue
 
             print(retval)
-            view = False
+            
             if view:
                 komo.view(
-                    True,
+                    False,
                     f"KOMO initialization, attempt {attempt}",
                 )
                 
@@ -121,7 +312,7 @@ class KeyframePlanner:
                     komo.view(False, "IK solution")
 
                 keyframes = komo.getPath()
-                #return keyframes
+                return keyframes
 
         print("FAILED to find solution")
 
@@ -382,11 +573,42 @@ class KeyframePlanner:
             #     ry.OT.eq,
             #     [1e1],
             # )
+            
+            
+        # The main base circles the midpoint between its two grasp targets.
+        base_target_positions = {
+            "husky_base_XYPhi_joint": 0.5 * (
+                np.asarray(
+                    self.C.getFrame(g1).getPosition(),
+                    dtype=float,
+                )
+                + np.asarray(
+                    self.C.getFrame(g2).getPosition(),
+                    dtype=float,
+                )
+            )
+        }
+
+        # Every newly deployed support robot circles its support-grasp point.
+        for support_gripper, support_grasp in (
+            support_grasp_by_gripper.items()
+        ):
+            base_joint = self._base_joint_for_gripper(
+                support_gripper
+            )
+
+            base_target_positions[base_joint] = np.asarray(
+                self.C.getFrame(
+                    support_grasp
+                ).getPosition(),
+                dtype=float,
+            )
 
         keyframes = self.solve_komo(
             komo,
             attempts=6,
             view=True,
+            base_target_positions=base_target_positions,
         )
 
         # ------------------------------------------------------------
@@ -646,7 +868,7 @@ class KeyframePlanner:
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [0.5])
 
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.
@@ -670,7 +892,7 @@ class KeyframePlanner:
                 ry.FS.positionDiff,
                 [support_gripper, gripper_target],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             komo.addObjective(
@@ -678,7 +900,7 @@ class KeyframePlanner:
                 ry.FS.quaternionDiff,
                 [support_gripper, gripper_target],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             # Keep the rod supported by this continuing support in its installed pose.
@@ -712,7 +934,7 @@ class KeyframePlanner:
                 ry.FS.positionDiff,
                 [support_gripper, gripper_target],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             komo.addObjective(
@@ -720,7 +942,7 @@ class KeyframePlanner:
                 ry.FS.quaternionDiff,
                 [support_gripper, gripper_target],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             # Because the candidate rod is still installed and still supported
@@ -767,7 +989,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             [rod, candidate_hold_target],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         komo.addObjective(
@@ -775,7 +997,7 @@ class KeyframePlanner:
             ry.FS.quaternionDiff,
             [rod, candidate_hold_target],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         # ------------------------------------------------------------
@@ -787,7 +1009,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             ["a1_ur_gripper_center", g1],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         komo.addObjective(
@@ -795,7 +1017,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             ["a2_ur_gripper_center", g2],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         komo.addObjective(
@@ -803,7 +1025,7 @@ class KeyframePlanner:
             ry.FS.scalarProductXZ,
             ["a1_ur_gripper_center", rod],
             ry.OT.eq,
-            [1e2],
+            [1e1],
             [1.0],
         )
 
@@ -812,7 +1034,7 @@ class KeyframePlanner:
             ry.FS.scalarProductXZ,
             ["a2_ur_gripper_center", rod],
             ry.OT.eq,
-            [1e2],
+            [1e1],
             [1.0],
         )
 
@@ -863,7 +1085,7 @@ class KeyframePlanner:
                 ry.FS.positionDiff,
                 [support_gripper, support_grasp],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             komo.addObjective(
@@ -890,7 +1112,7 @@ class KeyframePlanner:
                 ry.FS.positionDiff,
                 [support_rod, support_target],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             komo.addObjective(
@@ -898,7 +1120,7 @@ class KeyframePlanner:
                 ry.FS.quaternionDiff,
                 [support_rod, support_target],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
         # ------------------------------------------------------------
@@ -910,7 +1132,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             [rod, pickup_name],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         komo.addObjective(
@@ -918,14 +1140,45 @@ class KeyframePlanner:
             ry.FS.scalarProductZZ,
             [rod, pickup_name],
             ry.OT.eq,
-            [1e2],
+            [1e1],
             [1.0],
         )
+        
+        # The main base circles the midpoint between its two grasp targets.
+        base_target_positions = {
+            "husky_base_XYPhi_joint": 0.5 * (
+                np.asarray(
+                    self.C.getFrame(g1).getPosition(),
+                    dtype=float,
+                )
+                + np.asarray(
+                    self.C.getFrame(g2).getPosition(),
+                    dtype=float,
+                )
+            )
+        }
+
+        # Every newly deployed support robot circles its support-grasp point.
+        for support_gripper, support_grasp in (
+            support_grasp_by_gripper.items()
+        ):
+            base_joint = self._base_joint_for_gripper(
+                support_gripper
+            )
+
+            base_target_positions[base_joint] = np.asarray(
+                self.C.getFrame(
+                    support_grasp
+                ).getPosition(),
+                dtype=float,
+            )
+    
 
         keyframes = self.solve_komo(
             komo,
             attempts=100,
             view=False,
+            base_target_positions=base_target_positions,
         )
 
         if keyframes is None:
