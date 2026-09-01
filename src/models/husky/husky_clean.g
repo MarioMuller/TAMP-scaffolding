@@ -1,6 +1,6 @@
 base_link 	{  }
 base_link_1 (base_link) 	{ , shape:mesh, mesh:'meshes/base_link_1.ply', visual }
-base_link_0 (base_link) 	{ Q:[0, 0, 0.08, 0, 0, 0, 1]  , shape:box, size:[1, 0.7, 0.4, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#base_link_0 (base_link) 	{ Q:[0, 0, 0.08, 0, 0, 0, 1]  , shape:box, size:[1, 0.7, 0.4, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 base_link>front_left_wheel (base_link) 	{  Q:[0.256, 0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
 base_link>front_right_wheel (base_link) 	{  Q:[0.256, -0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
 base_link>rear_left_wheel (base_link) 	{  Q:[-0.256, 0.2854, 0.03282, 0.707107, 0, 0, 0.707107] }
@@ -12,9 +12,9 @@ front_bumper_extension_link_1 (base_link) 	{  Q:[0.486, 0, 0.091, 1, 0, 0, 0], s
 rear_bumper_link_1 (base_link) 	{  Q:[-0.48, 0, 0.091, 1.32679e-06, 0, 0, 1], shape:mesh, mesh:'meshes/rear_bumper_link_1.ply', visual }
 dual_arm_bulkhead_link_1 (base_link) 	{  Q:[0, 0, 0.224, 1, 0, 0, 0], shape:mesh, mesh:'meshes/dual_arm_bulkhead_link_1.ply', visual }
 #dual_arm_bulkhead_link_0 (base_link) 	{  Q:[0, 0, 0.224, 1, 0, 0, 0], shape:mesh, color:[1.0, 1.0, 0.0, 0.5], mesh:'meshes/dual_arm_bulkhead_link_0.ply', contact:-2 }
-top_coll_middle (base_link) 	{ Q:[0, 0, 0.4, 0, 0, 0, 1]  , shape:box, size:[0.8, 0.2, 0.05, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
-top_coll_right (base_link) 	{ Q:[0, 0.15, 0.35, 0, 0, 0.383,  0.924]  , shape:box, size:[0.8, 0.2, 0.05, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
-top_coll_left (base_link) 	{ Q:[0, -0.15, 0.35, 0, 0, -0.383,  0.924]  , shape:box, size:[0.8, 0.2, 0.05, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#top_coll_middle (base_link) 	{ Q:[0, 0, 0.4, 0, 0, 0, 1]  , shape:box, size:[0.8, 0.2, 0.05, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#top_coll_right (base_link) 	{ Q:[0, 0.15, 0.35, 0, 0, 0.383,  0.924]  , shape:box, size:[0.8, 0.2, 0.05, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
+#top_coll_left (base_link) 	{ Q:[0, -0.15, 0.35, 0, 0, -0.383,  0.924]  , shape:box, size:[0.8, 0.2, 0.05, 0], color:[0.8, 0.2, 0.2, 0.5], contact:-2 }
 
 base_link>dual_arm_bulkhead_joint (base_link) 	{  Q:[0, 0, 0.224, 1, 0, 0, 0] }
 dual_arm_bulkhead_joint (base_link>dual_arm_bulkhead_joint) 	{ , joint:rigid }

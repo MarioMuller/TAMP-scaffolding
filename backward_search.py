@@ -2,6 +2,8 @@ from truss import Truss
 from collections import defaultdict, deque
 import heapq
 import time
+import numpy as np
+
 from DataClasses import SearchNode, StructuralRemovalStep
 from rigidityCheck.truss_rigidity import TrussRigidityChecker
 
@@ -175,6 +177,38 @@ class AssemblyPlanner:
         return (
             state,
             active_supports,
+        )
+        
+    def search_state_key(self, node):
+        """
+        Complete search state.
+
+        When RAI is enabled, two nodes with the same rods and supports
+        may still be different because the robots have different joint
+        configurations.
+        """
+        structural_key = self.structural_state_key(
+            node.state,
+            node.supported,
+        )
+
+        if node.q is None:
+            q_key = None
+
+        else:
+            q_key = tuple(
+                np.round(
+                    np.asarray(
+                        node.q,
+                        dtype=float,
+                    ),
+                    decimals=3,
+                )
+            )
+
+        return (
+            *structural_key,
+            q_key,
         )
 
 
@@ -554,19 +588,9 @@ class AssemblyPlanner:
         best_node = initial_node
         best_remaining = len(initial_state)
         last_progress_expansion = 0
-        
-        def configuration_key(state, supported_rods):
-            state = frozenset(state)
-            return (
-                state,
-                frozenset(supported_rods) & state,
-            )
 
         visited = {
-            self.structural_state_key(
-                initial_node.state,
-                initial_node.supported,
-            )
+            self.search_state_key(initial_node)
         }
         
         attempted_transitions = set()
@@ -622,25 +646,35 @@ class AssemblyPlanner:
                 if candidate_rod not in node.state:
                     continue
 
-                parent_key = configuration_key(
-                    node.state,
-                    node.supported.values(),
+                # Structural transition identity. This is used only for transitions
+                # explicitly forbidden independent of robot configuration.
+                structural_transition_key = (
+                    self.structural_transition_key(
+                        state=node.state,
+                        supported=node.supported,
+                        candidate_rod=candidate_rod,
+                    )
                 )
 
-                transition_key = self.structural_transition_key(
-                    state=node.state,
-                    supported=node.supported,
-                    candidate_rod=candidate_rod,
+                if (
+                    structural_transition_key
+                    in self.forbidden_transitions
+                ):
+                    continue
+
+                # The same structural transition may behave differently when reached
+                # with a different robot configuration.
+                physical_transition_key = (
+                    self.search_state_key(node),
+                    int(candidate_rod),
                 )
 
-                # This transition previously failed during RAI validation.
-                if transition_key in self.forbidden_transitions:
+                if physical_transition_key in attempted_transitions:
                     continue
 
-                if transition_key in attempted_transitions:
-                    continue
-
-                attempted_transitions.add(transition_key)
+                attempted_transitions.add(
+                    physical_transition_key
+                )
 
                 new_state = frozenset(
                     node.state - {candidate_rod}
@@ -693,9 +727,8 @@ class AssemblyPlanner:
                     ),
                 )
                 
-                state_key = self.structural_state_key(
-                    new_node.state,
-                    new_node.supported,
+                state_key = self.search_state_key(
+                    new_node
                 )
 
                 if state_key in visited:

@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<robot name="ur5e_rai_exact">
+
+  <link name="base"/>
+  <link name="shoulder_pan_link"/>
+  <link name="shoulder_lift_link"/>
+  <link name="elbow_link"/>
+  <link name="wrist_1_link"/>
+  <link name="wrist_2_link"/>
+  <link name="wrist_3_link"/>
+  <link name="robotiq_base"/>
+  <link name="gripper_center"/>
+
+  <joint name="shoulder_pan_joint" type="revolute">
+    <parent link="base"/>
+    <child link="shoulder_pan_link"/>
+    <origin xyz="0 0 0.0991"
+            rpy="1.5707963267948966 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-6.2832" upper="6.2832"
+           effort="150" velocity="3.14"/>
+  </joint>
+
+  <joint name="shoulder_lift_joint" type="revolute">
+    <parent link="shoulder_pan_link"/>
+    <child link="shoulder_lift_link"/>
+    <origin xyz="0 0.0634 0.0744"
+            rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.0" upper="0.75"
+           effort="150" velocity="3.14"/>
+  </joint>
+
+  <joint name="elbow_joint" type="revolute">
+    <parent link="shoulder_lift_link"/>
+    <child link="elbow_link"/>
+    <origin xyz="0 0.425 0"
+            rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.1416" upper="3.1416"
+           effort="150" velocity="3.14"/>
+  </joint>
+
+  <joint name="wrist_1_joint" type="revolute">
+    <parent link="elbow_link"/>
+    <child link="wrist_1_link"/>
+    <origin xyz="0 0.3922 -0.0215"
+            rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.2832" upper="3.2832"
+           effort="28" velocity="6.28"/>
+  </joint>
+
+  <joint name="wrist_2_joint" type="revolute">
+    <parent link="wrist_1_link"/>
+    <child link="wrist_2_link"/>
+    <origin xyz="0 0.0463 0.0804"
+            rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.2832" upper="3.2832"
+           effort="28" velocity="6.28"/>
+  </joint>
+
+  <joint name="wrist_3_joint" type="revolute">
+    <parent link="wrist_2_link"/>
+    <child link="wrist_3_link"/>
+    <origin xyz="0 0.0534 0.0463"
+            rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-6.2832" upper="6.2832"
+           effort="28" velocity="6.28"/>
+  </joint>
+
+  <joint name="wrist_3-robotiq_base" type="fixed">
+    <parent link="wrist_3_link"/>
+    <child link="robotiq_base"/>
+    <origin xyz="0 0 0.09"
+            rpy="0 0 1.5707963267948966"/>
+  </joint>
+
+  <joint name="robotiq_base-gripper_center" type="fixed">
+    <parent link="robotiq_base"/>
+    <child link="gripper_center"/>
+    <origin xyz="0 0 0.13"
+            rpy="0 0 0"/>
+  </joint>
+
+</robot>
