@@ -603,7 +603,7 @@ class KeyframePlanner:
         solutions = ur5e_ssik.solve(
             T_base_target,
             q_seed=q_seed,
-            max_solutions=1,
+            max_solutions=8,
         )
 
         if not solutions:
@@ -1321,6 +1321,12 @@ class KeyframePlanner:
 
         rod = f"rod_{rod_id}"
         q0 = self.C.getJointState().copy()
+        
+        main_gripper = "a1_ur_gripper_center"
+        second_main_gripper = "a2_ur_gripper_center"
+        main_uses_two_arms = (
+            self.C.getFrame(second_main_gripper) is not None
+        )
 
         supported = dict(supported or {})
         support_q = dict(support_q or {})
@@ -1357,30 +1363,37 @@ class KeyframePlanner:
 
         self.copy_frame_pose(rod, candidate_hold_target)
 
-        # TODO: Give it more flexibility if only one needs to grab at connector
-        rod_length = self.rods.get_rod_length(rod_id)
+        if main_uses_two_arms:
+            rod_length = self.rods.get_rod_length(rod_id)
 
-        # Keep both grasps away from the rod ends.
-        end_margin = min(0.12, 0.20 * rod_length)
+            # Keep both grasps away from the rod ends.
+            end_margin = min(0.12, 0.20 * rod_length)
 
-        # Use the preferred 0.8 m separation when possible,
-        # otherwise use the largest separation that fits.
-        grasp_separation = min(
-            0.8,
-            rod_length - 2.0 * end_margin,
-        ) 
-
-        if grasp_separation <= 0.0:
-            raise ValueError(
-                f"Rod {rod_id} is too short for a dual-arm grasp: "
-                f"length={rod_length}"
+            # Use the preferred 0.8 m separation when possible,
+            # otherwise use the largest separation that fits.
+            grasp_separation = min(
+                0.8,
+                rod_length - 2.0 * end_margin,
             )
 
-        g1, g2 = self.rods.create_dual_arm_grasp_frames(
-            rod_id,
-            d1_from_end=end_margin,
-            d12_between_arms=grasp_separation,
-        )
+            if grasp_separation <= 0.0:
+                raise ValueError(
+                    f"Rod {rod_id} is too short for a dual-arm grasp: "
+                    f"length={rod_length}"
+                )
+
+            g1, g2 = self.rods.create_dual_arm_grasp_frames(
+                rod_id,
+                d1_from_end=end_margin,
+                d12_between_arms=grasp_separation,
+            )
+
+        else:
+            g1 = self.rods.create_support_grasp_frame_at_fraction(
+                rod_id,
+                0.5,
+            )
+            g2 = None
 
         # Fixed target frames for already-active continuing supports.
         # These targets are created before KOMO is constructed.
@@ -1495,8 +1508,12 @@ class KeyframePlanner:
         
         activation_segment_by_arm = {
             "a1": phase_info["main_grasp_segment"],
-            "a2": phase_info["main_grasp_segment"],
         }
+
+        if main_uses_two_arms:
+            activation_segment_by_arm["a2"] = (
+                phase_info["main_grasp_segment"]
+            )
 
         for support_gripper in support_grasp_by_gripper:
             arm_name = support_gripper.removesuffix(
@@ -1524,7 +1541,7 @@ class KeyframePlanner:
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e2])
 
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.
@@ -1659,56 +1676,56 @@ class KeyframePlanner:
         # ------------------------------------------------------------
         # Main grasps candidate rod and keeps it until pickup.
         # ------------------------------------------------------------
-
         komo.addObjective(
             [t_grasp, t_pickup],
             ry.FS.positionDiff,
-            ["a1_ur_gripper_center", g1],
+            [main_gripper, g1],
             ry.OT.eq,
-            [1e1],
-        )
-
-        komo.addObjective(
-            [t_grasp, t_pickup],
-            ry.FS.positionDiff,
-            ["a2_ur_gripper_center", g2],
-            ry.OT.eq,
-            [1e1],
+            [1e2],
         )
 
         komo.addObjective(
             [t_grasp, t_pickup],
             ry.FS.scalarProductXZ,
-            ["a1_ur_gripper_center", rod],
+            [main_gripper, rod],
             ry.OT.eq,
-            [1e1],
+            [1e2],
             [1.0],
         )
 
-        komo.addObjective(
-            [t_grasp, t_pickup],
-            ry.FS.scalarProductXZ,
-            ["a2_ur_gripper_center", rod],
-            ry.OT.eq,
-            [1e1],
-            [1.0],
-        )
+        if main_uses_two_arms:
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.positionDiff,
+                [second_main_gripper, g2],
+                ry.OT.eq,
+                [1e2],
+            )
 
-        komo.addObjective(
-            [t_grasp, t_pickup],
-            ry.FS.scalarProductYY,
-            ["a1_ur_gripper_center", "a2_ur_gripper_center"],
-            ry.OT.eq,
-            [1e1],
-            [1.0],
-        )
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.scalarProductXZ,
+                [second_main_gripper, rod],
+                ry.OT.eq,
+                [1e2],
+                [1.0],
+            )
+
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.scalarProductYY,
+                [main_gripper, second_main_gripper],
+                ry.OT.eq,
+                [1e1],
+                [1.0],
+            )
 
         komo.addModeSwitch(
             [t_grasp, t_pickup],
             ry.SY.stable,
-            ["a1_ur_gripper_center", rod],
+            [main_gripper, rod],
             True,
-        )
+        )        
 
         # ------------------------------------------------------------
         # If candidate was supported, old support moves away after
@@ -1824,18 +1841,22 @@ class KeyframePlanner:
             [1.0],
         )
         
-        # The main base circles the midpoint between its two grasp targets.
-        base_target_positions = {
-            "husky_base_XYPhi_joint": 0.5 * (
-                np.asarray(
-                    self.C.getFrame(g1).getPosition(),
-                    dtype=float,
-                )
+        main_base_target = np.asarray(
+            self.C.getFrame(g1).getPosition(),
+            dtype=float,
+        )
+
+        if main_uses_two_arms:
+            main_base_target = 0.5 * (
+                main_base_target
                 + np.asarray(
                     self.C.getFrame(g2).getPosition(),
                     dtype=float,
                 )
             )
+
+        base_target_positions = {
+            "husky_base_XYPhi_joint": main_base_target,
         }
 
         # Every newly deployed support robot circles its support-grasp point.
@@ -1867,7 +1888,10 @@ class KeyframePlanner:
                 "alignment": 1.0,
                 "roll_group": "main_candidate",
             },
-            "a2": {
+        }
+
+        if main_uses_two_arms:
+            ik_targets["a2"] = {
                 "position": np.asarray(
                     self.C.getFrame(g2).getPosition(),
                     dtype=float,
@@ -1875,8 +1899,7 @@ class KeyframePlanner:
                 "rod_rotation": candidate_rotation,
                 "alignment": 1.0,
                 "roll_group": "main_candidate",
-            },
-        }
+            }
 
         for support_gripper, support_grasp in (
             support_grasp_by_gripper.items()
@@ -1913,7 +1936,7 @@ class KeyframePlanner:
             base_target_positions=base_target_positions,
             ik_targets=ik_targets,
             circle_samples=8,
-            base_circle_radius=0.6,
+            base_circle_radius=0.9,
             n_phases=phases.n_phases,
             activation_segment_by_arm=(activation_segment_by_arm),
         )

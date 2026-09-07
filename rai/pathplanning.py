@@ -175,11 +175,11 @@ class PathPlanner:
                 print(f"RRT returns: ", ret)
                 
                 if ret.feasible:
-                    path = ret.x
-                    return path
+                    return ret.x
                 
         
-        raise RuntimeError("RRT failed to find a Path")
+        print("RRT failed to find a path")
+        return None
         
     def plan_segment(
         self,

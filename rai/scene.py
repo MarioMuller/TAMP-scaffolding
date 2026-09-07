@@ -29,83 +29,134 @@ class RaiScene:
             .setColor([0.9, 0.9, 0.9]) \
             .setContact(1)
 
-    def import_main_husky(self):
+    def import_main_husky(self, arm_count=2, single_arm_mount="center"):
         """
-        import the main husky robot with two arms
-        
+        Import the main Husky robot.
+
+        arm_count:
+            1 = one main UR5 arm, mounted like the support robots
+            2 = original dual-arm main robot
         """
+        if arm_count not in (1, 2):
+            raise ValueError(
+                f"arm_count must be 1 or 2, got {arm_count}"
+            )
+
+        if single_arm_mount not in ("center", "right", "left"):
+            raise ValueError(
+                "single_arm_mount must be 'center', 'right', or 'left'"
+            )
 
         self._ensure_table()
 
-        # paths to the files
-        husky_path = os.path.join(os.path.dirname(__file__), "../src/models/husky/husky.g")
-        robot_path = os.path.join(os.path.dirname(__file__), "../src/models/ur5/ur5.g")
+        husky_path = os.path.join(
+            os.path.dirname(__file__),
+            "../src/models/husky/husky.g",
+        )
+        robot_path = os.path.join(
+            os.path.dirname(__file__),
+            "../src/models/ur5/ur5.g",
+        )
 
+        self.C.addFrame("husky_base_XYPhi_joint") \
+            .setParent(self.C.getFrame("world")) \
+            .setJoint(
+                ry.JT.transXYPhi,
+                limits=np.array([-30, 30, -30, 30, -3.14, 3.14]),
+            ) \
+            .setJointState([-1.0, 0.0, 0.0])
 
-        self.C.addFrame("husky_base_XYPhi_joint") .setParent(self.C.getFrame("world")) .setJoint(
-            ry.JT.transXYPhi, limits=np.array([-30, 30, -30, 30, -3.14, 3.14])
-        ).setJointState([-1., 0, 0])
+        self.C.addFile(husky_path, namePrefix="husky_coll_") \
+            .setParent(self.C.getFrame("husky_base_XYPhi_joint")) \
+            .setRelativePosition([0, 0.0, 0.16])
 
-        self.C.addFile(husky_path, namePrefix="husky_coll_").setParent(
-            self.C.getFrame("husky_base_XYPhi_joint")
-        ).setRelativePosition([0, 0.0, 0.16])
-             
         q_rotate_90_z = [
-            0.70710678,  # w
-            0.0,         # x
-            0.0,         # y
-            0.70710678,  # z
+            0.70710678,
+            0.0,
+            0.0,
+            0.70710678,
         ]
 
-        # attatch both arms to the husky
-        self.C.addFile(robot_path, namePrefix="a1_").setParent(
-        self.C.getFrame("husky_coll_right_arm_bulkhead_joint")
-            ).setRelativePosition([0, 0, 0]).setRelativeQuaternion(q_rotate_90_z)
+        def add_arm(prefix, parent_name, relative_quaternion):
+            parent = self.C.getFrame(parent_name)
 
-        self.C.addFile(robot_path, namePrefix="a2_").setParent(
-        self.C.getFrame("husky_coll_left_arm_bulkhead_joint")
-            ).setRelativePosition([0, 0, 0]).setRelativeQuaternion(q_rotate_90_z)
-        
-        # ------------------------------------------------------------------
-        # Initialize the 2 x six UR5 joints
-        # ------------------------------------------------------------------
-            
-        # The UR5 joints belong to individual frames.
-        arm_joint_names_a1 = [
-            joint_name
-            for joint_name in self.C.getJointNames()
-            if joint_name.startswith("a1_")
-        ]
-        
-        arm_joint_names_a2 = [
-            joint_name
-            for joint_name in self.C.getJointNames()
-            if joint_name.startswith("a2_")
-        ]
+            if parent is None:
+                raise RuntimeError(
+                    f"Could not find main Husky mounting parent: {parent_name}"
+                )
 
-        if len(arm_joint_names_a1) != 6:
-            raise RuntimeError(
-                f"Expected 6 joints for {name}, "
-                f"found {len(arm_joint_names_a1)}: {arm_joint_names_a1}"
+            self.C.addFile(robot_path, namePrefix=prefix) \
+                .setParent(parent) \
+                .setRelativePosition([0, 0, 0]) \
+                .setRelativeQuaternion(relative_quaternion)
+
+            arm_joint_names = [
+                joint_name
+                for joint_name in self.C.getJointNames()
+                if joint_name.startswith(prefix)
+            ]
+
+            if len(arm_joint_names) != 6:
+                raise RuntimeError(
+                    f"Expected 6 joints for {prefix}, "
+                    f"found {len(arm_joint_names)}: {arm_joint_names}"
+                )
+
+            self.C.setJointState(
+                [0.0, (-2 + 0.75) / 2, 0.0, 0.0, 0.0, 0.0],
+                arm_joint_names,
             )
 
-        if len(arm_joint_names_a2) != 6:
-            raise RuntimeError(
-                f"Expected 6 joints for {name}, "
-                f"found {len(arm_joint_names_a2)}: {arm_joint_names_a2}"
+        if arm_count == 1 and single_arm_mount == "center":
+            center_mount = "main_center_arm_mount"
+            mount_parent = "husky_coll_dual_arm_bulkhead_link"
+
+            parent = self.C.getFrame(mount_parent)
+
+            if parent is None:
+                raise RuntimeError(
+                    f"Could not find main Husky mounting parent: {mount_parent}"
+                )
+
+            self.C.addFrame(center_mount) \
+                .setParent(parent) \
+                .setRelativePosition([
+                    0.1225,
+                    0.0,
+                    0.19371,
+                ]) \
+                .setRelativeQuaternion([
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ])
+
+            add_arm("a1_", center_mount, [1.0, 0.0, 0.0, 0.0])
+
+        elif arm_count == 1:
+            parent_by_mount = {
+                "right": "husky_coll_right_arm_bulkhead_joint",
+                "left": "husky_coll_left_arm_bulkhead_joint",
+            }
+
+            add_arm(
+                "a1_",
+                parent_by_mount[single_arm_mount],
+                q_rotate_90_z,
             )
 
-        self.C.setJointState(
-            [0.0, (-2+0.75)/2, 0.0, 0.0, 0.0, 0.0],
-            arm_joint_names_a1,
-        )
-
-        self.C.setJointState(
-            [0.0, (-2+0.75)/2, 0.0, 0.0, 0.0, 0.0],
-            arm_joint_names_a2,
-        )
-
-        return
+        else:
+            add_arm(
+                "a1_",
+                "husky_coll_right_arm_bulkhead_joint",
+                q_rotate_90_z,
+            )
+            add_arm(
+                "a2_",
+                "husky_coll_left_arm_bulkhead_joint",
+                q_rotate_90_z,
+            )
     
     def import_main_husky_baseless(self):
         """

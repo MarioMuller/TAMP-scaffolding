@@ -9,11 +9,12 @@ from rai.builder import RaiTrussBuilder
 from truss import Truss
 
 
-def create_rai_builder(truss):
+def create_rai_builder(truss, main_robot_arm_count=1):
     builder = RaiTrussBuilder(
         truss=truss,
         radius=0.005,
         scale=0.0011,
+        main_robot_arm_count=main_robot_arm_count
     )
     builder.import_robots()
     return builder
@@ -145,8 +146,8 @@ def validate_structural_plan_with_rai(
                 continuing_supports=continuing_supports,
                 releasable_supports=releasable_supports,
                 new_support_assignments=dict(step.added_supports),
-                use_rrt=False,
-                do_shortcut=False,
+                use_rrt=True,
+                do_shortcut=True,
             )
 
             if motion_result is None:
@@ -231,6 +232,8 @@ def main():
     truss = Truss.from_json(
         "JSON/own_examples/260804_RobArchDemo_ini.json"
     )
+    
+    MAIN_ROBOT_ARM_COUNT = 1
 
     support_grippers = (
         "h1_a1_ur_gripper_center",
@@ -242,20 +245,23 @@ def main():
     if filter_enabled:
         selected_rods = {
             # Example:
-            4, 14, #2, 1,
+            13, 15, 0, 5 #4, 14, #2, 1,
         }
         filter_truss(truss, selected_rods)
 
     # The builder must be created after optional filtering so its RAI scene and
     # the structural truss contain exactly the same rods.
-    rai_builder = create_rai_builder(truss)
+    rai_builder = create_rai_builder(
+        truss,
+        main_robot_arm_count=MAIN_ROBOT_ARM_COUNT,
+    )
     rai_initial_q = rai_builder.C.getJointState().copy()
 
     # These persist across complete structural replanning rounds.
     rai_cache = {}
     forbidden_transitions = set()
 
-    max_structural_replans = 100
+    max_structural_replans = 1000
     accepted_sequence = None
     accepted_records = None
 
@@ -381,7 +387,7 @@ def main():
         removal_plan
     )
 
-    replay_builder = create_rai_builder(truss)
+    replay_builder = create_rai_builder(truss, main_robot_arm_count=MAIN_ROBOT_ARM_COUNT)
     replay_builder.display_recorded_plan_viser(
         assembly_plan,
         port=8080,
@@ -394,6 +400,7 @@ def main():
             0.70710678,
         ],
         replay_mode="assembly",
+        replay_reduction=1000,
     )
 
 

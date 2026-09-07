@@ -147,9 +147,10 @@ class ViserPlanReplayer:
 
         return C_display_base
 
-    def _precompute_viser_steps(self, recorder, C_base, replay_mode="removal"):
+    def _precompute_viser_steps(self, recorder, C_base, replay_mode="removal", replay_reduction=1):
         C_sim = ry.Config()
         C_sim.addConfigurationCopy(C_base)
+        replay_reduction = max(1, int(replay_reduction))
 
         steps = []
 
@@ -205,6 +206,15 @@ class ViserPlanReplayer:
                         )
 
                         pre_events_applied = True
+                        
+                    keep_step = (
+                        q_id == 0
+                        or q_id == len(path) - 1
+                        or q_id % replay_reduction == 0
+                    )
+
+                    if not keep_step:
+                        continue
 
                     poses = {}
                     for frame in C_sim.getFrames():
@@ -318,6 +328,7 @@ class ViserPlanReplayer:
         rod_ori=(0.5, 0.0, 0.5, 0.70710678),
         primitives_only=False,
         replay_mode="removal",
+        replay_reduction=1,
     ):
         try:
             import viser

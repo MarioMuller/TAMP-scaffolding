@@ -13,11 +13,12 @@ import time
 
 class RaiTrussBuilder:
 
-    def __init__(self, truss, radius=0.005, scale=0.001):
+    def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2):
         
         self.truss = truss
         self.radius = radius
         self.scale = scale
+        self.main_robot_arm_count = main_robot_arm_count
 
         self.scene = RaiScene()
         self.C = self.scene.C
@@ -25,12 +26,14 @@ class RaiTrussBuilder:
         self.rods = RodManager(self.C, truss, radius=radius, scale=scale)
 
         self.keyframes = KeyframePlanner(self.C, self.rods)
-        # self.paths = PathPlanner(self.C)
+        self.paths = PathPlanner(self.C)
         # self.replayer = PlanReplayer(self.C, self.rods)
         self.viser_replayer = ViserPlanReplayer(self.C, self.rods)
+        
+        
 
     def import_main_husky(self):
-        self.scene.import_main_husky()
+        self.scene.import_main_husky(arm_count=self.main_robot_arm_count)
         # self.scene.import_main_husky_baseless()
 
     def import_support_husky(self, name="h2", color=None, base_q=(-6.0, -0.0, 0)):
