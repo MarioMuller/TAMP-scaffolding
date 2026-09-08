@@ -348,6 +348,12 @@ class ViserPlanReplayer:
             recorder,
             C_display_base,
             replay_mode=replay_mode,
+            replay_reduction=replay_reduction,
+        )
+
+        print(
+            f"[viser] replay reduction: keeping every "
+            f"{max(1, int(replay_reduction))} path point"
         )
 
         if len(steps) == 0:

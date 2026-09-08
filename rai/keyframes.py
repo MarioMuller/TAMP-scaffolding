@@ -262,6 +262,7 @@ class KeyframePlanner:
         circle_samples=8,
         n_phases=None,
         activation_segment_by_arm=None,
+        accept_keyframes=None,
     ):
         q0 = np.asarray(
             self.C.getJointState(),
@@ -298,7 +299,20 @@ class KeyframePlanner:
         )
 
         if keyframes is not None:
-            return keyframes
+            if (
+                accept_keyframes is None
+                or accept_keyframes(
+                    keyframes,
+                    q0,
+                    "previous configuration",
+                )
+            ):
+                return keyframes
+
+            print(
+                "previous configuration: rejected by "
+                "keyframe acceptor"
+            )
 
         # ------------------------------------------------------------
         # Group analytical targets by physical mobile robot.
@@ -418,8 +432,27 @@ class KeyframePlanner:
             )
 
             if keyframes is not None:
-                # komo.view(True)
-                return keyframes
+                if (
+                    accept_keyframes is None
+                    or accept_keyframes(
+                        keyframes,
+                        q0,
+                        (
+                            f"combination "
+                            f"{combination_index}/"
+                            f"{combination_count} "
+                            f"({description})"
+                        ),
+                    )
+                ):
+                    # komo.view(True)
+                    return keyframes
+
+                print(
+                    f"combination {combination_index}/"
+                    f"{combination_count} ({description}): "
+                    "rejected by keyframe acceptor"
+                )
 
         print(
             "FAILED: all analytical robot "
@@ -1288,6 +1321,7 @@ class KeyframePlanner:
         releasable_supports=None,
         new_support_assignments=None,
         support_fraction=0.5,
+        accept_keyframes=None,
     ):
         """
         Backward removal of rod_id.
@@ -1541,7 +1575,7 @@ class KeyframePlanner:
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e2])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [0.5])
 
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.
@@ -1785,14 +1819,16 @@ class KeyframePlanner:
                 [0.0, 0.0, -0.5 * length + margin],
             )
 
-            # komo.addObjective(
-            #     [t_support, t_pickup],
-            #     ry.FS.scalarProductXZ,
-            #     [support_gripper, support_rod],
-            #     ry.OT.eq,
-            #     [1e1],
-            #     [-1.0],
-            # )
+            # Keep the support gripper's local X-axis aligned with the rod
+            # axis while support is active.
+            komo.addObjective(
+                [t_support, t_pickup],
+                ry.FS.scalarProductXZ,
+                [support_gripper, support_rod],
+                ry.OT.eq,
+                [1e2],
+                [-1.0],
+            )
 
             # Support robot holds the affected rod.
             komo.addModeSwitch(
@@ -1930,6 +1966,17 @@ class KeyframePlanner:
                 "roll_group": arm_name,
             }
 
+        keyframe_acceptor = None
+
+        if accept_keyframes is not None:
+            def keyframe_acceptor(keyframes, q0, label):
+                return accept_keyframes(
+                    keyframes,
+                    q0,
+                    label,
+                    phase_info,
+                )
+
         keyframes = self.solve_komo(
             komo,
             view=False,
@@ -1939,6 +1986,7 @@ class KeyframePlanner:
             base_circle_radius=0.9,
             n_phases=phases.n_phases,
             activation_segment_by_arm=(activation_segment_by_arm),
+            accept_keyframes=keyframe_acceptor,
         )
 
         if keyframes is None:

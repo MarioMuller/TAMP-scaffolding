@@ -144,6 +144,71 @@ class RaiTrussBuilder:
 
         return target_frame_name
 
+    def _support_joint_names(self, support_gripper):
+        all_joint_names = list(self.C.getJointNames())
+        arm_name = support_gripper.removesuffix("_ur_gripper_center")
+        robot_prefix = support_gripper.split("_", maxsplit=1)[0]
+        base_joint = f"{robot_prefix}_base_XYPhi_joint"
+        arm_prefix = f"{arm_name}_"
+
+        return [
+            joint_name
+            for joint_name in all_joint_names
+            if (
+                joint_name == base_joint
+                or joint_name.startswith(f"{base_joint}:")
+                or joint_name.startswith(arm_prefix)
+            )
+        ]
+
+    def _active_joint_names_with_locked_supports(self, locked_grippers):
+        locked_joint_names = set()
+
+        for support_gripper in locked_grippers:
+            locked_joint_names.update(
+                self._support_joint_names(support_gripper)
+            )
+
+        return [
+            joint_name
+            for joint_name in self.C.getJointNames()
+            if joint_name not in locked_joint_names
+        ]
+
+    def _joint_indices(self, joint_names):
+        joint_index = {
+            joint_name: i
+            for i, joint_name in enumerate(self.C.getJointNames())
+        }
+
+        return [
+            joint_index[joint_name]
+            for joint_name in joint_names
+            if joint_name in joint_index
+        ]
+
+    def _locked_support_grippers_for_segment(
+        self,
+        segment_id,
+        phase_info,
+        continuing_supports,
+        releasable_supports,
+    ):
+        locked_grippers = set(continuing_supports)
+        main_grasp_segment = phase_info["main_grasp_segment"]
+
+        for support_gripper in releasable_supports:
+            if segment_id <= main_grasp_segment:
+                locked_grippers.add(support_gripper)
+
+        for support_gripper, support_segment in (
+            phase_info["new_support_segments"].items()
+        ):
+            if segment_id > support_segment:
+                locked_grippers.add(support_gripper)
+
+        return locked_grippers
+
     def try_remove_and_commit_rod(
         self,
         current_state,
@@ -222,6 +287,129 @@ class RaiTrussBuilder:
         # constraints that keep those grippers/rods fixed. builder.py only passes
         # the information to keyframes.py
         
+        rrt_segments = None
+        rrt_keyframes = None
+
+        def accept_keyframes_with_rrt(
+            keyframes,
+            q0,
+            label,
+            phase_info,
+        ):
+            if not use_rrt:
+                return True
+
+            nonlocal rrt_segments
+            nonlocal rrt_keyframes
+
+            planned_segments = []
+            accepted_keyframes = []
+            q_current = np.asarray(q0, dtype=float).copy()
+            self.C.setJointState(q_current)
+
+            try:
+                for i, q_goal in enumerate(keyframes):
+                    q_goal = np.asarray(q_goal, dtype=float).copy()
+
+                    print(
+                        f"{label}: planning RRT segment {i}: "
+                        f"{q_current.shape} -> {q_goal.shape}"
+                    )
+
+                    locked_grippers = (
+                        self._locked_support_grippers_for_segment(
+                            segment_id=i,
+                            phase_info=phase_info,
+                            continuing_supports=continuing_supports,
+                            releasable_supports=releasable_supports,
+                        )
+                    )
+
+                    if locked_grippers:
+                        active_joint_names = (
+                            self._active_joint_names_with_locked_supports(
+                                locked_grippers
+                            )
+                        )
+
+                        locked_joint_names = [
+                            joint_name
+                            for joint_name in self.C.getJointNames()
+                            if joint_name not in set(active_joint_names)
+                        ]
+
+                        print(
+                            f"{label}: locked support DOFs during "
+                            f"segment {i}: {len(locked_joint_names)}"
+                        )
+
+                        locked_indices = self._joint_indices(
+                            locked_joint_names
+                        )
+
+                        locked_delta = (
+                            np.linalg.norm(
+                                q_goal[locked_indices]
+                                - q_current[locked_indices]
+                            )
+                            if locked_indices
+                            else 0.0
+                        )
+
+                        if locked_delta > 1e-9:
+                            print(
+                                f"{label}: clamping locked support "
+                                f"joints during segment {i} "
+                                f"(delta {locked_delta:.6g})"
+                            )
+                            q_goal[locked_indices] = (
+                                q_current[locked_indices]
+                            )
+
+                        print(
+                            f"{label}: locked supports during "
+                            f"segment {i}: {sorted(locked_grippers)}"
+                        )
+                    else:
+                        active_joint_names = None
+
+                    path = self.paths.plan_segment(
+                        q_start=q_current,
+                        q_goal=q_goal,
+                        do_shortcut=do_shortcut,
+                        active_joint_names=active_joint_names,
+                    )
+
+                    if path is None:
+                        print(
+                            f"{label}: RRT failed at segment {i}; "
+                            "trying next KOMO candidate"
+                        )
+                        return False
+
+                    planned_segments.append(path)
+                    accepted_keyframes.append(q_goal.copy())
+                    self.C.setJointState(q_goal)
+                    q_current = q_goal
+
+            except RuntimeError as error:
+                print(
+                    f"{label}: RRT failed with error: {error}; "
+                    "trying next KOMO candidate"
+                )
+                return False
+
+            finally:
+                self.C.setJointState(q0)
+
+            rrt_segments = planned_segments
+            rrt_keyframes = np.asarray(
+                accepted_keyframes,
+                dtype=float,
+            )
+            print(f"{label}: accepted by RRT")
+            return True
+
         keyframes, q0, _keyframe_new_supported, phase_info = self.keyframes.get_remove_keyframes_dual( #get_remove_keyframes_dual
             rod_id=rod_id,
             supported=supported,
@@ -231,30 +419,40 @@ class RaiTrussBuilder:
             continuing_supports=continuing_supports,
             releasable_supports=releasable_supports,
             new_support_assignments=new_support_assignments,
+            accept_keyframes=accept_keyframes_with_rrt,
         )
 
         if keyframes is None:
             return None
 
-        # 4. Convert keyframes into path segments.
-        q_current = self.C.getJointState().copy()
-        for i, q_goal in enumerate(keyframes):
-            if use_rrt:
-                path = self.paths.plan_segment(
-                    q_start=q_current,
-                    q_goal=q_goal,
-                    do_shortcut=do_shortcut,
-                )
-            else:
-                path = np.asarray([q_current, q_goal])
+        if use_rrt:
+            keyframes = rrt_keyframes
 
-            if path is None:
+        # 4. Convert keyframes into path segments.
+        q_current = q0.copy()
+        self.C.setJointState(q_current)
+
+        if use_rrt:
+            if rrt_segments is None:
                 return None
 
-            record.segments.append(path)
+            record.segments.extend(rrt_segments)
 
-            self.C.setJointState(q_goal)
-            q_current = q_goal.copy()
+            if len(rrt_segments) > 0:
+                q_current = np.asarray(
+                    rrt_segments[-1][-1],
+                    dtype=float,
+                ).copy()
+                self.C.setJointState(q_current)
+
+        else:
+            for q_goal in keyframes:
+                path = np.asarray([q_current, q_goal])
+
+                record.segments.append(path)
+
+                self.C.setJointState(q_goal)
+                q_current = q_goal.copy()
 
         # ------------------------------------------------------------
         # Events

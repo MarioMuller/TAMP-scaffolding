@@ -163,11 +163,19 @@ class PathPlanner:
 
         return best
     
-    def rrt(self, q_start, q_goal, attempts = 50):
+    def rrt(self, q_start, q_goal, attempts=50, active_joint_names=None):
         q_start = np.asarray(q_start, dtype=float).copy()
         q_goal = np.asarray(q_goal, dtype=float).copy()
+
+        if active_joint_names is not None:
+            return self.rrt_selected_joints(
+                q_start=q_start,
+                q_goal=q_goal,
+                active_joint_names=active_joint_names,
+                attempts=attempts,
+            )
         
-        for attempt in range (20):
+        for attempt in range(attempts):
                 rrt = ry.PathFinder()
                 rrt.setProblem(self.C, q_start, q_goal)
 
@@ -180,6 +188,115 @@ class PathPlanner:
         
         print("RRT failed to find a path")
         return None
+
+    def rrt_selected_joints(
+        self,
+        q_start,
+        q_goal,
+        active_joint_names,
+        attempts=50,
+        frozen_tolerance=1e-6,
+    ):
+        if not hasattr(self.C, "selectJoints"):
+            raise RuntimeError(
+                "RRT support locking requires Config.selectJoints(...)"
+            )
+
+        all_joint_names = list(self.C.getJointNames())
+        joint_index = {
+            joint_name: i
+            for i, joint_name in enumerate(all_joint_names)
+        }
+
+        def joint_frame_names(joint_names):
+            frame_names = []
+
+            for joint_name in joint_names:
+                frame_name = joint_name.split(":", maxsplit=1)[0]
+
+                if frame_name not in frame_names:
+                    frame_names.append(frame_name)
+
+            return frame_names
+
+        active_joint_names = [
+            joint_name
+            for joint_name in active_joint_names
+            if joint_name in joint_index
+        ]
+
+        active_indices = [
+            joint_index[joint_name]
+            for joint_name in active_joint_names
+        ]
+
+        frozen_indices = [
+            i
+            for i in range(len(all_joint_names))
+            if i not in set(active_indices)
+        ]
+
+        frozen_delta = (
+            np.linalg.norm(q_goal[frozen_indices] - q_start[frozen_indices])
+            if frozen_indices
+            else 0.0
+        )
+
+        if frozen_delta > frozen_tolerance:
+            print(
+                "Rejecting RRT segment because locked support joints "
+                f"move by {frozen_delta:.6g}"
+            )
+            return None
+
+        q_saved = self.C.getJointState().copy()
+        all_joint_frame_names = joint_frame_names(all_joint_names)
+        active_joint_frame_names = joint_frame_names(active_joint_names)
+
+        try:
+            self.C.setJointState(q_start)
+            self.C.selectJoints(active_joint_frame_names)
+
+            selected_joint_names = list(self.C.getJointNames())
+            selected_indices = [
+                joint_index[joint_name]
+                for joint_name in selected_joint_names
+            ]
+
+            active_start = self.C.getJointState().copy()
+
+            self.C.selectJoints(all_joint_frame_names)
+            self.C.setJointState(q_goal)
+            self.C.selectJoints(active_joint_frame_names)
+
+            active_goal = self.C.getJointState().copy()
+
+            self.C.selectJoints(all_joint_frame_names)
+            self.C.setJointState(q_start)
+            self.C.selectJoints(active_joint_frame_names)
+
+            for attempt in range(attempts):
+                rrt = ry.PathFinder()
+                rrt.setProblem(self.C, active_start, active_goal)
+
+                ret = rrt.solve()
+                print(f"RRT returns: ", ret)
+
+                if ret.feasible:
+                    active_path = np.asarray(ret.x, dtype=float)
+                    full_path = np.tile(
+                        q_start,
+                        (len(active_path), 1),
+                    )
+                    full_path[:, selected_indices] = active_path
+                    return full_path
+
+            print("RRT failed to find a path")
+            return None
+
+        finally:
+            self.C.selectJoints(all_joint_frame_names)
+            self.C.setJointState(q_saved)
         
     def plan_segment(
         self,
@@ -189,11 +306,13 @@ class PathPlanner:
         shortcut_iter=300,
         shortcut_step=0.02,
         rrt_attempts=50,
+        active_joint_names=None,
     ):
         path = self.rrt(
             q_start=q_start,
             q_goal=q_goal,
             attempts=rrt_attempts,
+            active_joint_names=active_joint_names,
         )
 
         if path is None:

@@ -240,12 +240,12 @@ def main():
         "h2_a1_ur_gripper_center",
     )
 
-    filter_enabled = False  # Set to True to restrict the truss to a subset of rods.
+    filter_enabled = True  # Set to True to restrict the truss to a subset of rods.
 
     if filter_enabled:
         selected_rods = {
             # Example:
-            13, 15, 0, 5 #4, 14, #2, 1,
+            6, 7, 13, 15, 0, 5 #4, 14, #2, 1,
         }
         filter_truss(truss, selected_rods)
 
@@ -400,7 +400,7 @@ def main():
             0.70710678,
         ],
         replay_mode="assembly",
-        replay_reduction=1000,
+        replay_reduction=10,
     )
 
 
