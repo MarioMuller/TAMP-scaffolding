@@ -9,24 +9,26 @@ from .pathplanning import PathPlanner
 from .replay import PlanReplayer
 from .viser_replay import ViserPlanReplayer
 import time
+from experiment_metrics import CounterMetrics
 
 
 class RaiTrussBuilder:
 
-    def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2):
+    def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2, metrics=None):
         
         self.truss = truss
         self.radius = radius
         self.scale = scale
         self.main_robot_arm_count = main_robot_arm_count
+        self.metrics = metrics or CounterMetrics()
 
         self.scene = RaiScene()
         self.C = self.scene.C
 
         self.rods = RodManager(self.C, truss, radius=radius, scale=scale)
 
-        self.keyframes = KeyframePlanner(self.C, self.rods)
-        self.paths = PathPlanner(self.C)
+        self.keyframes = KeyframePlanner(self.C, self.rods, metrics=self.metrics)
+        self.paths = PathPlanner(self.C, metrics=self.metrics)
         # self.replayer = PlanReplayer(self.C, self.rods)
         self.viser_replayer = ViserPlanReplayer(self.C, self.rods)
         
@@ -161,7 +163,31 @@ class RaiTrussBuilder:
             )
         ]
 
-    def _active_joint_names_with_locked_supports(self, locked_grippers):
+    def _main_joint_names(self):
+        all_joint_names = list(self.C.getJointNames())
+        base_joint = "husky_base_XYPhi_joint"
+
+        return [
+            joint_name
+            for joint_name in all_joint_names
+            if (
+                joint_name == base_joint
+                or joint_name.startswith(f"{base_joint}:")
+                or joint_name.startswith("a1_")
+                or joint_name.startswith("a2_")
+            )
+        ]
+
+    def _active_joint_names_excluding(self, locked_joint_names):
+        locked_joint_names = set(locked_joint_names)
+
+        return [
+            joint_name
+            for joint_name in self.C.getJointNames()
+            if joint_name not in locked_joint_names
+        ]
+
+    def _locked_support_joint_names(self, locked_grippers):
         locked_joint_names = set()
 
         for support_gripper in locked_grippers:
@@ -169,11 +195,7 @@ class RaiTrussBuilder:
                 self._support_joint_names(support_gripper)
             )
 
-        return [
-            joint_name
-            for joint_name in self.C.getJointNames()
-            if joint_name not in locked_joint_names
-        ]
+        return locked_joint_names
 
     def _joint_indices(self, joint_names):
         joint_index = {
@@ -208,6 +230,12 @@ class RaiTrussBuilder:
                 locked_grippers.add(support_gripper)
 
         return locked_grippers
+
+    def _main_is_locked_for_segment(self, segment_id, phase_info):
+        return (
+            segment_id > phase_info["main_grasp_segment"]
+            and segment_id < phase_info["pickup_segment"]
+        )
 
     def try_remove_and_commit_rod(
         self,
@@ -256,6 +284,7 @@ class RaiTrussBuilder:
         # Build scene with candidate rod still installed.
         # TODO - Could be sped up by not building from scratch each time, but instead just removing/adding rods as needed.
         print(f"Trying to remove rod {rod_id} from scaffold")
+        self.metrics.inc("rai_transition_attempts")
         self.reset_scene_with_rods(current_state)
 
         if q_start is not None:
@@ -325,21 +354,30 @@ class RaiTrussBuilder:
                         )
                     )
 
-                    if locked_grippers:
+                    locked_joint_names = set(
+                        self._locked_support_joint_names(
+                            locked_grippers
+                        )
+                    )
+
+                    if self._main_is_locked_for_segment(i, phase_info):
+                        locked_joint_names.update(
+                            self._main_joint_names()
+                        )
+                        print(
+                            f"{label}: main robot locked during "
+                            f"segment {i}"
+                        )
+
+                    if locked_joint_names:
                         active_joint_names = (
-                            self._active_joint_names_with_locked_supports(
-                                locked_grippers
+                            self._active_joint_names_excluding(
+                                locked_joint_names
                             )
                         )
 
-                        locked_joint_names = [
-                            joint_name
-                            for joint_name in self.C.getJointNames()
-                            if joint_name not in set(active_joint_names)
-                        ]
-
                         print(
-                            f"{label}: locked support DOFs during "
+                            f"{label}: locked DOFs during "
                             f"segment {i}: {len(locked_joint_names)}"
                         )
 
@@ -358,7 +396,7 @@ class RaiTrussBuilder:
 
                         if locked_delta > 1e-9:
                             print(
-                                f"{label}: clamping locked support "
+                                f"{label}: clamping locked robot "
                                 f"joints during segment {i} "
                                 f"(delta {locked_delta:.6g})"
                             )
@@ -381,6 +419,7 @@ class RaiTrussBuilder:
                     )
 
                     if path is None:
+                        self.metrics.inc("rrt_candidate_rejections")
                         print(
                             f"{label}: RRT failed at segment {i}; "
                             "trying next KOMO candidate"
@@ -393,6 +432,7 @@ class RaiTrussBuilder:
                     q_current = q_goal
 
             except RuntimeError as error:
+                self.metrics.inc("rrt_candidate_rejections")
                 print(
                     f"{label}: RRT failed with error: {error}; "
                     "trying next KOMO candidate"
@@ -407,6 +447,7 @@ class RaiTrussBuilder:
                 accepted_keyframes,
                 dtype=float,
             )
+            self.metrics.inc("rrt_accepted_candidates")
             print(f"{label}: accepted by RRT")
             return True
 
@@ -423,6 +464,7 @@ class RaiTrussBuilder:
         )
 
         if keyframes is None:
+            self.metrics.inc("rai_transition_failures")
             return None
 
         if use_rrt:
@@ -569,6 +611,8 @@ class RaiTrussBuilder:
             for gripper, q in new_support_q.items()
             if gripper in new_supported
         }
+
+        self.metrics.inc("rai_transition_successes")
 
         return {
             "record": record,

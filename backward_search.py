@@ -63,10 +63,16 @@ class AssemblyPlanner:
         rigidity_cache_size=2000,
         support_grippers=None,
         forbidden_transitions=None,
+        strategy_name="default",
+        random_seed=0,
+        shuffle_ties=False,
     ):
         self.truss = truss
         self.builder = builder
         self.max_supports = max_supports
+        self.strategy_name = strategy_name
+        self.rng = np.random.default_rng(random_seed)
+        self.shuffle_ties = shuffle_ties
 
         self.rigidity = TrussRigidityChecker(
             truss,
@@ -76,6 +82,8 @@ class AssemblyPlanner:
         self.final_node = None
         self.search_stop_reason = None
         self.search_expansions = 0
+        self.search_attempted_transitions = 0
+        self.search_enqueued_candidates = 0
 
         self._support_grippers_override = (
             tuple(support_grippers)
@@ -265,6 +273,12 @@ class AssemblyPlanner:
     def is_supported_candidate(self, node, rod_id):
         return rod_id in node.supported.values()
 
+    def priority_tie_breaker(self, rod_id):
+        if self.shuffle_ties:
+            return float(self.rng.random())
+
+        return rod_id
+
     def topology_after_removal(self, node, candidate_rod):
         """Return a lower bound on supports needed after removing one rod.
 
@@ -427,7 +441,7 @@ class AssemblyPlanner:
             1 if rod_id in self.truss.grounded_rods else 0
         )
 
-        return (
+        default_priority = (
             len(node.state),               # Then prefer deeper branches.
             projected_peak_supports,       # Minimize simultaneous supports.
             projected_support_steps,       # Minimize support duration.
@@ -438,7 +452,28 @@ class AssemblyPlanner:
             connection_count,
             -distance,                     # Remove high rods early backward.
             -self.heuristic(rod_id),
-            rod_id,
+            self.priority_tie_breaker(rod_id),
+        )
+
+        if self.strategy_name == "default":
+            return default_priority
+
+        if self.strategy_name == "improved":
+            return (
+                len(node.state),
+                predicted_new_supports,
+                self.priority_tie_breaker(rod_id),
+            )
+
+        if self.strategy_name == "baseline":
+            return (
+                len(node.state),
+                float(self.rng.random()),
+                rod_id,
+            )
+
+        raise ValueError(
+            f"Unknown search strategy: {self.strategy_name}"
         )
 
     def removal_candidates_with_priorities(self, node):
@@ -509,6 +544,12 @@ class AssemblyPlanner:
             max_targets=max_targets,
             key=self.heuristic,
         )
+
+    def support_target_priority(self, rod_id):
+        if self.strategy_name == "baseline":
+            return float(self.rng.random())
+
+        return self.heuristic(rod_id)
     
 
     # greedy backward search
@@ -601,6 +642,7 @@ class AssemblyPlanner:
             for priority, candidate_rod in (
                 self.removal_candidates_with_priorities(node)
             ):
+                self.search_enqueued_candidates += 1
                 heapq.heappush(
                     open_list,
                     (priority, counter, node, candidate_rod),
@@ -675,6 +717,7 @@ class AssemblyPlanner:
                 attempted_transitions.add(
                     physical_transition_key
                 )
+                self.search_attempted_transitions += 1
 
                 new_state = frozenset(
                     node.state - {candidate_rod}
@@ -848,7 +891,7 @@ class AssemblyPlanner:
                 active_rods=new_state,
                 already_supported=continuing_supported_rods,
                 max_targets=len(free_supports),
-                key=self.heuristic,
+                key=self.support_target_priority,
                 initial_result=result_without_new_support,
                 return_result=True,
             )

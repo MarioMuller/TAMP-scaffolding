@@ -2,10 +2,13 @@ import time
 import numpy as np
 import robotic as ry
 
+from experiment_metrics import CounterMetrics, Timer
+
 
 class PathPlanner:
-    def __init__(self, C):
+    def __init__(self, C, metrics=None):
         self.C = C
+        self.metrics = metrics or CounterMetrics()
 
     def path_cost(self, path, weights=None):
         """
@@ -175,7 +178,10 @@ class PathPlanner:
                 attempts=attempts,
             )
         
-        for attempt in range(attempts):
+        self.metrics.inc("rrt_calls")
+
+        with Timer(self.metrics, "rrt_time_s"):
+            for attempt in range(attempts):
                 rrt = ry.PathFinder()
                 rrt.setProblem(self.C, q_start, q_goal)
 
@@ -183,9 +189,11 @@ class PathPlanner:
                 print(f"RRT returns: ", ret)
                 
                 if ret.feasible:
+                    self.metrics.inc("rrt_successes")
                     return ret.x
                 
         
+        self.metrics.inc("rrt_failures")
         print("RRT failed to find a path")
         return None
 
@@ -275,22 +283,27 @@ class PathPlanner:
             self.C.setJointState(q_start)
             self.C.selectJoints(active_joint_frame_names)
 
-            for attempt in range(attempts):
-                rrt = ry.PathFinder()
-                rrt.setProblem(self.C, active_start, active_goal)
+            self.metrics.inc("rrt_calls")
 
-                ret = rrt.solve()
-                print(f"RRT returns: ", ret)
+            with Timer(self.metrics, "rrt_time_s"):
+                for attempt in range(attempts):
+                    rrt = ry.PathFinder()
+                    rrt.setProblem(self.C, active_start, active_goal)
 
-                if ret.feasible:
-                    active_path = np.asarray(ret.x, dtype=float)
-                    full_path = np.tile(
-                        q_start,
-                        (len(active_path), 1),
-                    )
-                    full_path[:, selected_indices] = active_path
-                    return full_path
+                    ret = rrt.solve()
+                    print(f"RRT returns: ", ret)
 
+                    if ret.feasible:
+                        self.metrics.inc("rrt_successes")
+                        active_path = np.asarray(ret.x, dtype=float)
+                        full_path = np.tile(
+                            q_start,
+                            (len(active_path), 1),
+                        )
+                        full_path[:, selected_indices] = active_path
+                        return full_path
+
+            self.metrics.inc("rrt_failures")
             print("RRT failed to find a path")
             return None
 
@@ -318,6 +331,10 @@ class PathPlanner:
         if path is None:
             return None
 
+        self.metrics.inc("planned_segments")
+        self.metrics.add("path_points", len(path))
+        self.metrics.add("path_cost", self.path_cost(path))
+
         if do_shortcut and len(path) >= 3:
             path = self.shortcut_path(
                 path,
@@ -326,6 +343,8 @@ class PathPlanner:
                 min_gap=2,
                 verbose=True,
             )
+            self.metrics.add("shortcut_path_points", len(path))
+            self.metrics.add("shortcut_path_cost", self.path_cost(path))
 
 
         return path        

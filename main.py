@@ -9,12 +9,13 @@ from rai.builder import RaiTrussBuilder
 from truss import Truss
 
 
-def create_rai_builder(truss, main_robot_arm_count=1):
+def create_rai_builder(truss, main_robot_arm_count=1, metrics=None):
     builder = RaiTrussBuilder(
         truss=truss,
         radius=0.005,
-        scale=0.0011,
-        main_robot_arm_count=main_robot_arm_count
+        scale=0.001,
+        main_robot_arm_count=main_robot_arm_count,
+        metrics=metrics,
     )
     builder.import_robots()
     return builder
@@ -66,6 +67,8 @@ def validate_structural_plan_with_rai(
     q_initial,
     structural_steps,
     rai_cache,
+    use_rrt=True,
+    do_shortcut=True,
 ):
     """Validate one complete structural removal plan sequentially in RAI.
 
@@ -127,6 +130,7 @@ def validate_structural_plan_with_rai(
         cached_result = rai_cache.get(cache_key)
 
         if cached_result is not None:
+            builder.metrics.inc("rai_cache_hits")
             print(
                 "Reusing cached RAI solution for "
                 f"step {step_index}, rod {step.rod_id}"
@@ -134,6 +138,7 @@ def validate_structural_plan_with_rai(
             motion_result = copy.deepcopy(cached_result)
 
         else:
+            builder.metrics.inc("rai_cache_misses")
             motion_result = builder.try_remove_and_commit_rod(
                 current_state=step.rods_before,
                 new_state=step.rods_after,
@@ -146,8 +151,8 @@ def validate_structural_plan_with_rai(
                 continuing_supports=continuing_supports,
                 releasable_supports=releasable_supports,
                 new_support_assignments=dict(step.added_supports),
-                use_rrt=True,
-                do_shortcut=True,
+                use_rrt=use_rrt,
+                do_shortcut=do_shortcut,
             )
 
             if motion_result is None:
@@ -240,7 +245,7 @@ def main():
         "h2_a1_ur_gripper_center",
     )
 
-    filter_enabled = True  # Set to True to restrict the truss to a subset of rods.
+    filter_enabled = False  # Set to True to restrict the truss to a subset of rods.
 
     if filter_enabled:
         selected_rods = {

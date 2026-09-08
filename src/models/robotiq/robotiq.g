@@ -20,10 +20,10 @@ palm (robotiq_base): {
  shape: capsule, color: [1.,1.,1.,.2], size: [.11, .04], contact: -1 }
 finger1 (right_inner_finger_joint): {
  Q: [.0, -.009, .025]
- shape: capsule, size: [.04, .02], color: [1., 1., 1., .2], contact: -2 }
+ shape: capsule, size: [.04, .02], color: [1., 1., 1., .2], contact: 0 }
 finger2 (left_inner_finger_joint): {
  Q: [.0, -.009, .025]
- shape: capsule, size: [.04, .02], color: [1., 1., 1., .2], contact: -2 }
+ shape: capsule, size: [.04, .02], color: [1., 1., 1., .2], contact: 0 }
 
 Edit right_inner_finger_joint: { joint_scale: -1 }
 Edit left_inner_finger_joint: { joint_scale: -1 }

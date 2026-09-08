@@ -6,6 +6,7 @@ from time import perf_counter
 import time
 from . import ur5e_ssik
 from itertools import product
+from experiment_metrics import CounterMetrics, Timer
 
 
 class PhaseSchedule:
@@ -24,7 +25,7 @@ class PhaseSchedule:
         return len(self.names)
         
 class KeyframePlanner:
-    DEFAULT_BASE_CIRCLE_RADIUS = 0.4
+    DEFAULT_BASE_CIRCLE_RADIUS = 0.9
     
     ARM_JOINT_SUFFIXES = [
         "shoulder_pan_joint",
@@ -58,9 +59,10 @@ class KeyframePlanner:
         },
     }
 
-    def __init__(self, C, rod_manager):
+    def __init__(self, C, rod_manager, metrics=None):
         self.C = C
         self.rods = rod_manager
+        self.metrics = metrics or CounterMetrics()
         
 
     @staticmethod
@@ -1282,9 +1284,12 @@ class KeyframePlanner:
         )
         
         try:
-            retval = solver.solve().dict()
+            self.metrics.inc("komo_calls")
+            with Timer(self.metrics, "komo_time_s"):
+                retval = solver.solve().dict()
 
         except RuntimeError as error:
+            self.metrics.inc("komo_errors")
             print(
                 f"{label}: KOMO failed with error: {error}"
             )
@@ -1300,7 +1305,10 @@ class KeyframePlanner:
             )
 
         if not retval["feasible"]:
+            self.metrics.inc("komo_infeasible")
             return None
+
+        self.metrics.inc("komo_feasible")
 
         if view_accepted:
             komo.view(
@@ -1696,7 +1704,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             [rod, candidate_hold_target],
             ry.OT.eq,
-            [1e1],
+            [1e2],
         )
 
         komo.addObjective(
@@ -1704,7 +1712,7 @@ class KeyframePlanner:
             ry.FS.quaternionDiff,
             [rod, candidate_hold_target],
             ry.OT.eq,
-            [1e1],
+            [1e2],
         )
 
         # ------------------------------------------------------------
