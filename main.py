@@ -114,12 +114,6 @@ def validate_structural_plan_with_rai(
             None,
         )
 
-        print(
-            "\nRAI validation "
-            f"{step_index + 1}/{len(structural_steps)}: "
-            f"remove rod {step.rod_id}"
-        )
-
         cache_key = make_rai_cache_key(
             step=step,
             q_current=q_current,
@@ -138,6 +132,12 @@ def validate_structural_plan_with_rai(
             motion_result = copy.deepcopy(cached_result)
 
         else:
+            print(
+                "\nRAI validation "
+                f"{step_index + 1}/{len(structural_steps)}: "
+                f"remove rod {step.rod_id}"
+                )
+            
             builder.metrics.inc("rai_cache_misses")
             motion_result = builder.try_remove_and_commit_rod(
                 current_state=step.rods_before,

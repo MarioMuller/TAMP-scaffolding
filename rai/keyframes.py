@@ -59,12 +59,12 @@ class KeyframePlanner:
         },
     }
 
-    def __init__(self, C, rod_manager, metrics=None):
+    def __init__(self, C, rod_manager, metrics=None, random_seed=0):
         self.C = C
         self.rods = rod_manager
         self.metrics = metrics or CounterMetrics()
+        self.rng = np.random.default_rng(random_seed)
         
-
     @staticmethod
     def _yaw_from_quaternion(quaternion):
         """Return world-Z yaw from a [w, x, y, z] quaternion."""
@@ -265,6 +265,7 @@ class KeyframePlanner:
         n_phases=None,
         activation_segment_by_arm=None,
         accept_keyframes=None,
+        max_combinations = 100
     ):
         q0 = np.asarray(
             self.C.getJointState(),
@@ -361,11 +362,11 @@ class KeyframePlanner:
                 )
             )
 
-            print(
-                f"{base_joint}: "
-                f"{len(candidates)}/{circle_samples} "
-                "circle positions have SSIK solutions"
-            )
+            # print(
+            #     f"{base_joint}: "
+            #     f"{len(candidates)}/{circle_samples} "
+            #     "circle positions have SSIK solutions"
+            # )
 
             # If one required robot has no candidate, no global combination
             # can be feasible.
@@ -396,8 +397,17 @@ class KeyframePlanner:
         # KOMO now checks interactions and collisions between robots.
         # ------------------------------------------------------------
 
+        combinations = list(product(*candidate_lists))
+
+        self.rng.shuffle(combinations)
+        
+        if max_combinations is not None:
+            combinations = combinations[:max_combinations]
+
+        tested_combination_count = len(combinations)
+
         for combination_index, combination in enumerate(
-            product(*candidate_lists),
+            combinations,
             start=1,
         ):
             x_init = self._make_phase_ssik_initialization(
@@ -447,14 +457,26 @@ class KeyframePlanner:
                         ),
                     )
                 ):
+                    self.metrics.inc("komo_ssik_success")
+                    
+                    self.metrics.sample(
+                        "komo_ssik_attempts_until_success",
+                        combination_index,
+                    )
+
+                    self.metrics.sample(
+                        "komo_ssik_available_combinations",
+                        combination_count,
+                    )
+                    
                     # komo.view(True)
                     return keyframes
 
-                print(
-                    f"combination {combination_index}/"
-                    f"{combination_count} ({description}): "
-                    "rejected by keyframe acceptor"
-                )
+                # print(
+                #     f"combination {combination_index}/"
+                #     f"{tested_combination_count} ({description}): "
+                #     "rejected by keyframe acceptor"
+                # )
 
         print(
             "FAILED: all analytical robot "
@@ -598,7 +620,7 @@ class KeyframePlanner:
 
         return target
 
-    def _apply_ssik_solution(
+    def _get_ssik_solutions(
         self,
         arm_name,
         target_world,
@@ -629,7 +651,6 @@ class KeyframePlanner:
             spec["base_frame"]
         )
 
-        # SSIK expects gripper pose relative to its arm base.
         T_base_target = (
             np.linalg.inv(T_world_base)
             @ target_world
@@ -641,342 +662,13 @@ class KeyframePlanner:
             max_solutions=8,
         )
 
-        if not solutions:
-            return None
-
-        q_arm = np.asarray(
-            solutions[0].q,
-            dtype=float,
-        )
-
-        self.C.setJointState(
-            q_arm,
-            joint_names,
-        )
-
-        return q_arm
+        return [
+            np.asarray(solution.q, dtype=float)
+            for solution in solutions
+        ]
 
 
-    def _make_ssik_initialization(
-        self,
-        sampled_q,
-        ik_targets,
-        rng,
-    ):
-        """
-        Insert analytical arm solutions into a state that already contains
-        the sampled mobile-base positions.
-        """
-        q_saved = self.C.getJointState().copy()
-
-        try:
-            self.C.setJointState(sampled_q)
-
-            roll_by_group = {}
-
-            for arm_name, target_spec in ik_targets.items():
-                roll_group = target_spec.get(
-                    "roll_group",
-                    arm_name,
-                )
-
-                # a1 and a2 use the same roll so their Y-axes are parallel.
-                if roll_group not in roll_by_group:
-                    roll_by_group[roll_group] = rng.uniform(
-                        -np.pi,
-                        np.pi,
-                    )
-
-                target_world = (
-                    self._make_ssik_target_transform(
-                        position=target_spec["position"],
-                        rod_rotation=target_spec["rod_rotation"],
-                        alignment=target_spec["alignment"],
-                        roll=roll_by_group[roll_group],
-                    )
-                )
-
-                if not self._apply_ssik_solution(
-                    arm_name,
-                    target_world,
-                ):
-                    return None
-
-            return self.C.getJointState().copy()
-
-        finally:
-            self.C.setJointState(q_saved)
-    
-    # def get_remove_keyframes_dual_test(
-    #     self,
-    #     rod_id,
-    #     supported=None,
-    #     support_q=None,
-    #     candidate_is_supported=False,
-    #     old_support_gripper=None,
-    #     continuing_supports=None,
-    #     releasable_supports=None,
-    #     new_support_assignments=None,
-    #     support_fraction=0.5,
-    # ):
-    #     """Deterministic synthetic replacement for get_remove_keyframes_dual()."""
-
-    #     supported = dict(supported or {})
-    #     support_q = dict(support_q or {})
-    #     continuing_supports = dict(continuing_supports or {})
-    #     releasable_supports = dict(releasable_supports or {})
-    #     new_support_assignments = dict(new_support_assignments or {})
-
-    #     q0 = self.C.getJointState().copy()
-
-    #     # Main arm 2 is deliberately excluded.
-    #     moving_grippers = [
-    #         "a1_ur_gripper_center",
-    #         "h1_a1_ur_gripper_center",
-    #         "h2_a1_ur_gripper_center",
-    #     ]
-
-    #     missing_grippers = [
-    #         gripper
-    #         for gripper in moving_grippers
-    #         if self.C.getFrame(gripper) is None
-    #     ]
-
-    #     if missing_grippers:
-    #         raise RuntimeError(
-    #             f"Missing test grippers: {missing_grippers}"
-    #         )
-
-    #     # ------------------------------------------------------------
-    #     # Deterministic target positions
-    #     # ------------------------------------------------------------
-
-    #     structure_points = (
-    #         np.asarray(
-    #             list(self.rods.truss.nodes.values()),
-    #             dtype=float,
-    #         )
-    #         * self.rods.scale
-    #     )
-
-    #     structure_center_x = 0.5 * (
-    #         structure_points[:, 0].min()
-    #         + structure_points[:, 0].max()
-    #     )
-
-    #     structure_min_y = structure_points[:, 1].min()
-
-    #     # Entire target cluster is placed two metres beyond the
-    #     # structure's negative-Y boundary.
-    #     cluster_center = np.array([
-    #         structure_center_x,
-    #         structure_min_y - 2.0,
-    #         0.88,
-    #     ])
-
-    #     # Consecutive target frames are exactly 60 cm apart in Y.
-    #     target_offsets = {
-    #         "a1_ur_gripper_center": np.array([
-    #             0.0,
-    #             -0.20,
-    #             0.0,
-    #         ]),
-    #         "h1_a1_ur_gripper_center": np.array([
-    #             0.0,
-    #             0.0,
-    #             0.0,
-    #         ]),
-    #         "h2_a1_ur_gripper_center": np.array([
-    #             0.0,
-    #             0.2,
-    #             0.0,
-    #         ]),
-    #     }
-
-    #     target_by_gripper = {}
-    #     target_positions = {}
-
-    #     for index, gripper in enumerate(moving_grippers):
-    #         target_position = (
-    #             cluster_center
-    #             + target_offsets[gripper]
-    #         )
-
-    #         target_name = (
-    #             f"test_target_rod_{rod_id}_{index}"
-    #         )
-
-    #         if target_name not in self.C.getFrameNames():
-    #             self.C.addFrame(
-    #                 target_name,
-    #                 "world",
-    #             )
-
-    #         gripper_frame = self.C.getFrame(gripper)
-    #         target_frame = self.C.getFrame(target_name)
-
-    #         target_frame.setPosition(
-    #             target_position
-    #         )
-
-    #         # Preserve the gripper's current orientation.
-    #         target_frame.setQuaternion(
-    #             gripper_frame.getQuaternion()
-    #         )
-
-    #         target_frame.setShape(
-    #             ry.ST.marker,
-    #             [0.12],
-    #         )
-
-    #         target_frame.setContact(0)
-
-    #         target_by_gripper[gripper] = target_name
-    #         target_positions[gripper] = target_position
-
-    #         print(
-    #             f"Test target for {gripper}: "
-    #             f"{target_position}"
-    #         )
-
-    #     main_h1_distance = np.linalg.norm(
-    #         target_positions["a1_ur_gripper_center"]
-    #         - target_positions["h1_a1_ur_gripper_center"]
-    #     )
-
-    #     h1_h2_distance = np.linalg.norm(
-    #         target_positions["h1_a1_ur_gripper_center"]
-    #         - target_positions["h2_a1_ur_gripper_center"]
-    #     )
-
-    #     print(
-    #         f"Target distances: "
-    #         f"main-h1={main_h1_distance:.2f} m, "
-    #         f"h1-h2={h1_h2_distance:.2f} m"
-    #     )
-
-        
-    #     # ------------------------------------------------------------
-    #     # Construct synthetic KOMO problem
-    #     # ------------------------------------------------------------
-
-    #     komo = ry.KOMO(
-    #         self.C,
-    #         phases=1,
-    #         slicesPerPhase=1,
-    #         kOrder=2,
-    #         enableCollisions=True,
-    #     )
-
-    #     komo.addControlObjective(
-    #         [],
-    #         0,
-    #         1e-3,
-    #     )
-
-    #     komo.addControlObjective(
-    #         [],
-    #         1,
-    #         1e-2,
-    #     )
-
-    #     komo.addObjective(
-    #         [],
-    #         ry.FS.jointLimits,
-    #         [],
-    #         ry.OT.ineq,
-    #         [1e0],
-    #     )
-
-    #     komo.addObjective(
-    #         [],
-    #         ry.FS.accumulatedCollisions,
-    #         [],
-    #         ry.OT.ineq,
-    #         [1e1],
-    #     )
-
-    #     for gripper in moving_grippers:
-            
-    #         target_name = target_by_gripper[gripper]
-
-    #         komo.addObjective(
-    #             [1],
-    #             ry.FS.positionDiff,
-    #             [gripper, target_name],
-    #             ry.OT.eq,
-    #             [1e2],
-    #         )
-
-    #         # komo.addObjective(
-    #         #     [1],
-    #         #     ry.FS.quaternionDiff,
-    #         #     [gripper, target_name],
-    #         #     ry.OT.eq,
-    #         #     [1e1],
-    #         # )
-            
-            
-    #     # The main base circles the midpoint between its two grasp targets.
-    #     base_target_positions = {
-    #         "husky_base_XYPhi_joint": 0.5 * (
-    #             np.asarray(
-    #                 self.C.getFrame(g1).getPosition(),
-    #                 dtype=float,
-    #             )
-    #             + np.asarray(
-    #                 self.C.getFrame(g2).getPosition(),
-    #                 dtype=float,
-    #             )
-    #         )
-    #     }
-
-    #     # Every newly deployed support robot circles its support-grasp point.
-    #     for support_gripper, support_grasp in (
-    #         support_grasp_by_gripper.items()
-    #     ):
-    #         base_joint = self._base_joint_for_gripper(
-    #             support_gripper
-    #         )
-
-    #         base_target_positions[base_joint] = np.asarray(
-    #             self.C.getFrame(
-    #                 support_grasp
-    #             ).getPosition(),
-    #             dtype=float,
-    #         )
-
-    #     keyframes = self.solve_komo(
-    #         komo,
-    #         attempts=6,
-    #         view=True,
-    #         base_target_positions=base_target_positions,
-    #     )
-
-    #     # ------------------------------------------------------------
-    #     # Match the original return interface
-    #     # ------------------------------------------------------------
-
-    #     new_supported = {}
-    #     new_supported.update(continuing_supports)
-    #     new_supported.update(new_support_assignments)
-        
-    #     phase_info = {
-    #         "main_grasp_segment": 0,
-    #         "old_support_away_segment": None,
-    #         "new_support_segments": {
-    #             support_gripper: 0
-    #             for support_gripper in new_support_assignments
-    #         },
-    #         "pickup_segment": 0,
-    #     }
-
-    #     return (
-    #         keyframes,
-    #         q0,
-    #         new_supported,
-    #         phase_info,
-    #     )   
+ 
     
     def _precompute_robot_candidates(
         self,
@@ -988,16 +680,21 @@ class KeyframePlanner:
         circle_samples=8,
     ):
         """
-        Return at most one valid combined base/arm configuration for each
-        equally spaced base position.
+        Generate all SSIK branches for the first feasible roll orientation
+        at each sampled mobile-base position.
 
-        For the main robot, robot_ik_targets contains both a1 and a2.
-        A candidate is saved only if both arms solve.
+        For a single-arm robot:
+            one candidate is generated for every SSIK solution.
+
+        For a dual-arm robot:
+            all combinations of SSIK solutions of both arms are generated.
+
+        The first roll_offset for which every required arm has at least one
+        SSIK solution is used at a given circle position.
         """
         q_saved = self.C.getJointState().copy()
         candidates = []
 
-        # Direct base-facing orientation first, followed by nearby alternatives.
         roll_offsets = np.deg2rad([
             0.0,
             30.0,
@@ -1061,8 +758,7 @@ class KeyframePlanner:
                     self.C.getJointState().copy()
                 )
 
-                # For the main robot, use the centre of both targets and
-                # both arm bases. This gives both arms the same orientation.
+                # Centre of all grasp targets belonging to this mobile robot.
                 target_center = np.mean(
                     [
                         target_spec["position"]
@@ -1072,6 +768,7 @@ class KeyframePlanner:
                     axis=0,
                 )
 
+                # Centre of all arm bases belonging to this mobile robot.
                 arm_base_center = np.mean(
                     [
                         np.asarray(
@@ -1092,16 +789,18 @@ class KeyframePlanner:
                     target_center - arm_base_center
                 )
 
-                # Try the preferred orientation and a few rotations around
-                # the rod. Save the first complete solution at this base.
+                # Try different rotations around the rod axis.
                 for roll_offset in roll_offsets:
                     self.C.setJointState(
                         q_at_sampled_base
                     )
 
-                    arm_solutions = {}
+                    solutions_by_arm = {}
                     sample_is_valid = True
 
+                    # --------------------------------------------------
+                    # Find ALL SSIK solutions for every arm.
+                    # --------------------------------------------------
                     for arm_name, target_spec in (
                         robot_ik_targets.items()
                     ):
@@ -1123,37 +822,76 @@ class KeyframePlanner:
                             )
                         )
 
-                        q_arm = self._apply_ssik_solution(
-                            arm_name,
-                            target_world,
+                        arm_solution_list = (
+                            self._get_ssik_solutions(
+                                arm_name,
+                                target_world,
+                            )
                         )
 
-                        if q_arm is None:
+                        if not arm_solution_list:
                             sample_is_valid = False
                             break
 
-                        arm_solutions[arm_name] = (
-                            q_arm.copy()
-                        )
+                        solutions_by_arm[
+                            arm_name
+                        ] = arm_solution_list
 
-                    if sample_is_valid:
+                    if not sample_is_valid:
+                        continue
+
+                    # --------------------------------------------------
+                    # Generate every combination of SSIK branches.
+                    #
+                    # Example:
+                    # a1: 4 solutions
+                    # a2: 6 solutions
+                    #
+                    # -> 4 * 6 = 24 candidates
+                    # --------------------------------------------------
+
+                    arm_names = list(
+                        solutions_by_arm.keys()
+                    )
+
+                    solution_lists = [
+                        solutions_by_arm[arm_name]
+                        for arm_name in arm_names
+                    ]
+
+                    for solution_combination in product(
+                        *solution_lists
+                    ):
+                        candidate_arm_solutions = {
+                            arm_name: q_arm.copy()
+                            for arm_name, q_arm in zip(
+                                arm_names,
+                                solution_combination,
+                            )
+                        }
+
                         candidates.append({
                             "base_joint": base_joint,
                             "base_q": base_q.copy(),
-                            "arm_solutions": arm_solutions,
+                            "arm_solutions": (
+                                candidate_arm_solutions
+                            ),
                             "circle_index": sample_index,
                             "circle_angle": circle_angle,
                             "roll_offset": roll_offset,
                         })
 
-                        # At most one candidate per circle position.
-                        break
+                    # Keep the old behaviour regarding roll:
+                    # use all IK branches, but only for the first roll
+                    # orientation that works at this base position.
+                    break
 
             return candidates
 
         finally:
             self.C.setJointState(q_saved)
-   
+            
+        
     def _combine_robot_candidates(
         self,
         q0,
@@ -1295,7 +1033,7 @@ class KeyframePlanner:
             )
             return None
 
-        print(f"{label}: {retval}")
+        # print(f"{label}: {retval}")
 
         # view = True
         if view:
@@ -1582,8 +1320,8 @@ class KeyframePlanner:
 
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
-        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e0])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [0.5])
+        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e2])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
 
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.

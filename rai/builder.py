@@ -14,7 +14,7 @@ from experiment_metrics import CounterMetrics
 
 class RaiTrussBuilder:
 
-    def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2, metrics=None):
+    def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2, metrics=None, random_seed=0):
         
         self.truss = truss
         self.radius = radius
@@ -27,7 +27,7 @@ class RaiTrussBuilder:
 
         self.rods = RodManager(self.C, truss, radius=radius, scale=scale)
 
-        self.keyframes = KeyframePlanner(self.C, self.rods, metrics=self.metrics)
+        self.keyframes = KeyframePlanner(self.C, self.rods, metrics=self.metrics, random_seed=random_seed)
         self.paths = PathPlanner(self.C, metrics=self.metrics)
         # self.replayer = PlanReplayer(self.C, self.rods)
         self.viser_replayer = ViserPlanReplayer(self.C, self.rods)
@@ -283,7 +283,7 @@ class RaiTrussBuilder:
 
         # Build scene with candidate rod still installed.
         # TODO - Could be sped up by not building from scratch each time, but instead just removing/adding rods as needed.
-        print(f"Trying to remove rod {rod_id} from scaffold")
+        # print(f"Trying to remove rod {rod_id} from scaffold")
         self.metrics.inc("rai_transition_attempts")
         self.reset_scene_with_rods(current_state)
 
@@ -305,7 +305,7 @@ class RaiTrussBuilder:
             if self.C.getFrame(rod_frame) is None:
                 raise RuntimeError(f"Supported rod frame does not exist: {rod_frame}")
 
-            print(f"Restoring support attachment: {support_gripper} -> {rod_frame}")
+            # print(f"Restoring support attachment: {support_gripper} -> {rod_frame}")
             self.C.attach(support_gripper, rod_frame)
 
         record = RodPathRecord(rod_id=rod_id)
@@ -541,10 +541,10 @@ class RaiTrussBuilder:
                 )
             )
 
-            print(
-                f"[event] segment={old_release_segment_id}: "
-                f"{old_support_gripper} releases rod_{rod_id}"
-            )
+            # print(
+            #     f"[event] segment={old_release_segment_id}: "
+            #     f"{old_support_gripper} releases rod_{rod_id}"
+            # )
 
         # Newly affected rods get support before the candidate is detached/removed.
         for support_gripper, support_rod_id in new_support_assignments.items():
@@ -574,10 +574,10 @@ class RaiTrussBuilder:
             )
         )
 
-        print(
-            f"[event] segment={detach_candidate_segment_id}: "
-            f"detach rod_{rod_id} from table"
-        )
+        # print(
+        #     f"[event] segment={detach_candidate_segment_id}: "
+        #     f"detach rod_{rod_id} from table"
+        # )
 
         # ------------------------------------------------------------
         # Updated support state
@@ -628,7 +628,7 @@ class RaiTrussBuilder:
             and name.endswith("gripper_center")
         ]
 
-        print("The following support grippers are available:", self.support_grippers)
+        # print("The following support grippers are available:", self.support_grippers)
 
 
 if __name__ == "__main__":

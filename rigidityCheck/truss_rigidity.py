@@ -176,7 +176,7 @@ class TrussRigidityChecker:
         matrix_rank, failure_modes = AlgebraicChecker.AnalyzeSparseQR(K)
         # matrix_rank = np.linalg.matrix_rank(K)
         # failure_modes = None    
-        print("QR")
+        # print("QR")
 
         analysis_end = perf_counter()
 

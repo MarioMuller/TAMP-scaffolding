@@ -32,7 +32,7 @@ DEFAULT_STRATEGIES = [
 ]
 
 
-def create_rai_builder(truss, main_robot_arm_count, metrics):
+def create_rai_builder(truss, main_robot_arm_count, metrics, random_seed=0):
     from rai.builder import RaiTrussBuilder
 
     builder = RaiTrussBuilder(
@@ -41,6 +41,7 @@ def create_rai_builder(truss, main_robot_arm_count, metrics):
         scale=0.001,
         main_robot_arm_count=main_robot_arm_count,
         metrics=metrics,
+        random_seed=random_seed,
     )
     builder.import_robots()
     return builder
@@ -77,6 +78,7 @@ def show_strategy_in_viser(args, truss, strategy_name, accepted_sequence, accept
         truss=truss,
         main_robot_arm_count=args.main_robot_arm_count,
         metrics=CounterMetrics(),
+        random_seed=0,
     )
 
     print(
@@ -171,6 +173,7 @@ def run_strategy(args, strategy_name, repeat_index):
             truss=truss,
             main_robot_arm_count=args.main_robot_arm_count,
             metrics=metrics,
+            random_seed=seed,
         )
         rai_initial_q = rai_builder.C.getJointState().copy()
 

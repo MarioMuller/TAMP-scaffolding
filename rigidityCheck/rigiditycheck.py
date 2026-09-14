@@ -280,7 +280,7 @@ class AlgebraicChecker(object):
         # it is not a point on the split rod centerline.
         orientation_vertices = {}
 
-        print("use_virtual_orientation_vertices", use_virtual_orientation_vertices)
+        # print("use_virtual_orientation_vertices", use_virtual_orientation_vertices)
         
         if use_virtual_orientation_vertices:
             for index in assembled:
@@ -745,7 +745,7 @@ class AlgebraicChecker(object):
             format="csc",
         )
         
-        print(f"Rigidity matrix K shape: {K.shape}")
+        # print(f"Rigidity matrix K shape: {K.shape}")
 
         return RigidityMatrixResult(
             matrix=K,
@@ -833,10 +833,10 @@ class AlgebraicChecker(object):
 
         import os
 
-        print(
-            "OPENBLAS_NUM_THREADS:",
-            os.environ.get("OPENBLAS_NUM_THREADS"),
-        )
+        # print(
+        #     "OPENBLAS_NUM_THREADS:",
+        #     os.environ.get("OPENBLAS_NUM_THREADS"),
+        # )
 
 
         if tolerance is None:

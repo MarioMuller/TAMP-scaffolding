@@ -784,10 +784,10 @@ class AssemblyPlanner:
                     best_remaining = len(new_state)
                     last_progress_expansion = self.search_expansions
                     self.final_node = best_node
-                    print(
-                        f"New deepest state: {best_remaining} rods remaining "
-                        f"after {self.search_expansions} attempted transitions."
-                    )
+                    # print(
+                    #     f"New deepest state: {best_remaining} rods remaining "
+                    #     f"after {self.search_expansions} attempted transitions."
+                    # )
 
                 if len(new_state) == 0:
                     self.final_node = new_node
@@ -871,10 +871,10 @@ class AssemblyPlanner:
             rigidity_result = result_without_new_support
 
         elif not free_supports:
-            print(
-                f"Rod {candidate_rod} cannot be removed: "
-                "the remaining scaffold is not rigid and no support is free."
-            )
+            # print(
+            #     f"Rod {candidate_rod} cannot be removed: "
+            #     "the remaining scaffold is not rigid and no support is free."
+            # )
             
             structural_step = make_structural_step(
                 rigidity_result=result_without_new_support,
@@ -914,19 +914,19 @@ class AssemblyPlanner:
         )
 
         if not rigidity_result.is_rigid:
-            print(
-                f"Removing rod {candidate_rod} is structurally infeasible: "
-                f"rank {rigidity_result.rank}/{rigidity_result.dof}, "
-                f"supports {sorted(next_supported.values())}."
-            )
+            # print(
+            #     f"Removing rod {candidate_rod} is structurally infeasible: "
+            #     f"rank {rigidity_result.rank}/{rigidity_result.dof}, "
+            #     f"supports {sorted(next_supported.values())}."
+            # )
             return False, {
                 "structural_step": structural_step,
             }
 
-        print(
-            f"Remove rod {candidate_rod}: "
-            f"remaining supports = {next_supported or 'none'}"
-        )
+        # print(
+        #     f"Remove rod {candidate_rod}: "
+        #     f"remaining supports = {next_supported or 'none'}"
+        # )
 
         # ---------------------------------------------------------
         # Optional motion-planning validation

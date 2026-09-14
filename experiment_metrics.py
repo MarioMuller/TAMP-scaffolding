@@ -11,19 +11,26 @@ import numpy as np
 class CounterMetrics:
     counters: dict[str, int] = field(default_factory=dict)
     totals: dict[str, float] = field(default_factory=dict)
+    samples: dict[str, list] = field(default_factory=dict)
 
     def inc(self, name: str, amount: int = 1) -> None:
         self.counters[name] = self.counters.get(name, 0) + amount
 
     def add(self, name: str, value: float) -> None:
         self.totals[name] = self.totals.get(name, 0.0) + float(value)
+        
+    def sample(self, name: str, value) -> None:
+            self.samples.setdefault(name, []).append(value)
+    
 
     def snapshot(self) -> dict[str, Any]:
         values: dict[str, Any] = {}
         values.update(self.counters)
         values.update(self.totals)
+        values.update(self.samples)
         return values
-
+    
+    
 
 class Timer:
     def __init__(self, metrics: CounterMetrics, name: str):
