@@ -119,6 +119,7 @@ def run_structural_round(
     seed,
     max_runtime,
     shuffle_ties,
+    capture_key,
 ):
     searcher = AssemblyPlanner(
         truss=truss,
@@ -133,7 +134,7 @@ def run_structural_round(
 
     start = perf_counter()
     sequence = searcher.backward_search(
-        capture_key="v",
+        capture_key=capture_key,
         max_runtime=max_runtime,
     )
     elapsed = perf_counter() - start
@@ -183,9 +184,10 @@ def run_strategy(args, strategy_name, repeat_index):
             strategy_name=strategy_name,
             support_grippers=support_grippers,
             forbidden_transitions=forbidden_transitions,
-            seed=seed + replan_index,
+            seed=seed,
             max_runtime=args.max_runtime,
             shuffle_ties=args.shuffle_ties,
+            capture_key=args.capture_key,
         )
         final_searcher = searcher
         cumulative["structural_time_s"] += structural_time
@@ -343,6 +345,19 @@ def parse_args():
     )
     parser.add_argument("--max-runtime", type=float, default=1800.0)
     parser.add_argument("--max-replans", type=int, default=1000)
+    parser.add_argument(
+        "--capture-key",
+        default="v",
+        help=(
+            "Terminal key used to start/stop structural debug capture. "
+            "Use an empty value with --capture-key='' to disable."
+        ),
+    )
+    parser.add_argument(
+        "--no-capture",
+        action="store_true",
+        help="Disable terminal hotkey capture during structural search.",
+    )
     parser.add_argument("--rai", action="store_true")
     parser.add_argument("--rrt", action="store_true")
     parser.add_argument("--shortcut", action="store_true")
@@ -371,6 +386,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+    args.capture_key = None if args.no_capture else args.capture_key.strip()
+    if not args.capture_key:
+        args.capture_key = None
+
     strategies = [
         strategy.strip()
         for strategy in args.strategies.split(",")
