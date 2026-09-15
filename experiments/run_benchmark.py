@@ -133,7 +133,7 @@ def run_structural_round(
 
     start = perf_counter()
     sequence = searcher.backward_search(
-        capture_key=None,
+        capture_key="v",
         max_runtime=max_runtime,
     )
     elapsed = perf_counter() - start

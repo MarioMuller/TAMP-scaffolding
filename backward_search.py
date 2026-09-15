@@ -279,60 +279,6 @@ class AssemblyPlanner:
 
         return rod_id
 
-    def topology_after_removal(self, node, candidate_rod):
-        """Return a lower bound on supports needed after removing one rod.
-
-        Every connected component that contains neither a grounded rod nor a
-        currently supported rod needs at least one new external support. The
-        rigidity checker remains the authority on actual feasibility.
-        """
-        if candidate_rod not in node.state:
-            raise ValueError(
-                f"Rod {candidate_rod} is not active in the current state."
-            )
-
-        remaining = set(node.state)
-        remaining.remove(candidate_rod)
-
-        continuing_supported = {
-            rod_id
-            for rod_id in node.supported.values()
-            if rod_id in remaining
-        }
-        anchors = (
-            set(self.truss.grounded_rods) & remaining
-        ) | continuing_supported
-
-        unseen = set(remaining)
-        unanchored_components = 0
-        unanchored_rods = 0
-
-        while unseen:
-            first = unseen.pop()
-            component = {first}
-            stack = [first]
-
-            while stack:
-                rod_id = stack.pop()
-                neighbours = (
-                    self.rod_neighbors[rod_id]
-                    & remaining
-                    & unseen
-                )
-                unseen.difference_update(neighbours)
-                component.update(neighbours)
-                stack.extend(neighbours)
-
-            if component.isdisjoint(anchors):
-                unanchored_components += 1
-                unanchored_rods += len(component)
-
-        predicted_support_count = (
-            len(continuing_supported)
-            + unanchored_components
-        )
-        return predicted_support_count, unanchored_rods
-
     def distance_from_ground(self, active_rods):
         """Return coupler-graph distances from active grounded rods."""
         active = set(active_rods)
@@ -352,6 +298,77 @@ class AssemblyPlanner:
                     queue.append(neighbour)
 
         return distances
+    
+    def evaluate_actual_supports_after_removal(
+        self,
+        node,
+        candidate_rod,
+    ):
+        new_state = frozenset(
+            node.state - {candidate_rod}
+        )
+
+        continuing_supports = {
+            support: rod_id
+            for support, rod_id in node.supported.items()
+            if rod_id != candidate_rod
+        }
+
+        free_supports = [
+            support
+            for support in self.helper_grippers
+            if support not in continuing_supports
+        ]
+
+        continuing_supported_rods = set(
+            continuing_supports.values()
+        )
+
+        rigidity_result = self.rigidity.check(
+            new_state,
+            supported_rods=continuing_supported_rods,
+        )
+
+        if rigidity_result.is_rigid:
+            affected_rods = []
+
+        elif not free_supports:
+            return None
+
+        else:
+            affected_rods, rigidity_result = (
+                self.rigidity.choose_support_targets(
+                    active_rods=new_state,
+                    already_supported=continuing_supported_rods,
+                    max_targets=len(free_supports),
+                    key=self.support_target_priority,
+                    initial_result=rigidity_result,
+                    return_result=True,
+                )
+            )
+
+        if not rigidity_result.is_rigid:
+            return None
+
+        added_supports = {
+            support: rod_id
+            for support, rod_id in zip(
+                free_supports,
+                affected_rods,
+            )
+        }
+
+        supports_after = dict(continuing_supports)
+        supports_after.update(added_supports)
+
+        return {
+            "rigidity_result": rigidity_result,
+            "supports_after": supports_after,
+            "added_supports": added_supports,
+            "support_count": len(supports_after),
+            "new_support_count": len(added_supports),
+        }
+        
     
     def support_history_cost(self, node):
         """Measure support use along the current branch."""
@@ -379,50 +396,13 @@ class AssemblyPlanner:
         self,
         node,
         rod_id,
-        topology=None,
         ground_distances=None,
+        actual_support_result=None,
     ):
         """Return a priority tuple; lower values are preferred."""
-        if topology is None:
-            topology = self.topology_after_removal(node, rod_id)
-
-        predicted_supports, unanchored_rods = topology
 
         if ground_distances is None:
             ground_distances = self.distance_from_ground(node.state)
-
-        (
-            peak_supports,
-            support_steps,
-            support_additions,
-        ) = self.support_history_cost(node)
-
-        continuing_supported_rods = {
-            supported_rod
-            for supported_rod in node.supported.values()
-            if (
-                supported_rod in node.state
-                and supported_rod != rod_id
-            )
-        }
-
-        predicted_new_supports = max(
-            0,
-            predicted_supports - len(continuing_supported_rods),
-        )
-
-        projected_peak_supports = max(
-            peak_supports,
-            predicted_supports,
-        )
-
-        projected_support_steps = (
-            support_steps + predicted_supports
-        )
-
-        projected_support_additions = (
-            support_additions + predicted_new_supports
-        )
 
         distance = ground_distances.get(
             rod_id,
@@ -437,31 +417,25 @@ class AssemblyPlanner:
             0 if self.is_supported_candidate(node, rod_id) else 1
         )
 
-        grounded_rank = (
-            1 if rod_id in self.truss.grounded_rods else 0
-        )
-
-        default_priority = (
-            len(node.state),               # Then prefer deeper branches.
-            projected_peak_supports,       # Minimize simultaneous supports.
-            projected_support_steps,       # Minimize support duration.
-            projected_support_additions,   # Minimize support deployments.
-            # grounded_rank,                 # Remove grounded rods late backward.
-            unanchored_rods,
-            supported_rank,
-            connection_count,
-            -distance,                     # Remove high rods early backward.
-            -self.heuristic(rod_id),
-            self.priority_tie_breaker(rod_id),
-        )
-
         if self.strategy_name == "default":
-            return default_priority
-
-        if self.strategy_name == "improved":
             return (
                 len(node.state),
-                predicted_new_supports,
+                supported_rank,
+                connection_count,
+                -distance,
+                -self.heuristic(rod_id),
+                self.priority_tie_breaker(rod_id),
+            )
+
+        if self.strategy_name == "improved":
+            if actual_support_result is None:
+                raise ValueError(
+                    "Actual support result required for improved strategy."
+                )
+
+            return (
+                len(node.state),
+                actual_support_result["support_count"],
                 self.priority_tie_breaker(rod_id),
             )
 
@@ -475,52 +449,46 @@ class AssemblyPlanner:
         raise ValueError(
             f"Unknown search strategy: {self.strategy_name}"
         )
+        
 
     def removal_candidates_with_priorities(self, node):
-        """Return promising candidates and their computed priorities.
-
-        A candidate is rejected without QR only when its disconnected components
-        provably require more supports than are available.
-        """
+        """Return structurally feasible removals in priority order."""
 
         candidates = list(node.state)
-        ground_distances = self.distance_from_ground(node.state)
+
+        ground_distances = self.distance_from_ground(
+            node.state
+        )
+
         ranked_candidates = []
 
         for rod_id in candidates:
-            # A grounded rod must remain until all non-grounded rods directly
-            # attached to it have been removed.
-            #
-            # Reversed into assembly, this guarantees that the grounded rod is
-            # placed before rods attached to it.
-            if rod_id in self.truss.grounded_rods:
-                active_non_grounded_neighbours = {
-                    neighbour
-                    for neighbour in (
-                        self.rod_neighbors[rod_id] & node.state
-                    )
-                    if neighbour not in self.truss.grounded_rods
-                }
 
-                if active_non_grounded_neighbours:
-                    continue
+            actual_support_result = (
+                self.evaluate_actual_supports_after_removal(
+                    node,
+                    rod_id,
+                )
+            )
 
-            topology = self.topology_after_removal(node, rod_id)
-            
-            predicted_supports, _ = topology
-
-            if predicted_supports > len(self.helper_grippers):
+            if actual_support_result is None:
                 continue
 
             priority = self.removal_priority(
                 node,
                 rod_id,
-                topology=topology,
+                actual_support_result=actual_support_result,
                 ground_distances=ground_distances,
             )
-            ranked_candidates.append((priority, rod_id))
 
-        ranked_candidates.sort(key=lambda item: item[0])
+            ranked_candidates.append(
+                (priority, rod_id)
+            )
+
+        ranked_candidates.sort(
+            key=lambda item: item[0]
+        )
+
         return ranked_candidates
 
     def removal_candidates(self, node):
@@ -591,16 +559,16 @@ class AssemblyPlanner:
             final_result.is_rigid
         )
 
-        # if not final_result.is_rigid:
-        #     print(
-        #         "\nWarning: The final truss configuration is not rigid "
-        #         "without supports. Required supports will remain in the "
-        #         "final visualization frame."
-        #     )
-        #     input(
-        #         "Press Enter to continue the search anyway, "
-        #         "or Ctrl+C to abort..."
-        #     )
+        if not final_result.is_rigid:
+            print(
+                "\nWarning: The final truss configuration is not rigid "
+                "without supports. Required supports will remain in the "
+                "final visualization frame."
+            )
+            input(
+                "Press Enter to continue the search anyway, "
+                "or Ctrl+C to abort..."
+            )
 
         open_list = []
         counter = 0
