@@ -475,10 +475,10 @@ class AssemblyPlanner:
                 self.priority_tie_breaker(rod_id),
             )
 
-        if self.strategy_name == "improved":
+        if self.strategy_name == "reduced_supports":
             if actual_support_result is None:
                 raise ValueError(
-                    "Actual support result required for improved strategy."
+                    "Actual support result required for reduced supports strategy."
                 )
 
             return (
