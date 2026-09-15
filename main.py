@@ -69,6 +69,9 @@ def validate_structural_plan_with_rai(
     rai_cache,
     use_rrt=True,
     do_shortcut=True,
+    view_last_komo_attempt=False,
+    use_ssik_initialization=True,
+    support_fractions=(0.25, 0.5, 0.75),
 ):
     """Validate one complete structural removal plan sequentially in RAI.
 
@@ -153,6 +156,9 @@ def validate_structural_plan_with_rai(
                 new_support_assignments=dict(step.added_supports),
                 use_rrt=use_rrt,
                 do_shortcut=do_shortcut,
+                view_last_komo_attempt=view_last_komo_attempt,
+                use_ssik_initialization=use_ssik_initialization,
+                support_fractions=support_fractions,
             )
 
             if motion_result is None:
@@ -239,6 +245,9 @@ def main():
     )
     
     MAIN_ROBOT_ARM_COUNT = 1
+    VIEW_LAST_KOMO_ATTEMPT = True
+    USE_SSIK_INITIALIZATION = True
+    SUPPORT_FRACTIONS = (0.35, 0.5, 0.65)
 
     support_grippers = (
         "h1_a1_ur_gripper_center",
@@ -326,6 +335,9 @@ def main():
             q_initial=rai_initial_q,
             structural_steps=structural_steps,
             rai_cache=rai_cache,
+            view_last_komo_attempt=VIEW_LAST_KOMO_ATTEMPT,
+            use_ssik_initialization=USE_SSIK_INITIALIZATION,
+            support_fractions=SUPPORT_FRACTIONS,
         )
 
         if validation["success"]:

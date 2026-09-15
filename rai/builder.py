@@ -252,6 +252,9 @@ class RaiTrussBuilder:
         new_support_assignments=None,
         use_rrt=False,
         do_shortcut=False,
+        view_last_komo_attempt=False,
+        use_ssik_initialization=True,
+        support_fractions=(0.25, 0.5, 0.75),
     ):
         """
         Backward-search motion test.
@@ -460,7 +463,10 @@ class RaiTrussBuilder:
             continuing_supports=continuing_supports,
             releasable_supports=releasable_supports,
             new_support_assignments=new_support_assignments,
+            support_fractions=support_fractions,
             accept_keyframes=accept_keyframes_with_rrt,
+            view_last_komo_attempt=view_last_komo_attempt,
+            use_ssik_initialization=use_ssik_initialization,
         )
 
         if keyframes is None:

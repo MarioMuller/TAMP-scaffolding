@@ -54,6 +54,9 @@ def validate_with_rai(
     rai_cache,
     use_rrt,
     do_shortcut,
+    view_last_komo_attempt,
+    use_ssik_initialization,
+    support_fractions,
 ):
     from main import validate_structural_plan_with_rai
 
@@ -64,6 +67,9 @@ def validate_with_rai(
         rai_cache=rai_cache,
         use_rrt=use_rrt,
         do_shortcut=do_shortcut,
+        view_last_komo_attempt=view_last_komo_attempt,
+        use_ssik_initialization=use_ssik_initialization,
+        support_fractions=support_fractions,
     )
 
 
@@ -145,6 +151,14 @@ def run_structural_round(
 def run_strategy(args, strategy_name, repeat_index):
     truss = Truss.from_json(args.truss)
     support_grippers = tuple(args.support_grippers.split(","))
+    support_fractions = tuple(
+        float(value)
+        for value in args.support_fractions.split(",")
+        if value.strip()
+    )
+    if not support_fractions:
+        raise ValueError("--support-fractions must not be empty")
+
     seed = args.seed + repeat_index
     metrics = CounterMetrics()
 
@@ -220,6 +234,9 @@ def run_strategy(args, strategy_name, repeat_index):
             rai_cache=rai_cache,
             use_rrt=args.rrt,
             do_shortcut=args.shortcut,
+            view_last_komo_attempt=args.view_last_komo_attempt,
+            use_ssik_initialization=not args.no_ssik_initialization,
+            support_fractions=support_fractions,
         )
 
         if validation["success"]:
@@ -362,6 +379,22 @@ def parse_args():
     parser.add_argument("--rrt", action="store_true")
     parser.add_argument("--shortcut", action="store_true")
     parser.add_argument(
+        "--view-last-komo-attempt",
+        action="store_true",
+        help=(
+            "When RAI validation exhausts a removal transition, open the "
+            "viewer on the last analytical KOMO combination actually tried."
+        ),
+    )
+    parser.add_argument(
+        "--no-ssik-initialization",
+        action="store_true",
+        help=(
+            "Sample mobile-base placements only and let KOMO solve arm joints "
+            "without SSIK-seeded arm configurations."
+        ),
+    )
+    parser.add_argument(
         "--viser",
         action="store_true",
         help="Open a Viser replay after each successful RAI-validated strategy.",
@@ -375,6 +408,13 @@ def parse_args():
         default=(
             "h1_a1_ur_gripper_center,"
             "h2_a1_ur_gripper_center"
+        ),
+    )
+    parser.add_argument(
+        "--support-fractions",
+        default="0.5, 0.6",
+        help=(
+            "Comma-separated rod fractions to try for newly added supports."
         ),
     )
     parser.add_argument(

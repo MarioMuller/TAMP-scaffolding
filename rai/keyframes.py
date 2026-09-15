@@ -265,7 +265,10 @@ class KeyframePlanner:
         n_phases=None,
         activation_segment_by_arm=None,
         accept_keyframes=None,
-        max_combinations = 100
+        max_combinations=100,
+        view_last_attempt=False,
+        use_ssik_initialization=True,
+        initialization_variants=None,
     ):
         q0 = np.asarray(
             self.C.getJointState(),
@@ -317,99 +320,184 @@ class KeyframePlanner:
                 "keyframe acceptor"
             )
 
-        # ------------------------------------------------------------
-        # Group analytical targets by physical mobile robot.
-        #
-        # a1 and a2 both belong to husky_base_XYPhi_joint and are
-        # therefore solved as one combined robot candidate.
-        # ------------------------------------------------------------
+        if initialization_variants is None:
+            initialization_variants = [{
+                "base_target_positions": base_target_positions,
+                "ik_targets": ik_targets,
+                "label": None,
+            }]
 
-        ik_targets_by_base = {}
+        all_combinations = []
 
-        for arm_name, target_spec in ik_targets.items():
-            base_joint = self.ARM_SPECS[
-                arm_name
-            ]["base_joint"]
-
-            ik_targets_by_base.setdefault(
-                base_joint,
-                {},
-            )[arm_name] = target_spec
-
-        candidate_lists = []
-        candidate_base_names = []
-
-        for base_joint, robot_ik_targets in (
-            ik_targets_by_base.items()
-        ):
-            if base_joint not in base_target_positions:
-                raise RuntimeError(
-                    f"No circle centre provided for {base_joint}"
-                )
-
-            candidates = (
-                self._precompute_robot_candidates(
-                    q0=q0,
-                    base_joint=base_joint,
-                    circle_center=(
-                        base_target_positions[
-                            base_joint
-                        ]
-                    ),
-                    robot_ik_targets=robot_ik_targets,
-                    radius=base_circle_radius,
-                    circle_samples=circle_samples,
-                )
+        for variant in initialization_variants:
+            variant_base_target_positions = dict(
+                variant["base_target_positions"]
             )
+            variant_ik_targets = dict(variant["ik_targets"])
+            variant_label = variant.get("label")
 
-            # print(
-            #     f"{base_joint}: "
-            #     f"{len(candidates)}/{circle_samples} "
-            #     "circle positions have SSIK solutions"
-            # )
+            # ------------------------------------------------------------
+            # Group analytical targets by physical mobile robot.
+            #
+            # a1 and a2 both belong to husky_base_XYPhi_joint and are
+            # therefore solved as one combined robot candidate.
+            # ------------------------------------------------------------
 
-            # If one required robot has no candidate, no global combination
-            # can be feasible.
-            if not candidates:
-                print(
-                    f"No SSIK candidate for required robot "
-                    f"{base_joint}"
+            ik_targets_by_base = {}
+
+            for arm_name, target_spec in variant_ik_targets.items():
+                base_joint = self.ARM_SPECS[
+                    arm_name
+                ]["base_joint"]
+
+                ik_targets_by_base.setdefault(
+                    base_joint,
+                    {},
+                )[arm_name] = target_spec
+
+            candidate_lists = []
+            candidate_base_names = []
+
+            for base_joint, robot_ik_targets in (
+                ik_targets_by_base.items()
+            ):
+                if base_joint not in variant_base_target_positions:
+                    raise RuntimeError(
+                        f"No circle centre provided for {base_joint}"
+                    )
+
+                candidates = (
+                    self._precompute_robot_candidates(
+                        q0=q0,
+                        base_joint=base_joint,
+                        circle_center=(
+                            variant_base_target_positions[
+                                base_joint
+                            ]
+                        ),
+                        robot_ik_targets=robot_ik_targets,
+                        radius=base_circle_radius,
+                        circle_samples=circle_samples,
+                        use_ssik_initialization=use_ssik_initialization,
+                    )
                 )
-                return None
 
-            candidate_base_names.append(base_joint)
-            candidate_lists.append(candidates)
+                if not candidates:
+                    candidate_type = (
+                        "SSIK candidate"
+                        if use_ssik_initialization
+                        else "base sample"
+                    )
+                    suffix = (
+                        f" for {variant_label}"
+                        if variant_label
+                        else ""
+                    )
+                    print(
+                        f"No {candidate_type} for required robot "
+                        f"{base_joint}{suffix}"
+                    )
+                    candidate_lists = []
+                    break
 
-        combination_count = int(
-            np.prod([
-                len(candidates)
-                for candidates in candidate_lists
-            ])
-        )
+                candidate_base_names.append(base_joint)
+                candidate_lists.append(candidates)
+
+            if not candidate_lists:
+                continue
+
+            for combination in product(*candidate_lists):
+                all_combinations.append((
+                    variant_label,
+                    tuple(candidate_base_names),
+                    combination,
+                ))
+
+        combination_count = len(all_combinations)
 
         print(
             f"Testing {combination_count} "
             "cross-robot candidate combinations"
         )
 
+        if not all_combinations:
+            return None
+
         # ------------------------------------------------------------
         # Cartesian product of independently feasible robot states.
         # KOMO now checks interactions and collisions between robots.
         # ------------------------------------------------------------
 
-        combinations = list(product(*candidate_lists))
+        combinations = list(all_combinations)
 
-        self.rng.shuffle(combinations)
-        
         if max_combinations is not None:
-            combinations = combinations[:max_combinations]
+            max_combinations = int(max_combinations)
+
+            if max_combinations <= 0:
+                raise ValueError("max_combinations must be positive")
+
+            first_branch_combinations = [
+                combination_record
+                for combination_record in combinations
+                if all(
+                    candidate.get("branch_rank", 0) == 0
+                    for candidate in combination_record[2]
+                )
+            ]
+
+            extra_branch_combinations = [
+                combination_record
+                for combination_record in combinations
+                if any(
+                    candidate.get("branch_rank", 0) != 0
+                    for candidate in combination_record[2]
+                )
+            ]
+
+            self.rng.shuffle(first_branch_combinations)
+            self.rng.shuffle(extra_branch_combinations)
+
+            if len(first_branch_combinations) >= max_combinations:
+                combinations = (
+                    first_branch_combinations[:max_combinations]
+                )
+
+            else:
+                remaining_slots = (
+                    max_combinations
+                    - len(first_branch_combinations)
+                )
+
+                combinations = (
+                    first_branch_combinations
+                    + extra_branch_combinations[:remaining_slots]
+                )
+
+            print(
+                "Using "
+                f"{min(len(first_branch_combinations), len(combinations))} "
+                "first-branch SSIK combinations and "
+                f"{max(0, len(combinations) - len(first_branch_combinations))} "
+                "extra-branch combinations"
+            )
+
+        else:
+            self.rng.shuffle(combinations)
 
         tested_combination_count = len(combinations)
 
-        for combination_index, combination in enumerate(
+        for combination_index, combination_record in enumerate(
             combinations,
             start=1,
         ):
+            variant_label, candidate_base_names, combination = (
+                combination_record
+            )
+
+            is_last_attempt = (
+                combination_index == tested_combination_count
+            )
+
             x_init = self._make_phase_ssik_initialization(
                 q0=q0,
                 robot_candidates=combination,
@@ -430,16 +518,22 @@ class KeyframePlanner:
                 )
             )
 
+            if variant_label:
+                description = (
+                    f"{variant_label}; {description}"
+                )
+
             keyframes = self._solve_komo_once(
                 komo=komo,
                 x_init=x_init,
                 label=(
                     f"combination "
                     f"{combination_index}/"
-                    f"{combination_count} "
+                    f"{tested_combination_count} "
+                    f"of {combination_count} available "
                     f"({description})"
                 ),
-                view=view,
+                view=view or (view_last_attempt and is_last_attempt),
                 view_accepted=view_accepted,
             )
 
@@ -452,7 +546,8 @@ class KeyframePlanner:
                         (
                             f"combination "
                             f"{combination_index}/"
-                            f"{combination_count} "
+                            f"{tested_combination_count} "
+                            f"of {combination_count} available "
                             f"({description})"
                         ),
                     )
@@ -478,10 +573,17 @@ class KeyframePlanner:
                 #     "rejected by keyframe acceptor"
                 # )
 
-        print(
-            "FAILED: all analytical robot "
-            "combinations were tested"
-        )
+        if tested_combination_count < combination_count:
+            print(
+                "FAILED: analytical robot combination limit "
+                f"reached ({tested_combination_count}/"
+                f"{combination_count})"
+            )
+        else:
+            print(
+                "FAILED: all analytical robot "
+                "combinations were tested"
+            )
 
         return None
 
@@ -678,6 +780,7 @@ class KeyframePlanner:
         robot_ik_targets,
         radius,
         circle_samples=8,
+        use_ssik_initialization=True,
     ):
         """
         Generate all SSIK branches for the first feasible roll orientation
@@ -757,6 +860,19 @@ class KeyframePlanner:
                 q_at_sampled_base = (
                     self.C.getJointState().copy()
                 )
+
+                if not use_ssik_initialization:
+                    candidates.append({
+                        "base_joint": base_joint,
+                        "base_q": base_q.copy(),
+                        "arm_solutions": {},
+                        "target_arms": tuple(robot_ik_targets.keys()),
+                        "branch_rank": 0,
+                        "circle_index": sample_index,
+                        "circle_angle": circle_angle,
+                        "roll_offset": None,
+                    })
+                    continue
 
                 # Centre of all grasp targets belonging to this mobile robot.
                 target_center = np.mean(
@@ -859,9 +975,9 @@ class KeyframePlanner:
                         for arm_name in arm_names
                     ]
 
-                    for solution_combination in product(
+                    for branch_rank, solution_combination in enumerate(product(
                         *solution_lists
-                    ):
+                    )):
                         candidate_arm_solutions = {
                             arm_name: q_arm.copy()
                             for arm_name, q_arm in zip(
@@ -876,6 +992,8 @@ class KeyframePlanner:
                             "arm_solutions": (
                                 candidate_arm_solutions
                             ),
+                            "target_arms": tuple(arm_names),
+                            "branch_rank": branch_rank,
                             "circle_index": sample_index,
                             "circle_angle": circle_angle,
                             "roll_offset": roll_offset,
@@ -945,9 +1063,14 @@ class KeyframePlanner:
         candidate_activation_segments = []
 
         for candidate in robot_candidates:
+            target_arms = candidate.get(
+                "target_arms",
+                tuple(candidate["arm_solutions"]),
+            )
+
             activation_segments = {
                 activation_segment_by_arm[arm_name]
-                for arm_name in candidate["arm_solutions"]
+                for arm_name in target_arms
             }
 
             # All arms belonging to one physical robot candidate must become
@@ -1066,8 +1189,11 @@ class KeyframePlanner:
         continuing_supports=None,
         releasable_supports=None,
         new_support_assignments=None,
-        support_fraction=0.5,
+        support_fraction=0.25,
+        support_fractions=None,
         accept_keyframes=None,
+        view_last_komo_attempt=False,
+        use_ssik_initialization=True,
     ):
         """
         Backward removal of rod_id.
@@ -1243,7 +1369,6 @@ class KeyframePlanner:
                     .setContact(0)
 
         support_phase_by_gripper = {}
-        support_grasp_by_gripper = {}
         support_rod_frame_by_gripper = {}
         support_target_by_gripper = {}
 
@@ -1253,12 +1378,6 @@ class KeyframePlanner:
 
             support_rod = f"rod_{support_rod_id}"
             support_rod_frame_by_gripper[support_gripper] = support_rod
-
-            support_grasp = self.rods.create_support_grasp_frame_at_fraction(
-                support_rod_id,
-                support_fraction,
-            )
-            support_grasp_by_gripper[support_gripper] = support_grasp
 
             # Fixed target frame at the current installed pose of the support rod.
             # IMPORTANT: must exist before ry.KOMO(...) is constructed.
@@ -1295,7 +1414,7 @@ class KeyframePlanner:
                 phase_info["main_grasp_segment"]
             )
 
-        for support_gripper in support_grasp_by_gripper:
+        for support_gripper in new_support_assignments:
             arm_name = support_gripper.removesuffix(
                 "_ur_gripper_center"
             )
@@ -1442,7 +1561,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             [rod, candidate_hold_target],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         komo.addObjective(
@@ -1450,7 +1569,7 @@ class KeyframePlanner:
             ry.FS.quaternionDiff,
             [rod, candidate_hold_target],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         # ------------------------------------------------------------
@@ -1461,7 +1580,7 @@ class KeyframePlanner:
             ry.FS.positionDiff,
             [main_gripper, g1],
             ry.OT.eq,
-            [1e2],
+            [1e1],
         )
 
         komo.addObjective(
@@ -1469,7 +1588,7 @@ class KeyframePlanner:
             ry.FS.scalarProductXZ,
             [main_gripper, rod],
             ry.OT.eq,
-            [1e2],
+            [1e1],
             [1.0],
         )
 
@@ -1479,7 +1598,7 @@ class KeyframePlanner:
                 ry.FS.positionDiff,
                 [second_main_gripper, g2],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
             )
 
             komo.addObjective(
@@ -1487,7 +1606,7 @@ class KeyframePlanner:
                 ry.FS.scalarProductXZ,
                 [second_main_gripper, rod],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
                 [1.0],
             )
 
@@ -1527,7 +1646,6 @@ class KeyframePlanner:
 
         for support_gripper, support_rod_id in new_support_assignments.items():
             t_support = support_phase_by_gripper[support_gripper]
-            support_grasp = support_grasp_by_gripper[support_gripper]
             support_rod = support_rod_frame_by_gripper[support_gripper]
 
             support_target = support_target_by_gripper[support_gripper]
@@ -1538,7 +1656,7 @@ class KeyframePlanner:
                 ry.FS.positionRel,
                 [support_gripper, support_rod],
                 ry.OT.eq,
-                1e2 * np.array([
+                1e1 * np.array([
                     [1.0, 0.0, 0.0],
                     [0.0, 1.0, 0.0],
                 ]),
@@ -1552,7 +1670,7 @@ class KeyframePlanner:
                 ry.FS.positionRel,
                 [support_gripper, support_rod],
                 ry.OT.ineq,
-                1e2 * np.array([[0.0, 0.0, 1.0]]),
+                1e1 * np.array([[0.0, 0.0, 1.0]]),
                 [0.0, 0.0, 0.5 * length - margin],
             )
 
@@ -1561,7 +1679,7 @@ class KeyframePlanner:
                 ry.FS.positionRel,
                 [support_gripper, support_rod],
                 ry.OT.ineq,
-                -1e2 * np.array([[0.0, 0.0, 1.0]]),
+                -1e1 * np.array([[0.0, 0.0, 1.0]]),
                 [0.0, 0.0, -0.5 * length + margin],
             )
 
@@ -1572,7 +1690,7 @@ class KeyframePlanner:
                 ry.FS.scalarProductXZ,
                 [support_gripper, support_rod],
                 ry.OT.eq,
-                [1e2],
+                [1e1],
                 [-1.0],
             )
 
@@ -1640,21 +1758,6 @@ class KeyframePlanner:
         base_target_positions = {
             "husky_base_XYPhi_joint": main_base_target,
         }
-
-        # Every newly deployed support robot circles its support-grasp point.
-        for support_gripper, support_grasp in (
-            support_grasp_by_gripper.items()
-        ):
-            base_joint = self._base_joint_for_gripper(
-                support_gripper
-            )
-
-            base_target_positions[base_joint] = np.asarray(
-                self.C.getFrame(
-                    support_grasp
-                ).getPosition(),
-                dtype=float,
-            )
     
         candidate_rotation = (
             self._frame_transform(rod)[:3, :3].copy()
@@ -1683,34 +1786,96 @@ class KeyframePlanner:
                 "roll_group": "main_candidate",
             }
 
-        for support_gripper, support_grasp in (
-            support_grasp_by_gripper.items()
-        ):
-            arm_name = support_gripper.removesuffix(
-                "_ur_gripper_center"
+        if support_fractions is None:
+            support_fractions = (support_fraction,)
+
+        support_fractions = tuple(float(fraction) for fraction in support_fractions)
+
+        if new_support_assignments and not support_fractions:
+            raise ValueError("support_fractions must not be empty")
+
+        support_items = list(new_support_assignments.items())
+        initialization_variants = []
+
+        if support_items:
+            fraction_combinations = product(
+                support_fractions,
+                repeat=len(support_items),
             )
 
-            support_rod = (
-                support_rod_frame_by_gripper[
+        else:
+            fraction_combinations = ((),)
+
+        for fraction_combination in fraction_combinations:
+            variant_base_target_positions = dict(
+                base_target_positions
+            )
+            variant_ik_targets = {
+                arm_name: dict(target_spec)
+                for arm_name, target_spec in ik_targets.items()
+            }
+            label_parts = []
+
+            for (
+                support_gripper,
+                support_rod_id,
+            ), fraction in zip(
+                support_items,
+                fraction_combination,
+            ):
+                support_grasp = (
+                    self.rods.create_support_grasp_frame_at_fraction(
+                        support_rod_id,
+                        fraction,
+                    )
+                )
+
+                base_joint = self._base_joint_for_gripper(
                     support_gripper
-                ]
-            )
+                )
 
-            ik_targets[arm_name] = {
-                "position": np.asarray(
+                variant_base_target_positions[base_joint] = np.asarray(
                     self.C.getFrame(
                         support_grasp
                     ).getPosition(),
                     dtype=float,
-                ).copy(),
-                "rod_rotation": (
-                    self._frame_transform(
-                        support_rod
-                    )[:3, :3].copy()
-                ),
-                "alignment": -1.0,
-                "roll_group": arm_name,
-            }
+                )
+
+                arm_name = support_gripper.removesuffix(
+                    "_ur_gripper_center"
+                )
+
+                support_rod = (
+                    support_rod_frame_by_gripper[
+                        support_gripper
+                    ]
+                )
+
+                variant_ik_targets[arm_name] = {
+                    "position": np.asarray(
+                        self.C.getFrame(
+                            support_grasp
+                        ).getPosition(),
+                        dtype=float,
+                    ).copy(),
+                    "rod_rotation": (
+                        self._frame_transform(
+                            support_rod
+                        )[:3, :3].copy()
+                    ),
+                    "alignment": -1.0,
+                    "roll_group": arm_name,
+                }
+
+                label_parts.append(
+                    f"{support_gripper} fraction {fraction:.2f}"
+                )
+
+            initialization_variants.append({
+                "base_target_positions": variant_base_target_positions,
+                "ik_targets": variant_ik_targets,
+                "label": ", ".join(label_parts) or None,
+            })
 
         keyframe_acceptor = None
 
@@ -1733,6 +1898,9 @@ class KeyframePlanner:
             n_phases=phases.n_phases,
             activation_segment_by_arm=(activation_segment_by_arm),
             accept_keyframes=keyframe_acceptor,
+            view_last_attempt=view_last_komo_attempt,
+            use_ssik_initialization=use_ssik_initialization,
+            initialization_variants=initialization_variants,
         )
 
         if keyframes is None:
