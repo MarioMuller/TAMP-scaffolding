@@ -248,6 +248,7 @@ def main():
     VIEW_LAST_KOMO_ATTEMPT = True
     USE_SSIK_INITIALIZATION = True
     SUPPORT_FRACTIONS = (0.35, 0.5, 0.65)
+    STRATEGY_NAME = "highest_first"
 
     support_grippers = (
         "h1_a1_ur_gripper_center",
@@ -301,6 +302,7 @@ def main():
             max_supports=2,
             support_grippers=support_grippers,
             forbidden_transitions=forbidden_transitions,
+            strategy_name=STRATEGY_NAME,
         )
 
         removal_sequence = searcher.backward_search(

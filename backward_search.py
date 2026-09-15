@@ -475,6 +475,13 @@ class AssemblyPlanner:
                 self.priority_tie_breaker(rod_id),
             )
 
+        if self.strategy_name == "highest_first":
+            return (
+                len(node.state),
+                -self.heuristic(rod_id),
+                self.priority_tie_breaker(rod_id),
+            )
+
         if self.strategy_name == "reduced_supports":
             if actual_support_result is None:
                 raise ValueError(

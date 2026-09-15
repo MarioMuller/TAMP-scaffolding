@@ -28,7 +28,8 @@ from truss import Truss
 DEFAULT_STRATEGIES = [
     "default",
     "baseline",
-    "improved",
+    "highest_first",
+    "reduced_supports",
 ]
 
 
