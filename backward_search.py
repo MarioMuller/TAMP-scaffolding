@@ -81,6 +81,7 @@ class AssemblyPlanner:
         self.random_seed = int(random_seed)
         self.rng = np.random.default_rng(random_seed)
         self.baseline_candidate_orders = {}
+        self.actual_support_results = {}
         self.shuffle_ties = shuffle_ties
 
         self.rigidity = TrussRigidityChecker(
@@ -313,6 +314,15 @@ class AssemblyPlanner:
         node,
         candidate_rod,
     ):
+        cache_key = self.structural_transition_key(
+            state=node.state,
+            supported=node.supported,
+            candidate_rod=candidate_rod,
+        )
+
+        if cache_key in self.actual_support_results:
+            return self.actual_support_results[cache_key]
+
         new_state = frozenset(
             node.state - {candidate_rod}
         )
@@ -342,6 +352,7 @@ class AssemblyPlanner:
             affected_rods = []
 
         elif not free_supports:
+            self.actual_support_results[cache_key] = None
             return None
 
         else:
@@ -350,13 +361,17 @@ class AssemblyPlanner:
                     active_rods=new_state,
                     already_supported=continuing_supported_rods,
                     max_targets=len(free_supports),
-                    key=self.support_target_priority,
+                    key=lambda rod_id: self.support_target_priority(
+                        rod_id,
+                        removed_rod=candidate_rod,
+                    ),
                     initial_result=rigidity_result,
                     return_result=True,
                 )
             )
 
         if not rigidity_result.is_rigid:
+            self.actual_support_results[cache_key] = None
             return None
 
         added_supports = {
@@ -370,13 +385,16 @@ class AssemblyPlanner:
         supports_after = dict(continuing_supports)
         supports_after.update(added_supports)
 
-        return {
+        result = {
             "rigidity_result": rigidity_result,
             "supports_after": supports_after,
             "added_supports": added_supports,
             "support_count": len(supports_after),
             "new_support_count": len(added_supports),
         }
+
+        self.actual_support_results[cache_key] = result
+        return result
         
     
     def support_history_cost(self, node):
@@ -483,14 +501,22 @@ class AssemblyPlanner:
             )
 
         if self.strategy_name == "reduced_supports":
-            if actual_support_result is None:
-                raise ValueError(
-                    "Actual support result required for reduced supports strategy."
+            if actual_support_result is not None:
+                return (
+                    len(node.state),
+                    0,
+                    actual_support_result["support_count"],
+                    actual_support_result["new_support_count"],
+                    self.priority_tie_breaker(rod_id),
                 )
 
             return (
                 len(node.state),
-                actual_support_result["support_count"],
+                1,
+                supported_rank,
+                connection_count,
+                -distance,
+                -self.heuristic(rod_id),
                 self.priority_tie_breaker(rod_id),
             )
 
@@ -501,7 +527,7 @@ class AssemblyPlanner:
         
 
     def removal_candidates_with_priorities(self, node):
-        """Return structurally feasible removals in priority order."""
+        """Return candidate removals in priority order."""
 
         candidates = list(node.state)
 
@@ -509,46 +535,53 @@ class AssemblyPlanner:
             node.state
         )
 
-        feasible_candidates = []
-        ranked_candidates = []
+        # Cheap pruning from the old implementation.
+        filtered_candidates = []
 
         for rod_id in candidates:
 
-            actual_support_result = (
-                self.evaluate_actual_supports_after_removal(
-                    node,
-                    rod_id,
-                )
-            )
+            # Keep grounded rods until all attached non-grounded rods
+            # have been removed.
+            if rod_id in self.truss.grounded_rods:
+                active_non_grounded_neighbours = {
+                    neighbour
+                    for neighbour in (
+                        self.rod_neighbors[rod_id] & node.state
+                    )
+                    if neighbour not in self.truss.grounded_rods
+                }
 
-            if actual_support_result is None:
-                continue
+                if active_non_grounded_neighbours:
+                    continue
 
-            feasible_candidates.append(
-                (rod_id, actual_support_result)
-            )
+            filtered_candidates.append(rod_id)
 
+        # ---------------------------------------------------------
+        # Baseline: random order, no structural pre-evaluation
+        # ---------------------------------------------------------
         if self.strategy_name == "baseline":
             order = self.baseline_candidate_order(
                 node,
-                [
-                    rod_id
-                    for rod_id, _ in feasible_candidates
-                ],
+                filtered_candidates,
             )
+
             return sorted(
                 (
-                    ((len(node.state), order[rod_id]), rod_id)
-                    for rod_id, _ in feasible_candidates
+                    (
+                        (len(node.state), order[rod_id]),
+                        rod_id,
+                    )
+                    for rod_id in filtered_candidates
                 ),
                 key=lambda item: item[0],
             )
 
-        for rod_id, actual_support_result in feasible_candidates:
+        ranked_candidates = []
+
+        for rod_id in filtered_candidates:
             priority = self.removal_priority(
                 node,
                 rod_id,
-                actual_support_result=actual_support_result,
                 ground_distances=ground_distances,
             )
 
@@ -584,11 +617,31 @@ class AssemblyPlanner:
             key=self.heuristic,
         )
 
-    def support_target_priority(self, rod_id):
+    def support_target_priority(self, rod_id, removed_rod=None):
         if self.strategy_name == "baseline":
             return float(self.rng.random())
 
-        return self.heuristic(rod_id)
+        local_rank = 0
+
+        if removed_rod is not None:
+            direct_neighbours = self.rod_neighbors.get(
+                removed_rod,
+                set(),
+            )
+
+            if rod_id in direct_neighbours:
+                local_rank = 2
+
+            elif any(
+                rod_id in self.rod_neighbors.get(neighbour, set())
+                for neighbour in direct_neighbours
+            ):
+                local_rank = 1
+
+        return (
+            local_rank,
+            self.heuristic(rod_id),
+        )
     
 
     # greedy backward search
@@ -890,12 +943,6 @@ class AssemblyPlanner:
             continuing_supports.values()
         )
 
-        # First test whether existing continuing supports are enough.
-        result_without_new_support = self.rigidity.check(
-            new_state,
-            supported_rods=continuing_supported_rods,
-        )
-        
         def make_structural_step(
             rigidity_result,
             supported_after,
@@ -913,46 +960,74 @@ class AssemblyPlanner:
                 dof_after=rigidity_result.dof,
             )
 
-        if result_without_new_support.is_rigid:
-            affected_rods = []
-            rigidity_result = result_without_new_support
-
-        elif not free_supports:
-            # print(
-            #     f"Rod {candidate_rod} cannot be removed: "
-            #     "the remaining scaffold is not rigid and no support is free."
-            # )
-            
-            structural_step = make_structural_step(
-                rigidity_result=result_without_new_support,
-                supported_after=continuing_supports,
-                added_supports={},
+        actual_support_result = None
+        if self.strategy_name == "reduced_supports":
+            actual_support_result = (
+                self.evaluate_actual_supports_after_removal(
+                    node,
+                    candidate_rod,
+                )
             )
-            
-            return False, {
-                "structural_step": structural_step,
-            }
+
+        if actual_support_result is not None:
+            rigidity_result = actual_support_result["rigidity_result"]
+            new_support_assignments = dict(
+                actual_support_result["added_supports"]
+            )
+            next_supported = dict(
+                actual_support_result["supports_after"]
+            )
 
         else:
-            affected_rods, rigidity_result = self.rigidity.choose_support_targets(
-                active_rods=new_state,
-                already_supported=continuing_supported_rods,
-                max_targets=len(free_supports),
-                key=self.support_target_priority,
-                initial_result=result_without_new_support,
-                return_result=True,
+            # First test whether existing continuing supports are enough.
+            result_without_new_support = self.rigidity.check(
+                new_state,
+                supported_rods=continuing_supported_rods,
             )
+            
+            if result_without_new_support.is_rigid:
+                affected_rods = []
+                rigidity_result = result_without_new_support
 
-        new_support_assignments = {
-            support: rod_id
-            for support, rod_id in zip(
-                free_supports,
-                affected_rods,
-            )
-        }
+            elif not free_supports:
+                # print(
+                #     f"Rod {candidate_rod} cannot be removed: "
+                #     "the remaining scaffold is not rigid and no support is free."
+                # )
+                
+                structural_step = make_structural_step(
+                    rigidity_result=result_without_new_support,
+                    supported_after=continuing_supports,
+                    added_supports={},
+                )
+                
+                return False, {
+                    "structural_step": structural_step,
+                }
 
-        next_supported = dict(continuing_supports)
-        next_supported.update(new_support_assignments)
+            else:
+                affected_rods, rigidity_result = self.rigidity.choose_support_targets(
+                    active_rods=new_state,
+                    already_supported=continuing_supported_rods,
+                    max_targets=len(free_supports),
+                    key=lambda rod_id: self.support_target_priority(
+                        rod_id,
+                        removed_rod=candidate_rod,
+                    ),
+                    initial_result=result_without_new_support,
+                    return_result=True,
+                )
+
+            new_support_assignments = {
+                support: rod_id
+                for support, rod_id in zip(
+                    free_supports,
+                    affected_rods,
+                )
+            }
+
+            next_supported = dict(continuing_supports)
+            next_supported.update(new_support_assignments)
 
         structural_step = make_structural_step(
             rigidity_result=rigidity_result,
