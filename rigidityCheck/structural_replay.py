@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 from matplotlib.lines import Line2D
 from matplotlib.widgets import Button, Slider
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from matplotlib.animation import FFMpegWriter
-import copy
 
 
 def display_structural_assembly(
@@ -16,6 +16,7 @@ def display_structural_assembly(
     video_path=None,
     seconds_per_step=2,
     fps=30,
+    show=True,
 ):
     if not removal_steps:
         raise ValueError("The structural plan contains no steps.")
@@ -205,6 +206,9 @@ def display_structural_assembly(
     draw_frame(0)
 
     if video_path is not None:
+        video_path = Path(video_path)
+        video_path.parent.mkdir(parents=True, exist_ok=True)
+
         writer = FFMpegWriter(
             fps=fps,
             codec="libx264",
@@ -237,4 +241,7 @@ def display_structural_assembly(
         next_ax.set_visible(True)
         draw_frame(0)
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)

@@ -207,8 +207,9 @@ def summarize_records(records, joint_names=None) -> dict[str, Any]:
 
 def structural_summary(searcher) -> dict[str, Any]:
     cache_info = searcher.rigidity.cache_info()
+    structural_steps = getattr(searcher.final_node, "structural_steps", [])
 
-    return {
+    summary = {
         "search_stop_reason": searcher.search_stop_reason,
         "search_expansions": searcher.search_expansions,
         "search_attempted_transitions": getattr(
@@ -226,6 +227,8 @@ def structural_summary(searcher) -> dict[str, Any]:
         "rigidity_cache_misses": cache_info["cache_misses"],
         "rigidity_cached_entries": cache_info["cached_entries"],
     }
+    summary.update(support_summary(structural_steps))
+    return summary
 
 
 def support_summary(structural_steps) -> dict[str, Any]:
@@ -238,6 +241,30 @@ def support_summary(structural_steps) -> dict[str, Any]:
         len(step.supports_after)
         for step in structural_steps
     )
+
+    supported_rod_steps = sum(
+        len(set(step.supports_after.values()))
+        for step in structural_steps
+    )
+
+    support_assignment_episodes = 0
+    supported_rod_episodes = 0
+    previous_assignments = set()
+    previous_supported_rods = set()
+
+    for step in structural_steps:
+        assignments = set(step.supports_after.items())
+        supported_rods = set(step.supports_after.values())
+
+        support_assignment_episodes += len(
+            assignments - previous_assignments
+        )
+        supported_rod_episodes += len(
+            supported_rods - previous_supported_rods
+        )
+
+        previous_assignments = assignments
+        previous_supported_rods = supported_rods
 
     support_additions = sum(
         len(step.added_supports)
@@ -252,6 +279,9 @@ def support_summary(structural_steps) -> dict[str, Any]:
     return {
         "peak_supports": peak_supports,
         "support_steps": support_steps,
+        "supported_rod_steps": supported_rod_steps,
+        "support_assignment_episodes": support_assignment_episodes,
+        "supported_rod_episodes": supported_rod_episodes,
         "support_additions": support_additions,
         "support_releases": support_releases,
     }

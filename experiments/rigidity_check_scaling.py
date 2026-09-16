@@ -17,8 +17,8 @@ os.environ.setdefault("MPLCONFIGDIR", str(MPLCONFIGDIR))
 
 from backward_search import AssemblyPlanner
 from experiment_metrics import structural_summary
+from experiments.structural_experiment_utils import load_filtered_truss
 from rigidityCheck.structural_replay import display_structural_assembly
-from truss import Truss
 
 
 DEFAULT_TRUSS_PATH = (
@@ -57,6 +57,13 @@ FIELDNAMES = [
     "rigidity_cache_hits",
     "rigidity_cache_misses",
     "rigidity_cached_entries",
+    "peak_supports",
+    "support_steps",
+    "supported_rod_steps",
+    "support_assignment_episodes",
+    "supported_rod_episodes",
+    "support_additions",
+    "support_releases",
 ]
 
 
@@ -101,37 +108,32 @@ def parse_args():
     return parser.parse_args()
 
 
-def require_positive_repetitions(repetitions):
-    if repetitions <= 0:
+def validate_args(args):
+    if args.repetitions <= 0:
         raise ValueError("repetitions must be positive.")
 
+    if args.max_supports < 0:
+        raise ValueError("max-supports must be non-negative.")
 
-def load_filtered_truss(truss_path, included_rods=None):
-    truss = Truss.from_json(truss_path)
+    if args.max_runtime is not None and args.max_runtime <= 0:
+        raise ValueError("max-runtime must be positive.")
 
-    if included_rods is None:
-        return truss
-
-    included_rods = set(included_rods)
-    unknown_rods = included_rods - set(truss.elements)
-    if unknown_rods:
+    if args.visualization_seconds_per_step <= 0:
         raise ValueError(
-            f"Included rods do not exist: {sorted(unknown_rods)}"
+            "visualization-seconds-per-step must be positive."
         )
 
-    truss.elements = {
-        rod_id: endpoints
-        for rod_id, endpoints in truss.elements.items()
-        if rod_id in included_rods
-    }
-    truss.grounded_rods &= included_rods
-    truss.couplers = {
-        (rod_1, rod_2)
-        for rod_1, rod_2 in truss.couplers
-        if rod_1 in included_rods and rod_2 in included_rods
-    }
 
-    return truss
+def rods_after_prefix_removal(all_rods, removal_order, prefix_count):
+    excluded_rods = list(removal_order[:prefix_count])
+    excluded_set = set(excluded_rods)
+    included_rods = [
+        rod_id
+        for rod_id in all_rods
+        if rod_id not in excluded_set
+    ]
+
+    return included_rods, excluded_rods
 
 
 def as_json_list(values):
@@ -222,7 +224,7 @@ def visualize_run(args, run_index, searcher, removal_sequence):
 
 def main():
     args = parse_args()
-    require_positive_repetitions(args.repetitions)
+    validate_args(args)
 
     all_rods = sorted(load_filtered_truss(args.truss).elements)
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -296,12 +298,11 @@ def main():
             )
 
             for removed_prefix_count in range(1, len(default_order)):
-                excluded_rods = default_order[:removed_prefix_count]
-                included_rods = [
-                    rod_id
-                    for rod_id in all_rods
-                    if rod_id not in excluded_rods
-                ]
+                included_rods, excluded_rods = rods_after_prefix_removal(
+                    all_rods,
+                    default_order,
+                    removed_prefix_count,
+                )
 
                 searcher, removal_sequence, elapsed_ns = run_backward_search(
                     args=args,
