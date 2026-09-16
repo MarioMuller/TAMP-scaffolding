@@ -1,3 +1,6 @@
+# runs backward search with rigidity check. It then removes one rod at a time from the default removal order (set by the first run over all rods) 
+# and runs backward search again, measuring the runtime and other metrics. The results are saved to a CSV file.
+
 import argparse
 import csv
 import json
@@ -53,6 +56,7 @@ FIELDNAMES = [
     "search_expansions",
     "search_attempted_transitions",
     "search_enqueued_candidates",
+    "search_backtracks",
     "rigidity_check_calls",
     "rigidity_cache_hits",
     "rigidity_cache_misses",

@@ -222,6 +222,11 @@ def structural_summary(searcher) -> dict[str, Any]:
             "search_enqueued_candidates",
             0,
         ),
+        "search_backtracks": getattr(
+            searcher,
+            "search_backtracks",
+            0,
+        ),
         "rigidity_check_calls": cache_info["check_calls"],
         "rigidity_cache_hits": cache_info["cache_hits"],
         "rigidity_cache_misses": cache_info["cache_misses"],

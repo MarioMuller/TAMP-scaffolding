@@ -94,6 +94,7 @@ class AssemblyPlanner:
         self.search_expansions = 0
         self.search_attempted_transitions = 0
         self.search_enqueued_candidates = 0
+        self.search_backtracks = 0
 
         self._support_grippers_override = (
             tuple(support_grippers)
@@ -716,6 +717,9 @@ class AssemblyPlanner:
         self.final_node = initial_node
         self.search_stop_reason = None
         self.search_expansions = 0
+        self.search_attempted_transitions = 0
+        self.search_enqueued_candidates = 0
+        self.search_backtracks = 0
 
         start_time = time.monotonic()
         best_node = initial_node
@@ -850,6 +854,7 @@ class AssemblyPlanner:
                         )
 
                 if not feasible:
+                    self.search_backtracks += 1
                     continue
 
                 motion_record = result["motion_record"]

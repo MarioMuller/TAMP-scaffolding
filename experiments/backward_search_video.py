@@ -39,6 +39,7 @@ SUPPORT_CSV_FIELDS = [
     "elapsed_s",
     "removal_steps",
     "assembly_sequence",
+    "search_backtracks",
     "peak_supports",
     "support_steps",
     "supported_rod_steps",
@@ -125,6 +126,7 @@ def save_support_summary(
         "elapsed_s": f"{runtime_s:.9f}",
         "removal_steps": len(removal_sequence),
         "assembly_sequence": json.dumps(assembly_sequence),
+        "search_backtracks": getattr(searcher, "search_backtracks", 0),
     }
     row.update(support_summary(searcher.final_node.structural_steps))
 
