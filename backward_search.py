@@ -487,6 +487,7 @@ class AssemblyPlanner:
         rod_id,
         ground_distances=None,
         actual_support_result=None,
+        initial_rigidity_result=None,
         minimum_new_support_count=0,
         tie_breaker=None,
     ):
@@ -531,6 +532,18 @@ class AssemblyPlanner:
             return (
                 len(node.state),
                 -self.heuristic(rod_id),
+                tie_breaker,
+            )
+
+        if self.strategy_name == "rankbased":
+            if initial_rigidity_result is None:
+                raise ValueError(
+                    "rankbased requires the post-removal rigidity result."
+                )
+
+            return (
+                len(node.state),
+                -initial_rigidity_result.rank,
                 tie_breaker,
             )
 
@@ -602,6 +615,19 @@ class AssemblyPlanner:
                 else rod_id
             )
             actual_support_result = None
+            initial_rigidity_result = None
+
+            if self.strategy_name == "rankbased":
+                support_context = self.support_context_after_removal(
+                    node,
+                    rod_id,
+                )
+                initial_rigidity_result = self.rigidity.check(
+                    support_context.new_state,
+                    supported_rods=(
+                        support_context.continuing_supported_rods
+                    ),
+                )
 
             if self.strategy_name == "full_reduce_support":
                 actual_support_result = (
@@ -618,6 +644,7 @@ class AssemblyPlanner:
                 node,
                 rod_id,
                 actual_support_result=actual_support_result,
+                initial_rigidity_result=initial_rigidity_result,
                 tie_breaker=tie_breaker,
             )
 

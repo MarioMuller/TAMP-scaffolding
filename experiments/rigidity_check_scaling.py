@@ -28,7 +28,7 @@ DEFAULT_TRUSS_PATH = (
     PROJECT_ROOT
     / "JSON"
     / "own_examples"
-    / "260804_FoC_demo.json"
+    / "260804_RobArchDemo_ini.json" # 260804_RobArchDemo_ini.json #260804_FoC_demo.json
 )
 DEFAULT_OUTPUT_CSV = (
     PROJECT_ROOT
