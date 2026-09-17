@@ -401,14 +401,9 @@ class AssemblyPlanner:
             affected_rods, rigidity_result = (
                 self.rigidity.choose_support_targets(
                     active_rods=support_context.new_state,
-                    already_supported=(
-                        support_context.continuing_supported_rods
-                    ),
+                    already_supported=(support_context.continuing_supported_rods),
                     max_targets=len(support_context.free_supports),
-                    key=lambda rod_id: self.support_target_priority(
-                        rod_id,
-                        removed_rod=candidate_rod,
-                    ),
+                    key=lambda rod_id: self.support_target_priority(rod_id, removed_rod=candidate_rod,),
                     initial_result=rigidity_result,
                     return_result=True,
                 )
@@ -533,6 +528,7 @@ class AssemblyPlanner:
             if actual_support_result is not None:
                 return (
                     len(node.state),
+                    0,
                     actual_support_result.support_count,
                     actual_support_result.new_support_count,
                     tie_breaker,
@@ -572,9 +568,19 @@ class AssemblyPlanner:
                 if random_order is not None
                 else rod_id
             )
+            actual_support_result = None
+            if self.strategy_name == "reduced_supports":
+                actual_support_result = (
+                    self.evaluate_actual_supports_after_removal(
+                        node,
+                        rod_id,
+                    )
+                )
+
             priority = self.removal_priority(
                 node,
                 rod_id,
+                actual_support_result=actual_support_result,
                 tie_breaker=tie_breaker,
             )
 
@@ -604,7 +610,7 @@ class AssemblyPlanner:
 
         return (
             # local_rank,
-            self.heuristic(rod_id),
+            -self.heuristic(rod_id),
         )
     
 
@@ -1002,13 +1008,9 @@ class AssemblyPlanner:
             else:
                 affected_rods, rigidity_result = self.rigidity.choose_support_targets(
                     active_rods=support_context.new_state,
-                    already_supported=(
-                        support_context.continuing_supported_rods
-                    ),
+                    already_supported=(support_context.continuing_supported_rods),
                     max_targets=len(support_context.free_supports),
-                    key=lambda rod_id: self.support_target_priority(
-                        rod_id,
-                        removed_rod=candidate_rod,
+                    key=lambda rod_id: self.support_target_priority(rod_id, removed_rod=candidate_rod,
                     ),
                     initial_result=result_without_new_support,
                     return_result=True,
