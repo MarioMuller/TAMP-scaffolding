@@ -87,6 +87,11 @@ def parse_args():
     parser.add_argument("--strategy-name", default="reduced_supports")
     parser.add_argument("--max-runtime", type=float, default=200.0)
     parser.add_argument(
+        "--shuffle-ties",
+        action="store_true",
+        help="Use seeded random tie-breaking for non-baseline strategies.",
+    )
+    parser.add_argument(
         "--visualize",
         action="store_true",
         help="Show an interactive structural assembly replay after each successful run.",
@@ -184,6 +189,7 @@ def run_backward_search(args, included_rods, seed, initial_supported=None):
         max_supports=args.max_supports,
         strategy_name=args.strategy_name,
         random_seed=seed,
+        shuffle_ties=args.shuffle_ties,
     )
 
     start_ns = time.perf_counter_ns()

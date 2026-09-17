@@ -438,7 +438,7 @@ class AssemblyPlanner:
         self.actual_support_results[cache_key] = result
         return result
         
-    def baseline_candidate_order(self, node, candidate_rods):
+    def random_candidate_order(self, node, candidate_rods):
         """Return a fixed random candidate ranking for this structural state."""
         state_key = self.structural_state_key(
             node.state,
@@ -483,8 +483,12 @@ class AssemblyPlanner:
         rod_id,
         ground_distances=None,
         actual_support_result=None,
+        tie_breaker=None,
     ):
         """Return a priority tuple; lower values are preferred."""
+
+        if tie_breaker is None:
+            tie_breaker = self.priority_tie_breaker(rod_id)
 
         if ground_distances is None:
             ground_distances = self.distance_from_ground(node.state)
@@ -502,6 +506,12 @@ class AssemblyPlanner:
             0 if self.is_supported_candidate(node, rod_id) else 1
         )
 
+        if self.strategy_name == "baseline":
+            return (
+                len(node.state),
+                tie_breaker,
+            )
+
         if self.strategy_name == "default":
             return (
                 len(node.state),
@@ -509,24 +519,23 @@ class AssemblyPlanner:
                 connection_count,
                 -distance,
                 -self.heuristic(rod_id),
-                self.priority_tie_breaker(rod_id),
+                tie_breaker,
             )
 
         if self.strategy_name == "highest_first":
             return (
                 len(node.state),
                 -self.heuristic(rod_id),
-                self.priority_tie_breaker(rod_id),
+                tie_breaker,
             )
 
         if self.strategy_name == "reduced_supports":
             if actual_support_result is not None:
                 return (
                     len(node.state),
-                    0,
                     actual_support_result.support_count,
                     actual_support_result.new_support_count,
-                    self.priority_tie_breaker(rod_id),
+                    tie_breaker,
                 )
 
             return (
@@ -536,7 +545,7 @@ class AssemblyPlanner:
                 connection_count,
                 -distance,
                 -self.heuristic(rod_id),
-                self.priority_tie_breaker(rod_id),
+                tie_breaker,
             )
 
 
@@ -553,58 +562,35 @@ class AssemblyPlanner:
         ground_distances = self.distance_from_ground(
             node.state
         )
-
-        # ---------------------------------------------------------
-        # Baseline: random order, no structural pre-evaluation
-        # ---------------------------------------------------------
-        if self.strategy_name == "baseline":
-            order = self.baseline_candidate_order(
-                node,
-                candidates,
-            )
-
-            return sorted(
-                (
-                    (
-                        (len(node.state), order[rod_id]),
-                        rod_id,
-                    )
-                    for rod_id in candidates
-                ),
-                key=lambda item: item[0],
-            )
+       
+        random_order = self.random_candidate_order(
+            node,
+            candidates,
+        )
 
         ranked_candidates = []
 
         for rod_id in candidates:
+            tie_breaker = (
+                random_order[rod_id]
+                if random_order is not None
+                else rod_id
+            )
             priority = self.removal_priority(
                 node,
                 rod_id,
                 ground_distances=ground_distances,
+                tie_breaker=tie_breaker,
             )
 
             ranked_candidates.append(
                 (priority, rod_id)
             )
 
-        ranked_candidates.sort(
-            key=lambda item: item[0]
-        )
-
         return ranked_candidates
 
-    def removal_candidates(self, node):
-        """Return candidate rod IDs in heuristic order."""
-        return [
-            rod_id
-            for _, rod_id in self.removal_candidates_with_priorities(node)
-        ]
-
     def support_target_priority(self, rod_id, removed_rod=None):
-        """Prefer supports near the removed rod, then higher rods."""
-        if self.strategy_name == "baseline":
-            return float(self.rng.random())
-
+        """Prefer support targets near the removed rod, then higher rods."""
         local_rank = 0
 
         if removed_rod is not None:
@@ -615,18 +601,16 @@ class AssemblyPlanner:
 
             if rod_id in direct_neighbours:
                 local_rank = 2
-
             elif any(
                 rod_id in self.rod_neighbors.get(neighbour, set())
                 for neighbour in direct_neighbours
             ):
                 local_rank = 1
-        
-        return float(self.rng.random())
-        # return (
-        #     local_rank,
-        #     # self.heuristic(rod_id),
-        # )
+
+        return (
+            local_rank,
+            self.heuristic(rod_id),
+        )
     
 
     # greedy backward search
