@@ -29,7 +29,8 @@ DEFAULT_STRATEGIES = [
     "default",
     "baseline",
     "highest_first",
-    "reduced_supports",
+    "full_reduce_support",
+    "fast_reduce_support",
 ]
 
 

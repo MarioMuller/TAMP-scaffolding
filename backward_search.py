@@ -374,6 +374,7 @@ class AssemblyPlanner:
         node,
         candidate_rod,
         support_context=None,
+        initial_result=None,
     ) -> SupportEvaluation:
         """Evaluate and cache the support outcome of one removal."""
         cache_key = self.structural_transition_key(
@@ -390,10 +391,13 @@ class AssemblyPlanner:
                 candidate_rod,
             )
 
-        rigidity_result = self.rigidity.check(
-            support_context.new_state,
-            supported_rods=support_context.continuing_supported_rods,
-        )
+        rigidity_result = initial_result
+
+        if rigidity_result is None:
+            rigidity_result = self.rigidity.check(
+                support_context.new_state,
+                supported_rods=support_context.continuing_supported_rods,
+            )
 
         affected_rods = []
 
@@ -483,6 +487,7 @@ class AssemblyPlanner:
         rod_id,
         ground_distances=None,
         actual_support_result=None,
+        minimum_new_support_count=0,
         tie_breaker=None,
     ):
         """Return a priority tuple; lower values are preferred."""
@@ -529,17 +534,46 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
-        if self.strategy_name == "reduced_supports":
+        if self.strategy_name == "full_reduce_support":
             if actual_support_result is None:
                 raise ValueError(
-                    "reduced_supports requires an evaluated support outcome."
+                    "full_reduce_support requires an evaluated support outcome."
                 )
 
             return (
                 len(node.state),
-                0 if actual_support_result.feasible else 1,
                 actual_support_result.support_count,
                 actual_support_result.new_support_count,
+                tie_breaker,
+            )
+
+        if self.strategy_name == "fast_reduce_support":
+            if actual_support_result is None:
+                # Continuing supports are unavoidable. Additional supports
+                # start at an optimistic lower bound until evaluated.
+                continuing_support_count = sum(
+                    supported_rod != rod_id
+                    for supported_rod in node.supported.values()
+                )
+
+                return (
+                    len(node.state),
+                    continuing_support_count
+                    + minimum_new_support_count,
+                    minimum_new_support_count,
+                    supported_rank,
+                    connection_count,
+                    -self.heuristic(rod_id),
+                    tie_breaker,
+                )
+
+            return (
+                len(node.state),
+                actual_support_result.support_count,
+                actual_support_result.new_support_count,
+                supported_rank,
+                connection_count,
+                -self.heuristic(rod_id),
                 tie_breaker,
             )
 
@@ -550,7 +584,7 @@ class AssemblyPlanner:
         
 
     def removal_candidates_with_priorities(self, node):
-        """Return candidate removals in priority order."""
+        """Return candidate removals with initial heap priorities."""
 
         candidates = list(node.state)
        
@@ -569,13 +603,16 @@ class AssemblyPlanner:
             )
             actual_support_result = None
 
-            if self.strategy_name == "reduced_supports":
+            if self.strategy_name == "full_reduce_support":
                 actual_support_result = (
                     self.evaluate_supports_after_removal(
                         node,
                         rod_id,
                     )
                 )
+
+                if not actual_support_result.feasible:
+                    continue
 
             priority = self.removal_priority(
                 node,
@@ -765,7 +802,14 @@ class AssemblyPlanner:
                 self.search_enqueued_candidates += 1
                 heapq.heappush(
                     open_list,
-                    (priority, counter, node, candidate_rod),
+                    (
+                        priority,
+                        counter,
+                        node,
+                        candidate_rod,
+                        None,
+                        None,
+                    ),
                 )
                 counter += 1
 
@@ -808,9 +852,14 @@ class AssemblyPlanner:
                     print(f"Deepest state: {best_remaining} rods remaining.")
                     return None
 
-                priority, _, node, candidate_rod = heapq.heappop(
-                    open_list
-                )
+                (
+                    priority,
+                    candidate_counter,
+                    node,
+                    candidate_rod,
+                    support_evaluation,
+                    initial_rigidity_result,
+                ) = heapq.heappop(open_list)
 
                 # Reject candidate rods that are no longer present in the current state.
                 if candidate_rod not in node.state:
@@ -830,6 +879,86 @@ class AssemblyPlanner:
                     structural_transition_key
                     in self.forbidden_transitions
                 ):
+                    continue
+
+                if (
+                    self.strategy_name == "fast_reduce_support"
+                    and support_evaluation is None
+                ):
+                    # Tighten the optimistic priority in two stages: first
+                    # test continuing supports, then search for new targets.
+                    support_context = self.support_context_after_removal(
+                        node,
+                        candidate_rod,
+                    )
+                    support_evaluation = self.support_evaluations.get(
+                        structural_transition_key
+                    )
+
+                    if (
+                        support_evaluation is None
+                        and initial_rigidity_result is None
+                    ):
+                        initial_rigidity_result = self.rigidity.check(
+                            support_context.new_state,
+                            supported_rods=(
+                                support_context.continuing_supported_rods
+                            ),
+                        )
+
+                        if (
+                            not initial_rigidity_result.is_rigid
+                            and support_context.free_supports
+                        ):
+                            refined_priority = self.removal_priority(
+                                node,
+                                candidate_rod,
+                                minimum_new_support_count=1,
+                                tie_breaker=priority[-1],
+                            )
+                            heapq.heappush(
+                                open_list,
+                                (
+                                    refined_priority,
+                                    candidate_counter,
+                                    node,
+                                    candidate_rod,
+                                    None,
+                                    initial_rigidity_result,
+                                ),
+                            )
+                            continue
+
+                    if support_evaluation is None:
+                        support_evaluation = (
+                            self.evaluate_supports_after_removal(
+                                node,
+                                candidate_rod,
+                                support_context=support_context,
+                                initial_result=initial_rigidity_result,
+                            )
+                        )
+
+                    if not support_evaluation.feasible:
+                        continue
+
+                    refined_priority = self.removal_priority(
+                        node,
+                        candidate_rod,
+                        actual_support_result=support_evaluation,
+                        tie_breaker=priority[-1],
+                    )
+                    heapq.heappush(
+                        open_list,
+                        (
+                            refined_priority,
+                            candidate_counter,
+                            node,
+                            candidate_rod,
+                            support_evaluation,
+                            None,
+                        ),
+                    )
                     continue
 
                 # The same structural transition may behave differently when reached
@@ -862,6 +991,7 @@ class AssemblyPlanner:
                 feasible, result = self.is_removal_feasible(
                     node,
                     candidate_rod,
+                    support_evaluation=support_evaluation,
                 )
 
                 # If the hotkey was pressed while the feasibility calculation was
@@ -937,7 +1067,12 @@ class AssemblyPlanner:
         print(f"Deepest state: {best_remaining} rods remaining.")
         return None
     
-    def is_removal_feasible(self, node, candidate_rod):
+    def is_removal_feasible(
+        self,
+        node,
+        candidate_rod,
+        support_evaluation=None,
+    ):
         support_context = self.support_context_after_removal(
             node,
             candidate_rod,
@@ -960,11 +1095,12 @@ class AssemblyPlanner:
                 dof_after=rigidity_result.dof,
             )
 
-        support_evaluation = self.evaluate_supports_after_removal(
-            node,
-            candidate_rod,
-            support_context=support_context,
-        )
+        if support_evaluation is None:
+            support_evaluation = self.evaluate_supports_after_removal(
+                node,
+                candidate_rod,
+                support_context=support_context,
+            )
         rigidity_result = support_evaluation.rigidity_result
         new_support_assignments = dict(
             support_evaluation.added_supports

@@ -67,7 +67,7 @@ def parse_args():
         ),
     )
     parser.add_argument("--max-supports", type=int, default=2)
-    parser.add_argument("--strategy-name", default="reduced_supports")
+    parser.add_argument("--strategy-name", default="fast_reduce_support")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-runtime", type=float, default=1800.0)
     parser.add_argument(
