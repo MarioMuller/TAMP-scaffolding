@@ -66,8 +66,17 @@ FIELDNAMES = [
     "rigidity_cache_hits",
     "rigidity_cache_misses",
     "rigidity_cached_entries",
+    "optimal_objective",
+    "optimality_proven",
+    "best_support_moves",
+    "best_support_peak",
+    "best_support_steps",
+    "optimal_support_moves",
+    "optimal_support_peak",
+    "optimal_support_steps",
     "peak_supports",
     "support_steps",
+    "support_moves",
     "supported_rod_steps",
     "support_assignment_episodes",
     "supported_rod_episodes",
@@ -87,6 +96,12 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-supports", type=int, default=2)
     parser.add_argument("--strategy-name", default="fast_reduce_support")
+    parser.add_argument(
+        "--optimal-objective",
+        choices=("support_moves", "support_steps", "peak"),
+        default="support_moves",
+        help="Objective used by the optimal_supports strategy.",
+    )
     parser.add_argument("--max-runtime", type=float, default=200.0)
     parser.add_argument(
         "--shuffle-ties",
@@ -192,6 +207,7 @@ def run_backward_search(args, included_rods, seed, initial_supported=None):
         strategy_name=args.strategy_name,
         random_seed=seed,
         shuffle_ties=args.shuffle_ties,
+        optimal_objective=args.optimal_objective,
     )
 
     start_ns = time.perf_counter_ns()
@@ -247,6 +263,18 @@ def make_row(
         "matches_default_suffix": (
             success and removal_sequence == expected_sequence
         ),
+        "optimal_objective": (
+            searcher.optimal_objective
+            if searcher.strategy_name == "optimal_supports"
+            else None
+        ),
+        "optimality_proven": searcher.optimality_proven,
+        "best_support_moves": searcher.best_support_moves,
+        "best_support_peak": searcher.best_support_peak,
+        "best_support_steps": searcher.best_support_steps,
+        "optimal_support_moves": searcher.optimal_support_moves,
+        "optimal_support_peak": searcher.optimal_support_peak,
+        "optimal_support_steps": searcher.optimal_support_steps,
     }
     row.update(structural_summary(searcher))
     return row

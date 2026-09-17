@@ -32,6 +32,14 @@ DEFAULT_TRUSS_PATH = (PROJECT_ROOT/"JSON/own_examples/260804_FoC_demo.json")
 SUPPORT_CSV_FIELDS = [
     "truss",
     "strategy_name",
+    "optimal_objective",
+    "optimality_proven",
+    "best_support_moves",
+    "best_support_peak",
+    "best_support_steps",
+    "optimal_support_moves",
+    "optimal_support_peak",
+    "optimal_support_steps",
     "max_supports",
     "seed",
     "runtime_s",
@@ -42,6 +50,7 @@ SUPPORT_CSV_FIELDS = [
     "search_backtracks",
     "peak_supports",
     "support_steps",
+    "support_moves",
     "supported_rod_steps",
     "support_assignment_episodes",
     "supported_rod_episodes",
@@ -68,6 +77,12 @@ def parse_args():
     )
     parser.add_argument("--max-supports", type=int, default=2)
     parser.add_argument("--strategy-name", default="fast_reduce_support")
+    parser.add_argument(
+        "--optimal-objective",
+        choices=("support_moves", "support_steps", "peak"),
+        default="support_moves",
+        help="Objective used by the optimal_supports strategy.",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-runtime", type=float, default=1800.0)
     parser.add_argument(
@@ -119,6 +134,18 @@ def save_support_summary(
     row = {
         "truss": str(args.truss),
         "strategy_name": args.strategy_name,
+        "optimal_objective": (
+            args.optimal_objective
+            if args.strategy_name == "optimal_supports"
+            else None
+        ),
+        "optimality_proven": searcher.optimality_proven,
+        "best_support_moves": searcher.best_support_moves,
+        "best_support_peak": searcher.best_support_peak,
+        "best_support_steps": searcher.best_support_steps,
+        "optimal_support_moves": searcher.optimal_support_moves,
+        "optimal_support_peak": searcher.optimal_support_peak,
+        "optimal_support_steps": searcher.optimal_support_steps,
         "max_supports": args.max_supports,
         "seed": args.seed,
         "runtime_s": f"{runtime_s:.9f}",
@@ -160,6 +187,7 @@ def main():
         max_supports=args.max_supports,
         strategy_name=args.strategy_name,
         random_seed=args.seed,
+        optimal_objective=args.optimal_objective,
     )
 
     start_ns = time.perf_counter_ns()

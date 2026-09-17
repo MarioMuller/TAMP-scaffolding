@@ -284,6 +284,7 @@ def support_summary(structural_steps) -> dict[str, Any]:
     return {
         "peak_supports": peak_supports,
         "support_steps": support_steps,
+        "support_moves": support_additions,
         "supported_rod_steps": supported_rod_steps,
         "support_assignment_episodes": support_assignment_episodes,
         "supported_rod_episodes": supported_rod_episodes,

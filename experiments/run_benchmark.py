@@ -28,6 +28,7 @@ from truss import Truss
 DEFAULT_STRATEGIES = [
     "default",
     "baseline",
+    "lowest_first",
     "highest_first",
     "rankbased",
     "full_reduce_support",
@@ -129,6 +130,7 @@ def run_structural_round(
     max_runtime,
     shuffle_ties,
     capture_key,
+    optimal_objective,
 ):
     searcher = AssemblyPlanner(
         truss=truss,
@@ -139,6 +141,7 @@ def run_structural_round(
         strategy_name=strategy_name,
         random_seed=seed,
         shuffle_ties=shuffle_ties,
+        optimal_objective=optimal_objective,
     )
 
     start = perf_counter()
@@ -205,6 +208,7 @@ def run_strategy(args, strategy_name, repeat_index):
             max_runtime=args.max_runtime,
             shuffle_ties=args.shuffle_ties,
             capture_key=args.capture_key,
+            optimal_objective=args.optimal_objective,
         )
         final_searcher = searcher
         cumulative["structural_time_s"] += structural_time
@@ -281,6 +285,46 @@ def run_strategy(args, strategy_name, repeat_index):
         ),
         "search_stop_reason": (
             final_searcher.search_stop_reason
+            if final_searcher is not None
+            else None
+        ),
+        "optimal_objective": (
+            args.optimal_objective
+            if strategy_name == "optimal_supports"
+            else None
+        ),
+        "optimality_proven": (
+            final_searcher.optimality_proven
+            if final_searcher is not None
+            else False
+        ),
+        "best_support_moves": (
+            final_searcher.best_support_moves
+            if final_searcher is not None
+            else None
+        ),
+        "best_support_peak": (
+            final_searcher.best_support_peak
+            if final_searcher is not None
+            else None
+        ),
+        "best_support_steps": (
+            final_searcher.best_support_steps
+            if final_searcher is not None
+            else None
+        ),
+        "optimal_support_moves": (
+            final_searcher.optimal_support_moves
+            if final_searcher is not None
+            else None
+        ),
+        "optimal_support_peak": (
+            final_searcher.optimal_support_peak
+            if final_searcher is not None
+            else None
+        ),
+        "optimal_support_steps": (
+            final_searcher.optimal_support_steps
             if final_searcher is not None
             else None
         ),
@@ -364,6 +408,12 @@ def parse_args():
         help="Use seeded random tie-breaking instead of rod-id tie-breaking.",
     )
     parser.add_argument("--max-runtime", type=float, default=1800.0)
+    parser.add_argument(
+        "--optimal-objective",
+        choices=("support_moves", "support_steps", "peak"),
+        default="support_moves",
+        help="Objective used by the optimal_supports strategy.",
+    )
     parser.add_argument("--max-replans", type=int, default=1000)
     parser.add_argument(
         "--capture-key",
