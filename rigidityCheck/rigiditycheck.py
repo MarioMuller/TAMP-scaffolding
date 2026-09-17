@@ -745,7 +745,7 @@ class AlgebraicChecker(object):
             format="csc",
         )
         
-        print(f"Rigidity matrix K shape: {K.shape}")
+        # print(f"Rigidity matrix K shape: {K.shape}")
 
         return RigidityMatrixResult(
             matrix=K,

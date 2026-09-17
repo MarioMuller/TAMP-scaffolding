@@ -46,6 +46,9 @@ FIELDNAMES = [
     "included_rod_count",
     "excluded_rods",
     "included_rods",
+    "initial_supports",
+    "initial_supported_rods",
+    "initial_support_count",
     "default_order",
     "success",
     "elapsed_ns",
@@ -82,13 +85,13 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-supports", type=int, default=2)
     parser.add_argument("--strategy-name", default="reduced_supports")
-    parser.add_argument("--max-runtime", type=float, default=1800.0)
+    parser.add_argument("--max-runtime", type=float, default=200.0)
     parser.add_argument(
         "--visualize",
         action="store_true",
         help="Show an interactive structural assembly replay after each successful run.",
     )
-    parser.add_argument("--visualization-scale", type=float, default=0.0011)
+    parser.add_argument("--visualization-scale", type=float, default=0.001)
     parser.add_argument(
         "--visualization-seconds-per-step",
         type=float,
@@ -144,7 +147,35 @@ def as_json_list(values):
     return json.dumps([int(value) for value in values])
 
 
-def run_backward_search(args, included_rods, seed):
+def as_json_supports(supports):
+    return json.dumps(
+        {
+            str(support): int(rod_id)
+            for support, rod_id in sorted(supports.items())
+        }
+    )
+
+
+def supports_after_prefix(structural_steps, prefix_count, included_rods):
+    if prefix_count == 0:
+        return {}
+
+    if prefix_count > len(structural_steps):
+        raise ValueError(
+            "Prefix count is longer than the full-run structural sequence."
+        )
+
+    included_rods = set(included_rods)
+    supports = dict(structural_steps[prefix_count - 1].supports_after)
+
+    return {
+        support: rod_id
+        for support, rod_id in supports.items()
+        if rod_id in included_rods
+    }
+
+
+def run_backward_search(args, included_rods, seed, initial_supported=None):
     truss = load_filtered_truss(args.truss, included_rods)
 
     searcher = AssemblyPlanner(
@@ -159,6 +190,8 @@ def run_backward_search(args, included_rods, seed):
     removal_sequence = searcher.backward_search(
         capture_key=None,
         max_runtime=args.max_runtime,
+        max_expansions_without_progress=None,
+        initial_supported=initial_supported,
     )
     elapsed_ns = time.perf_counter_ns() - start_ns
 
@@ -173,6 +206,7 @@ def make_row(
     removed_prefix_count,
     included_rods,
     excluded_rods,
+    initial_supported,
     default_order,
     searcher,
     removal_sequence,
@@ -190,6 +224,11 @@ def make_row(
         "included_rod_count": len(included_rods),
         "excluded_rods": as_json_list(sorted(excluded_rods)),
         "included_rods": as_json_list(sorted(included_rods)),
+        "initial_supports": as_json_supports(initial_supported),
+        "initial_supported_rods": as_json_list(
+            sorted(set(initial_supported.values()))
+        ),
+        "initial_support_count": len(initial_supported),
         "default_order": as_json_list(default_order),
         "success": success,
         "elapsed_ns": elapsed_ns,
@@ -264,18 +303,24 @@ def main():
                     removed_prefix_count=0,
                     included_rods=all_rods,
                     excluded_rods=[],
+                    initial_supported={},
                     default_order=[],
                     searcher=searcher,
                     removal_sequence=removal_sequence,
                     elapsed_ns=elapsed_ns,
                 )
                 write_row(writer, csv_file, row)
-                raise RuntimeError(
+                print(
                     "The full-truss run failed, so no default order could "
-                    f"be generated for repetition {repetition}."
+                    f"be generated for repetition {repetition}. Skipping "
+                    "its prefix runs and continuing with the next repetition."
                 )
+                continue
 
             default_order = list(removal_sequence)
+            full_structural_steps = list(searcher.final_node.structural_steps)
+            prefix_counts = list(range(2, len(default_order), 2))
+            total_runs = 1 + len(prefix_counts)
 
             row = make_row(
                 repetition=repetition,
@@ -284,6 +329,7 @@ def main():
                 removed_prefix_count=0,
                 included_rods=all_rods,
                 excluded_rods=[],
+                initial_supported={},
                 default_order=default_order,
                 searcher=searcher,
                 removal_sequence=removal_sequence,
@@ -291,7 +337,7 @@ def main():
             )
             write_row(writer, csv_file, row)
             print(
-                f"Run 1/{len(default_order)}: "
+                f"Run 1/{total_runs}: "
                 f"{len(all_rods)} rods, {elapsed_ns / 1_000_000_000:.3f}s"
             )
             visualize_run(
@@ -301,26 +347,36 @@ def main():
                 removal_sequence=removal_sequence,
             )
 
-            for removed_prefix_count in range(1, len(default_order)):
+            for run_index, removed_prefix_count in enumerate(
+                prefix_counts,
+                start=2,
+            ):
                 included_rods, excluded_rods = rods_after_prefix_removal(
                     all_rods,
                     default_order,
                     removed_prefix_count,
+                )
+                initial_supported = supports_after_prefix(
+                    full_structural_steps,
+                    removed_prefix_count,
+                    included_rods,
                 )
 
                 searcher, removal_sequence, elapsed_ns = run_backward_search(
                     args=args,
                     included_rods=included_rods,
                     seed=seed,
+                    initial_supported=initial_supported,
                 )
 
                 row = make_row(
                     repetition=repetition,
                     seed=seed,
-                    run_index=removed_prefix_count + 1,
+                    run_index=run_index,
                     removed_prefix_count=removed_prefix_count,
                     included_rods=included_rods,
                     excluded_rods=excluded_rods,
+                    initial_supported=initial_supported,
                     default_order=default_order,
                     searcher=searcher,
                     removal_sequence=removal_sequence,
@@ -329,8 +385,9 @@ def main():
                 write_row(writer, csv_file, row)
 
                 print(
-                    f"Run {removed_prefix_count + 1}/{len(default_order)}: "
+                    f"Run {run_index}/{total_runs}: "
                     f"{len(included_rods)} rods, "
+                    f"{len(initial_supported)} inherited supports, "
                     f"{elapsed_ns / 1_000_000_000:.3f}s"
                 )
                 visualize_run(

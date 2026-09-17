@@ -14,7 +14,7 @@ def closest_points_between_segments(seg1: List[Union[List[float], np.ndarray]], 
 
     Returns:
         [x1, y1, z1]: point on segment 1
-        [x2, y2, z2]: point on segment 1
+        [x2, y2, z2]: point on segment 2
 
     """
     p1, q1 = np.array(seg1[0]), np.array(seg1[1])

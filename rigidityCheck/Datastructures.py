@@ -21,7 +21,7 @@ class ElementObject(object):
         init_pose: Tuple[Tuple[float], Tuple[float]],
         goal_pose: Tuple[Tuple[float], Tuple[float]],
         vertices: List[List[float]],
-        coupled_elements: List = [],
+        coupled_elements: List | None = None,
         checker: str = "default",
         is_grounded=False,
     ) -> None:
@@ -36,7 +36,7 @@ class ElementObject(object):
         self.cur_pose = init_pose
         self.goal_pose = goal_pose
         self.vertices = vertices
-        self.coupled_elements = coupled_elements  # bars that should be connected with self
+        self.coupled_elements = list(coupled_elements or [])
         self.is_grounded = is_grounded
 
         self.heuristic_value = 0

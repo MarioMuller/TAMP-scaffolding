@@ -9,9 +9,6 @@ from typing import Iterable
 
 import numpy as np
 import time
-from time import perf_counter
-
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -131,7 +128,6 @@ class TrussRigidityChecker:
             return cached_result
 
         self.cache_misses += 1
-        total_start = perf_counter()
         active = set(active_key)
         if not active:
             result = RigidityResult(
@@ -148,37 +144,22 @@ class TrussRigidityChecker:
             self._store_cached_result(cache_key, result)
             return result
 
-        build_elements_start = perf_counter()
-
         element_objects, rod_to_index, index_to_rod = self._build_element_objects(
             active,
             set(supported_key),
         )
-
-        build_elements_end = perf_counter()
         
         assembled_indices = [rod_to_index[rod_id] for rod_id in sorted(active)]
-        
-        build_matrix_start = perf_counter()
         
         matrix_result = AlgebraicChecker.BuildRigidityMatrix(
             assembled_indices,
             element_objects,
         )
         
-        build_matrix_end = perf_counter()
-        
         K = matrix_result.matrix
         matrix_dof = K.shape[1]
         
-        analysis_start = perf_counter()
-
         matrix_rank, failure_modes = AlgebraicChecker.AnalyzeSparseQR(K)
-        # matrix_rank = np.linalg.matrix_rank(K)
-        # failure_modes = None    
-        # print("QR")
-
-        analysis_end = perf_counter()
 
         if matrix_rank == matrix_dof:
             statuses = {
@@ -193,28 +174,6 @@ class TrussRigidityChecker:
                 active_rods=active,
                 tolerance=1e-7,
             )
-        
-        total_end = perf_counter()
-
-        # print("\nRigidity timing breakdown")
-        # print("-------------------------")
-        # print(
-        #     f"Build element objects: "
-        #     f"{build_elements_end - build_elements_start:.6f} s"
-        # )
-        # print(
-        #     f"Build rigidity matrix: "
-        #     f"{build_matrix_end - build_matrix_start:.6f} s"
-        # )
-        # print(
-        #     f"Analysis:           "
-        #     f"{analysis_end - analysis_start:.6f} s"
-        # )
-        # print(
-        #     f"Total check:           "
-        #     f"{total_end - total_start:.6f} s"
-        # )
-        # print(f"Matrix shape:          {K.shape}")
 
         result = RigidityResult(
             is_rigid=matrix_rank == matrix_dof,
@@ -250,6 +209,15 @@ class TrussRigidityChecker:
         initial_result: RigidityResult | None = None,
         return_result: bool = False,
     ) -> list[int] | tuple[list[int], RigidityResult]:
+        """
+        Greedily choose rods to treat as external supports.
+
+        The search tests only rods that are non-fixed in the current failure
+        result. If one candidate immediately makes the structure rigid, that
+        candidate is accepted and the search stops. Otherwise, the rod with the
+        largest rank improvement is added and the process repeats until the
+        structure is rigid or max_targets is reached.
+        """
         active = set(active_rods)
         supported = set(already_supported or ()) & active
         chosen: list[int] = []
@@ -445,15 +413,6 @@ class TrussRigidityChecker:
                 statuses[rod_id] = ElementStatus.rotate
 
         return statuses
-
-
-def _rod_height_key(truss):
-    def key(rod_id: int) -> float:
-        n1, n2 = truss.elements[rod_id]
-        return 0.5 * (truss.nodes[n1][2] + truss.nodes[n2][2])
-
-    return key
-
 
 def _set_axes_equal(ax, points: np.ndarray) -> None:
     mins = points.min(axis=0)
@@ -1060,12 +1019,6 @@ def main() -> None:
         help="Rod ids treated as grounded/supported ElementObjects.",
     )
     parser.add_argument(
-        "--suggest-supports",
-        type=int,
-        default=2,
-        help="Maximum number of additional support rods to suggest.",
-    )
-    parser.add_argument(
         "--show-statuses",
         action="store_true",
         help="Print every active rod's ElementStatus.",
@@ -1208,33 +1161,6 @@ def main() -> None:
     if args.show_statuses:
         for rod_id, status_name in result.status_names.items():
             print(f"rod {rod_id}: {status_name}")
-
-    # if not result.is_rigid and args.suggest_supports > 0:
-    #     suggestions = checker.choose_support_targets(
-    #         active_rods,
-    #         already_supported=supported_rods,
-    #         max_targets=args.suggest_supports,
-    #         key=_rod_height_key(truss),
-    #     )
-    #     if suggestions:
-    #         supported_result = checker.check(
-    #             active_rods,
-    #             supported_rods=supported_rods | set(suggestions),
-    #         )
-            
-    #         fixed_rods = sum(
-    #             status == ElementStatus.fixed
-    #             for status in result.statuses.values()
-    #         )
-             
-    #         print(f"suggested supports: {suggestions}")
-    #         print(
-    #             "with suggested supports: "
-    #             f"{supported_result.is_rigid}, "
-    #             f"fixed rods {fixed_rods}/{len(supported_result.statuses)}, "
-    #         )
-    #     else:
-    #         print("suggested supports: none found")
 
     if args.plot or args.save_plot:
         plot_scaffold(

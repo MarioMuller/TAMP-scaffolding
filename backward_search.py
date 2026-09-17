@@ -1,9 +1,10 @@
 import hashlib
 from truss import Truss
-from collections import defaultdict, deque
+from collections import deque
 import heapq
 import time
 import numpy as np
+from dataclasses import dataclass
 
 from DataClasses import SearchNode, StructuralRemovalStep
 from rigidityCheck.truss_rigidity import TrussRigidityChecker
@@ -14,6 +15,38 @@ import sys
 import termios
 import tty
 from contextlib import nullcontext
+
+
+@dataclass(frozen=True)
+class RemovalSupportContext:
+    """Support state implied by trying to remove one candidate rod."""
+
+    current_state: frozenset[int]
+    new_state: frozenset[int]
+    continuing_supports: dict[str, int]
+    releasable_supports: dict[str, int]
+    free_supports: list[str]
+    continuing_supported_rods: set[int]
+    candidate_is_supported: bool
+    old_support_gripper: str | None
+
+
+@dataclass(frozen=True)
+class ActualSupportResult:
+    """Result of the structural support search for one candidate removal."""
+
+    rigidity_result: object
+    supports_after: dict[str, int]
+    added_supports: dict[str, int]
+
+    @property
+    def support_count(self):
+        return len(self.supports_after)
+
+    @property
+    def new_support_count(self):
+        return len(self.added_supports)
+
 
 class TerminalHotkey:
     """Read individual terminal keys without stopping the search."""
@@ -258,26 +291,8 @@ class AssemblyPlanner:
             candidate_rod=structural_step.rod_id,
         )
 
-    # create graph structure
-    def build_graph(self, active_rods):
-        graph = defaultdict(set)
-        active_nodes = set()
-
-        for eid in active_rods:
-            n1, n2 = self.truss.elements[eid]
-            graph[n1].add(n2)
-            graph[n2].add(n1)
-            active_nodes.add(n1)
-            active_nodes.add(n2)
-
-        return graph, active_nodes
-
-    # check that rods are not flying
-    def is_valid_state(self, active_rods, supported_rods=None):
-        return self.rigidity.is_rigid(active_rods, supported_rods=supported_rods)
-
-    # use height as heuristicc
     def heuristic(self, rod_id):
+        """Return the rod midpoint height used by height-based heuristics."""
         n1, n2 = self.truss.elements[rod_id]
         return 0.5 * (self.truss.nodes[n1][2] + self.truss.nodes[n2][2])
     
@@ -309,6 +324,47 @@ class AssemblyPlanner:
                     queue.append(neighbour)
 
         return distances
+
+    def support_context_after_removal(
+        self,
+        node,
+        candidate_rod,
+    ) -> RemovalSupportContext:
+        """Split existing supports into continuing, releasable, and free."""
+        current_state = node.state
+        new_state = frozenset(current_state - {candidate_rod})
+        current_supports = dict(node.supported)
+
+        continuing_supports = {
+            support: rod_id
+            for support, rod_id in current_supports.items()
+            if rod_id != candidate_rod
+        }
+
+        releasable_supports = {
+            support: rod_id
+            for support, rod_id in current_supports.items()
+            if rod_id == candidate_rod
+        }
+
+        free_supports = [
+            support
+            for support in self.helper_grippers
+            if support not in continuing_supports
+        ]
+
+        return RemovalSupportContext(
+            current_state=current_state,
+            new_state=new_state,
+            continuing_supports=continuing_supports,
+            releasable_supports=releasable_supports,
+            free_supports=free_supports,
+            continuing_supported_rods=set(
+                continuing_supports.values()
+            ),
+            candidate_is_supported=bool(releasable_supports),
+            old_support_gripper=next(iter(releasable_supports), None),
+        )
     
     def evaluate_actual_supports_after_removal(
         self,
@@ -324,44 +380,31 @@ class AssemblyPlanner:
         if cache_key in self.actual_support_results:
             return self.actual_support_results[cache_key]
 
-        new_state = frozenset(
-            node.state - {candidate_rod}
-        )
-
-        continuing_supports = {
-            support: rod_id
-            for support, rod_id in node.supported.items()
-            if rod_id != candidate_rod
-        }
-
-        free_supports = [
-            support
-            for support in self.helper_grippers
-            if support not in continuing_supports
-        ]
-
-        continuing_supported_rods = set(
-            continuing_supports.values()
+        support_context = self.support_context_after_removal(
+            node,
+            candidate_rod,
         )
 
         rigidity_result = self.rigidity.check(
-            new_state,
-            supported_rods=continuing_supported_rods,
+            support_context.new_state,
+            supported_rods=support_context.continuing_supported_rods,
         )
 
         if rigidity_result.is_rigid:
             affected_rods = []
 
-        elif not free_supports:
+        elif not support_context.free_supports:
             self.actual_support_results[cache_key] = None
             return None
 
         else:
             affected_rods, rigidity_result = (
                 self.rigidity.choose_support_targets(
-                    active_rods=new_state,
-                    already_supported=continuing_supported_rods,
-                    max_targets=len(free_supports),
+                    active_rods=support_context.new_state,
+                    already_supported=(
+                        support_context.continuing_supported_rods
+                    ),
+                    max_targets=len(support_context.free_supports),
                     key=lambda rod_id: self.support_target_priority(
                         rod_id,
                         removed_rod=candidate_rod,
@@ -378,48 +421,23 @@ class AssemblyPlanner:
         added_supports = {
             support: rod_id
             for support, rod_id in zip(
-                free_supports,
+                support_context.free_supports,
                 affected_rods,
             )
         }
 
-        supports_after = dict(continuing_supports)
+        supports_after = dict(support_context.continuing_supports)
         supports_after.update(added_supports)
 
-        result = {
-            "rigidity_result": rigidity_result,
-            "supports_after": supports_after,
-            "added_supports": added_supports,
-            "support_count": len(supports_after),
-            "new_support_count": len(added_supports),
-        }
+        result = ActualSupportResult(
+            rigidity_result=rigidity_result,
+            supports_after=supports_after,
+            added_supports=added_supports,
+        )
 
         self.actual_support_results[cache_key] = result
         return result
         
-    
-    def support_history_cost(self, node):
-        """Measure support use along the current branch."""
-        peak_supports = max(
-            (
-                len(step.supports_after)
-                for step in node.structural_steps
-            ),
-            default=len(node.supported),
-        )
-
-        support_steps = sum(
-            len(step.supports_after)
-            for step in node.structural_steps
-        )
-
-        support_additions = sum(
-            len(step.added_supports)
-            for step in node.structural_steps
-        )
-
-        return peak_supports, support_steps, support_additions
-
     def baseline_candidate_order(self, node, candidate_rods):
         """Return a fixed random candidate ranking for this structural state."""
         state_key = self.structural_state_key(
@@ -506,8 +524,8 @@ class AssemblyPlanner:
                 return (
                     len(node.state),
                     0,
-                    actual_support_result["support_count"],
-                    actual_support_result["new_support_count"],
+                    actual_support_result.support_count,
+                    actual_support_result.new_support_count,
                     self.priority_tie_breaker(rod_id),
                 )
 
@@ -536,34 +554,13 @@ class AssemblyPlanner:
             node.state
         )
 
-        # Cheap pruning from the old implementation.
-        filtered_candidates = []
-
-        for rod_id in candidates:
-
-            # Keep grounded rods until all attached non-grounded rods
-            # have been removed.
-            if rod_id in self.truss.grounded_rods:
-                active_non_grounded_neighbours = {
-                    neighbour
-                    for neighbour in (
-                        self.rod_neighbors[rod_id] & node.state
-                    )
-                    if neighbour not in self.truss.grounded_rods
-                }
-
-                if active_non_grounded_neighbours:
-                    continue
-
-            filtered_candidates.append(rod_id)
-
         # ---------------------------------------------------------
         # Baseline: random order, no structural pre-evaluation
         # ---------------------------------------------------------
         if self.strategy_name == "baseline":
             order = self.baseline_candidate_order(
                 node,
-                filtered_candidates,
+                candidates,
             )
 
             return sorted(
@@ -572,14 +569,14 @@ class AssemblyPlanner:
                         (len(node.state), order[rod_id]),
                         rod_id,
                     )
-                    for rod_id in filtered_candidates
+                    for rod_id in candidates
                 ),
                 key=lambda item: item[0],
             )
 
         ranked_candidates = []
 
-        for rod_id in filtered_candidates:
+        for rod_id in candidates:
             priority = self.removal_priority(
                 node,
                 rod_id,
@@ -603,22 +600,8 @@ class AssemblyPlanner:
             for _, rod_id in self.removal_candidates_with_priorities(node)
         ]
 
-    def choose_placeholder_support_targets(
-        self,
-        node,
-        removed_rod,
-        new_state,
-        max_targets=2,
-        probability_two=0.5,
-    ):
-        return self.rigidity.choose_support_targets(
-            active_rods=new_state,
-            already_supported=node.supported.values(),
-            max_targets=max_targets,
-            key=self.heuristic,
-        )
-
     def support_target_priority(self, rod_id, removed_rod=None):
+        """Prefer supports near the removed rod, then higher rods."""
         if self.strategy_name == "baseline":
             return float(self.rng.random())
 
@@ -638,11 +621,12 @@ class AssemblyPlanner:
                 for neighbour in direct_neighbours
             ):
                 local_rank = 1
-
-        return (
-            local_rank,
-            self.heuristic(rod_id),
-        )
+        
+        return float(self.rng.random())
+        # return (
+        #     local_rank,
+        #     # self.heuristic(rod_id),
+        # )
     
 
     # greedy backward search
@@ -651,6 +635,8 @@ class AssemblyPlanner:
         capture_key=None,
         max_runtime=1800.0,
         max_expansions_without_progress=20000,
+        initial_supported=None,
+        initial_support_q=None, #joint configuration of the support grippers
     ):
         
         """
@@ -666,6 +652,7 @@ class AssemblyPlanner:
                 "max_expansions_without_progress must be positive or None."
             )
 
+        # backward search visualization
         hotkey_context = (
             TerminalHotkey(capture_key)
             if capture_key is not None
@@ -674,26 +661,77 @@ class AssemblyPlanner:
         
         # initial state: all rods in final position
         initial_state = frozenset(self.truss.elements.keys())
+
+        initial_supported = dict(initial_supported or {})
+        initial_support_q = dict(initial_support_q or {})
+
+        unknown_support_rods = (
+            set(initial_supported.values()) - set(initial_state)
+        )
         
-        final_result = self.rigidity.check(
+        if unknown_support_rods:
+            raise ValueError(
+                "Initial supports reference rods that are not active: "
+                f"{sorted(unknown_support_rods)}"
+            )
+
+        unknown_supports = (
+            set(initial_supported) - set(self.helper_grippers)
+        )
+        if unknown_supports:
+            raise ValueError(
+                "Initial supports reference unknown support grippers: "
+                f"{sorted(unknown_supports)}"
+            )
+
+        if len(initial_supported) > len(self.helper_grippers):
+            raise ValueError(
+                "Initial support assignments exceed available supports."
+            )
+        
+        unsupported_final_result = self.rigidity.check(
             initial_state,
             supported_rods=set(),
         )
 
         self.final_structure_is_rigid_without_supports = (
-            final_result.is_rigid
+            unsupported_final_result.is_rigid
         )
 
-        if not final_result.is_rigid:
+        if initial_supported:
+            initial_result = self.rigidity.check(
+                initial_state,
+                supported_rods=set(initial_supported.values()),
+            )
+        else:
+            initial_result = unsupported_final_result
+
+        if not initial_result.is_rigid:
             print(
-                "\nWarning: The final truss configuration is not rigid "
-                "without supports. Required supports will remain in the "
-                "final visualization frame."
+                "\nWarning: The initial truss configuration is not rigid with the inherited support assignments."
             )
-            input(
-                "Press Enter to continue the search anyway, "
-                "or Ctrl+C to abort..."
-            )
+        elif not unsupported_final_result.is_rigid:
+            if initial_supported:
+                support_word = (
+                    "support"
+                    if len(initial_supported) == 1
+                    else "supports"
+                )
+                print(
+                    "\nPrefix scaffold starts with "
+                    f"{len(initial_supported)} inherited {support_word}; "
+                    "it is not rigid without them."
+                )
+            else:
+                print(
+                    "\nWarning: The final truss configuration is not rigid "
+                    "without supports. Required supports will remain in the "
+                    "final visualization frame."
+                )
+            # input(
+            #     "Press Enter to continue the search anyway, "
+            #     "or Ctrl+C to abort..."
+            # )
 
         open_list = []
         counter = 0
@@ -708,8 +746,8 @@ class AssemblyPlanner:
                 if self.builder is not None
                 else None
             ),
-            supported={},
-            support_q={},
+            supported=initial_supported,
+            support_q=initial_support_q,
             records=[],
             structural_steps=[],
         )
@@ -732,6 +770,7 @@ class AssemblyPlanner:
         
         attempted_transitions = set()
 
+        # helper function to enqueue candidate removals for a given search node
         def enqueue_removals(node):
             nonlocal counter
 
@@ -764,6 +803,7 @@ class AssemblyPlanner:
             while open_list:
                 self.process_debug_hotkey(hotkey)
 
+                # abort if limits are reached
                 elapsed = time.monotonic() - start_time
                 if max_runtime is not None and elapsed >= max_runtime:
                     self.search_stop_reason = "runtime_limit"
@@ -787,8 +827,7 @@ class AssemblyPlanner:
                     open_list
                 )
 
-                # Reject stale or malformed heap entries before doing any
-                # structural work.
+                # Reject candidate rods that are no longer present in the current state.
                 if candidate_rod not in node.state:
                     continue
 
@@ -859,6 +898,7 @@ class AssemblyPlanner:
 
                 motion_record = result["motion_record"]
 
+                # create a new search node for the resulting state after removing the candidate rod
                 new_node = SearchNode(
                     state=new_state,
                     sequence=node.sequence + [candidate_rod],
@@ -912,40 +952,10 @@ class AssemblyPlanner:
         print(f"Deepest state: {best_remaining} rods remaining.")
         return None
     
-    def active_connection_count(self, node, rod_id):
-        """Number of rods currently coupled to rod_id."""
-        return len(self.rod_neighbors[rod_id] & node.state)
-
     def is_removal_feasible(self, node, candidate_rod):
-        current_state = node.state
-        new_state = frozenset(current_state - {candidate_rod})
-
-        current_supports = dict(node.supported)
-
-        continuing_supports = {
-            support: rod_id
-            for support, rod_id in current_supports.items()
-            if rod_id != candidate_rod
-        }
-
-        releasable_supports = {
-            support: rod_id
-            for support, rod_id in current_supports.items()
-            if rod_id == candidate_rod
-        }
-
-        candidate_is_supported = bool(releasable_supports)
-        old_support_gripper = next(iter(releasable_supports), None)
-
-        # A support holding the removed candidate becomes available again.
-        free_supports = [
-            support
-            for support in self.helper_grippers
-            if support not in continuing_supports
-        ]
-
-        continuing_supported_rods = set(
-            continuing_supports.values()
+        support_context = self.support_context_after_removal(
+            node,
+            candidate_rod,
         )
 
         def make_structural_step(
@@ -955,12 +965,12 @@ class AssemblyPlanner:
         ):
             return StructuralRemovalStep(
                 rod_id=candidate_rod,
-                rods_before=frozenset(current_state),
-                rods_after=frozenset(new_state),
+                rods_before=frozenset(support_context.current_state),
+                rods_after=frozenset(support_context.new_state),
                 supports_before=dict(node.supported),
                 supports_after=dict(supported_after),
                 added_supports=dict(added_supports),
-                released_supports=dict(releasable_supports),
+                released_supports=dict(support_context.releasable_supports),
                 rank_after=rigidity_result.rank,
                 dof_after=rigidity_result.dof,
             )
@@ -975,26 +985,26 @@ class AssemblyPlanner:
             )
 
         if actual_support_result is not None:
-            rigidity_result = actual_support_result["rigidity_result"]
+            rigidity_result = actual_support_result.rigidity_result
             new_support_assignments = dict(
-                actual_support_result["added_supports"]
+                actual_support_result.added_supports
             )
             next_supported = dict(
-                actual_support_result["supports_after"]
+                actual_support_result.supports_after
             )
 
         else:
             # First test whether existing continuing supports are enough.
             result_without_new_support = self.rigidity.check(
-                new_state,
-                supported_rods=continuing_supported_rods,
+                support_context.new_state,
+                supported_rods=support_context.continuing_supported_rods,
             )
             
             if result_without_new_support.is_rigid:
                 affected_rods = []
                 rigidity_result = result_without_new_support
 
-            elif not free_supports:
+            elif not support_context.free_supports:
                 # print(
                 #     f"Rod {candidate_rod} cannot be removed: "
                 #     "the remaining scaffold is not rigid and no support is free."
@@ -1002,7 +1012,7 @@ class AssemblyPlanner:
                 
                 structural_step = make_structural_step(
                     rigidity_result=result_without_new_support,
-                    supported_after=continuing_supports,
+                    supported_after=support_context.continuing_supports,
                     added_supports={},
                 )
                 
@@ -1012,9 +1022,11 @@ class AssemblyPlanner:
 
             else:
                 affected_rods, rigidity_result = self.rigidity.choose_support_targets(
-                    active_rods=new_state,
-                    already_supported=continuing_supported_rods,
-                    max_targets=len(free_supports),
+                    active_rods=support_context.new_state,
+                    already_supported=(
+                        support_context.continuing_supported_rods
+                    ),
+                    max_targets=len(support_context.free_supports),
                     key=lambda rod_id: self.support_target_priority(
                         rod_id,
                         removed_rod=candidate_rod,
@@ -1026,12 +1038,12 @@ class AssemblyPlanner:
             new_support_assignments = {
                 support: rod_id
                 for support, rod_id in zip(
-                    free_supports,
+                    support_context.free_supports,
                     affected_rods,
                 )
             }
 
-            next_supported = dict(continuing_supports)
+            next_supported = dict(support_context.continuing_supports)
             next_supported.update(new_support_assignments)
 
         structural_step = make_structural_step(
@@ -1066,16 +1078,18 @@ class AssemblyPlanner:
 
         else:
             motion_result = self.builder.try_remove_and_commit_rod(
-                current_state=current_state,
-                new_state=new_state,
+                current_state=support_context.current_state,
+                new_state=support_context.new_state,
                 rod_id=candidate_rod,
                 q_start=node.q,
                 supported=node.supported,
                 support_q=node.support_q,
-                candidate_is_supported=candidate_is_supported,
-                old_support_gripper=old_support_gripper,
-                continuing_supports=continuing_supports,
-                releasable_supports=releasable_supports,
+                candidate_is_supported=(
+                    support_context.candidate_is_supported
+                ),
+                old_support_gripper=support_context.old_support_gripper,
+                continuing_supports=support_context.continuing_supports,
+                releasable_supports=support_context.releasable_supports,
                 new_support_assignments=new_support_assignments,
                 use_rrt=False,
                 do_shortcut=False,
@@ -1093,12 +1107,12 @@ class AssemblyPlanner:
 
         structural_step = StructuralRemovalStep(
             rod_id=candidate_rod,
-            rods_before=frozenset(current_state),
-            rods_after=frozenset(new_state),
+            rods_before=frozenset(support_context.current_state),
+            rods_after=frozenset(support_context.new_state),
             supports_before=dict(node.supported),
             supports_after=dict(next_supported),
             added_supports=dict(new_support_assignments),
-            released_supports=dict(releasable_supports),
+            released_supports=dict(support_context.releasable_supports),
             rank_after=rigidity_result.rank,
             dof_after=rigidity_result.dof,
         )
