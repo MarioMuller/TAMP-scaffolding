@@ -34,9 +34,10 @@ class RemovalSupportContext:
 
 
 @dataclass(frozen=True)
-class ActualSupportResult:
-    """Result of the structural support search for one candidate removal."""
+class SupportEvaluation:
+    """Structural support outcome for one candidate removal."""
 
+    feasible: bool
     rigidity_result: object
     supports_after: dict[str, int]
     added_supports: dict[str, int]
@@ -116,7 +117,7 @@ class AssemblyPlanner:
         self.random_seed = int(random_seed)
         self.rng = np.random.default_rng(random_seed)
         self.baseline_candidate_orders = {}
-        self.actual_support_results = {}
+        self.support_evaluations = {}
         self.shuffle_ties = shuffle_ties
 
         self.rigidity = TrussRigidityChecker(
@@ -368,52 +369,53 @@ class AssemblyPlanner:
             old_support_gripper=next(iter(releasable_supports), None),
         )
     
-    def evaluate_actual_supports_after_removal(
+    def evaluate_supports_after_removal(
         self,
         node,
         candidate_rod,
-    ):
+        support_context=None,
+    ) -> SupportEvaluation:
+        """Evaluate and cache the support outcome of one removal."""
         cache_key = self.structural_transition_key(
             state=node.state,
             supported=node.supported,
             candidate_rod=candidate_rod,
         )
 
-        if cache_key in self.actual_support_results:
-            return self.actual_support_results[cache_key]
-
-        support_context = self.support_context_after_removal(
-            node,
-            candidate_rod,
-        )
+        if cache_key in self.support_evaluations:
+            return self.support_evaluations[cache_key]
+        if support_context is None:
+            support_context = self.support_context_after_removal(
+                node,
+                candidate_rod,
+            )
 
         rigidity_result = self.rigidity.check(
             support_context.new_state,
             supported_rods=support_context.continuing_supported_rods,
         )
 
-        if rigidity_result.is_rigid:
-            affected_rods = []
+        affected_rods = []
 
-        elif not support_context.free_supports:
-            self.actual_support_results[cache_key] = None
-            return None
-
-        else:
+        if (
+            not rigidity_result.is_rigid
+            and support_context.free_supports
+        ):
             affected_rods, rigidity_result = (
                 self.rigidity.choose_support_targets(
                     active_rods=support_context.new_state,
-                    already_supported=(support_context.continuing_supported_rods),
+                    already_supported=(
+                        support_context.continuing_supported_rods
+                    ),
                     max_targets=len(support_context.free_supports),
-                    key=lambda rod_id: self.support_target_priority(rod_id, removed_rod=candidate_rod,),
+                    key=lambda rod_id: self.support_target_priority(
+                        rod_id,
+                        removed_rod=candidate_rod,
+                    ),
                     initial_result=rigidity_result,
                     return_result=True,
                 )
             )
-
-        if not rigidity_result.is_rigid:
-            self.actual_support_results[cache_key] = None
-            return None
 
         added_supports = {
             support: rod_id
@@ -426,13 +428,14 @@ class AssemblyPlanner:
         supports_after = dict(support_context.continuing_supports)
         supports_after.update(added_supports)
 
-        result = ActualSupportResult(
+        result = SupportEvaluation(
+            feasible=rigidity_result.is_rigid,
             rigidity_result=rigidity_result,
             supports_after=supports_after,
             added_supports=added_supports,
         )
 
-        self.actual_support_results[cache_key] = result
+        self.support_evaluations[cache_key] = result
         return result
         
     def random_candidate_order(self, node, candidate_rods):
@@ -527,13 +530,18 @@ class AssemblyPlanner:
             )
 
         if self.strategy_name == "reduced_supports":
-            if actual_support_result is not None:
-                return (
-                    len(node.state),
-                    actual_support_result.support_count,
-                    actual_support_result.new_support_count,
-                    tie_breaker,
+            if actual_support_result is None:
+                raise ValueError(
+                    "reduced_supports requires an evaluated support outcome."
                 )
+
+            return (
+                len(node.state),
+                0 if actual_support_result.feasible else 1,
+                actual_support_result.support_count,
+                actual_support_result.new_support_count,
+                tie_breaker,
+            )
 
 
         raise ValueError(
@@ -560,9 +568,10 @@ class AssemblyPlanner:
                 else rod_id
             )
             actual_support_result = None
+
             if self.strategy_name == "reduced_supports":
                 actual_support_result = (
-                    self.evaluate_actual_supports_after_removal(
+                    self.evaluate_supports_after_removal(
                         node,
                         rod_id,
                     )
@@ -951,72 +960,16 @@ class AssemblyPlanner:
                 dof_after=rigidity_result.dof,
             )
 
-        actual_support_result = None
-        if self.strategy_name == "reduced_supports":
-            actual_support_result = (
-                self.evaluate_actual_supports_after_removal(
-                    node,
-                    candidate_rod,
-                )
-            )
-
-        if actual_support_result is not None:
-            rigidity_result = actual_support_result.rigidity_result
-            new_support_assignments = dict(
-                actual_support_result.added_supports
-            )
-            next_supported = dict(
-                actual_support_result.supports_after
-            )
-
-        else:
-            # First test whether existing continuing supports are enough.
-            result_without_new_support = self.rigidity.check(
-                support_context.new_state,
-                supported_rods=support_context.continuing_supported_rods,
-            )
-            
-            if result_without_new_support.is_rigid:
-                affected_rods = []
-                rigidity_result = result_without_new_support
-
-            elif not support_context.free_supports:
-                # print(
-                #     f"Rod {candidate_rod} cannot be removed: "
-                #     "the remaining scaffold is not rigid and no support is free."
-                # )
-                
-                structural_step = make_structural_step(
-                    rigidity_result=result_without_new_support,
-                    supported_after=support_context.continuing_supports,
-                    added_supports={},
-                )
-                
-                return False, {
-                    "structural_step": structural_step,
-                }
-
-            else:
-                affected_rods, rigidity_result = self.rigidity.choose_support_targets(
-                    active_rods=support_context.new_state,
-                    already_supported=(support_context.continuing_supported_rods),
-                    max_targets=len(support_context.free_supports),
-                    key=lambda rod_id: self.support_target_priority(rod_id, removed_rod=candidate_rod,
-                    ),
-                    initial_result=result_without_new_support,
-                    return_result=True,
-                )
-
-            new_support_assignments = {
-                support: rod_id
-                for support, rod_id in zip(
-                    support_context.free_supports,
-                    affected_rods,
-                )
-            }
-
-            next_supported = dict(support_context.continuing_supports)
-            next_supported.update(new_support_assignments)
+        support_evaluation = self.evaluate_supports_after_removal(
+            node,
+            candidate_rod,
+            support_context=support_context,
+        )
+        rigidity_result = support_evaluation.rigidity_result
+        new_support_assignments = dict(
+            support_evaluation.added_supports
+        )
+        next_supported = dict(support_evaluation.supports_after)
 
         structural_step = make_structural_step(
             rigidity_result=rigidity_result,
@@ -1024,7 +977,7 @@ class AssemblyPlanner:
             added_supports=new_support_assignments,
         )
 
-        if not rigidity_result.is_rigid:
+        if not support_evaluation.feasible:
             # print(
             #     f"Removing rod {candidate_rod} is structurally infeasible: "
             #     f"rank {rigidity_result.rank}/{rigidity_result.dof}, "
