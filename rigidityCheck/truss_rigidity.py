@@ -250,7 +250,7 @@ class TrussRigidityChecker:
                 )
             ]
 
-            # Highest non-fixed rod is tested first.
+            # sort candidates by the key function if provided, otherwise keep the original order
             if key is not None:
                 candidates.sort(key=key, reverse=True)
 
@@ -263,9 +263,7 @@ class TrussRigidityChecker:
                     supported_rods=supported | {rod},
                 )
 
-                # Full rank is the best possible result.
-                # Because candidates are height-sorted, this is also the
-                # highest candidate that makes the structure rigid.
+                # Full rank is the best possible result. -> return if found
                 if result.is_rigid:
                     chosen.append(rod)
                     current_result = result

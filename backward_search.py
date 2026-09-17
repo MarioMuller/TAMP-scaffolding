@@ -1,4 +1,6 @@
 import hashlib
+
+from shapely import node
 from truss import Truss
 from collections import deque
 import heapq
@@ -507,15 +509,15 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
-        # if self.strategy_name == "default":
-        #     return (
-        #         len(node.state),
-        #         # supported_rank,
-        #         # connection_count,
-        #         # -distance,
-        #         -self.heuristic(rod_id),
-        #         tie_breaker,
-        #     )
+        if self.strategy_name == "default":
+            return (
+                len(node.state),
+                supported_rank,
+                connection_count,
+                # -distance,
+                -self.heuristic(rod_id),
+                tie_breaker,
+            )
 
         if self.strategy_name == "highest_first":
             return (
@@ -528,21 +530,10 @@ class AssemblyPlanner:
             if actual_support_result is not None:
                 return (
                     len(node.state),
-                    0,
                     actual_support_result.support_count,
                     actual_support_result.new_support_count,
                     tie_breaker,
                 )
-
-            return (
-                len(node.state),
-                1,
-                supported_rank,
-                connection_count,
-                # -distance,
-                -self.heuristic(rod_id),
-                tie_breaker,
-            )
 
 
         raise ValueError(
