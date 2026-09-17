@@ -490,13 +490,13 @@ class AssemblyPlanner:
         if tie_breaker is None:
             tie_breaker = self.priority_tie_breaker(rod_id)
 
-        if ground_distances is None:
-            ground_distances = self.distance_from_ground(node.state)
+        # if ground_distances is None:
+        #     ground_distances = self.distance_from_ground(node.state)
 
-        distance = ground_distances.get(
-            rod_id,
-            len(node.state) + 1,
-        )
+        # distance = ground_distances.get(
+        #     rod_id,
+        #     len(node.state) + 1,
+        # )
 
         connection_count = len(
             self.rod_neighbors[rod_id] & node.state
@@ -512,15 +512,15 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
-        if self.strategy_name == "default":
-            return (
-                len(node.state),
-                supported_rank,
-                connection_count,
-                -distance,
-                -self.heuristic(rod_id),
-                tie_breaker,
-            )
+        # if self.strategy_name == "default":
+        #     return (
+        #         len(node.state),
+        #         # supported_rank,
+        #         # connection_count,
+        #         # -distance,
+        #         -self.heuristic(rod_id),
+        #         tie_breaker,
+        #     )
 
         if self.strategy_name == "highest_first":
             return (
@@ -543,7 +543,7 @@ class AssemblyPlanner:
                 1,
                 supported_rank,
                 connection_count,
-                -distance,
+                # -distance,
                 -self.heuristic(rod_id),
                 tie_breaker,
             )
@@ -558,10 +558,6 @@ class AssemblyPlanner:
         """Return candidate removals in priority order."""
 
         candidates = list(node.state)
-
-        ground_distances = self.distance_from_ground(
-            node.state
-        )
        
         random_order = self.random_candidate_order(
             node,
@@ -579,7 +575,6 @@ class AssemblyPlanner:
             priority = self.removal_priority(
                 node,
                 rod_id,
-                ground_distances=ground_distances,
                 tie_breaker=tie_breaker,
             )
 
@@ -593,22 +588,22 @@ class AssemblyPlanner:
         """Prefer support targets near the removed rod, then higher rods."""
         local_rank = 0
 
-        if removed_rod is not None:
-            direct_neighbours = self.rod_neighbors.get(
-                removed_rod,
-                set(),
-            )
+        # if removed_rod is not None:
+        #     direct_neighbours = self.rod_neighbors.get(
+        #         removed_rod,
+        #         set(),
+        #     )
 
-            if rod_id in direct_neighbours:
-                local_rank = 2
-            elif any(
-                rod_id in self.rod_neighbors.get(neighbour, set())
-                for neighbour in direct_neighbours
-            ):
-                local_rank = 1
+        #     if rod_id in direct_neighbours:
+        #         local_rank = 2
+        #     elif any(
+        #         rod_id in self.rod_neighbors.get(neighbour, set())
+        #         for neighbour in direct_neighbours
+        #     ):
+        #         local_rank = 1
 
         return (
-            local_rank,
+            # local_rank,
             self.heuristic(rod_id),
         )
     

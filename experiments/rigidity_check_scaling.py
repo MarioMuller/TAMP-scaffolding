@@ -36,6 +36,7 @@ DEFAULT_OUTPUT_CSV = (
     / "results"
     / "rigidity_check_scaling.csv"
 )
+RUN_SEED_STRIDE = 10_000
 
 
 FIELDNAMES = [
@@ -55,6 +56,7 @@ FIELDNAMES = [
     "elapsed_s",
     "removal_sequence",
     "assembly_sequence",
+    "matches_default_suffix",
     "search_stop_reason",
     "search_expansions",
     "search_attempted_transitions",
@@ -221,6 +223,7 @@ def make_row(
     success = removal_sequence is not None
     removal_sequence = list(removal_sequence or [])
     assembly_sequence = list(reversed(removal_sequence))
+    expected_sequence = list(default_order[removed_prefix_count:])
 
     row = {
         "repetition": repetition,
@@ -241,6 +244,9 @@ def make_row(
         "elapsed_s": f"{elapsed_ns / 1_000_000_000:.9f}",
         "removal_sequence": as_json_list(removal_sequence),
         "assembly_sequence": as_json_list(assembly_sequence),
+        "matches_default_suffix": (
+            success and removal_sequence == expected_sequence
+        ),
     }
     row.update(structural_summary(searcher))
     return row
@@ -284,13 +290,15 @@ def main():
 
         for repetition_index in range(args.repetitions):
             repetition = repetition_index + 1
-            seed = args.seed + repetition_index
+            repetition_seed = (
+                args.seed + repetition_index * RUN_SEED_STRIDE
+            )
 
             print(
                 "\n"
                 + "=" * 70
                 + f"\nRepetition {repetition}/{args.repetitions}"
-                + f"\nSeed: {seed}"
+                + f"\nFull-run seed: {repetition_seed}"
                 + "\n"
                 + "=" * 70
             )
@@ -298,13 +306,13 @@ def main():
             searcher, removal_sequence, elapsed_ns = run_backward_search(
                 args=args,
                 included_rods=all_rods,
-                seed=seed,
+                seed=repetition_seed,
             )
 
             if removal_sequence is None:
                 row = make_row(
                     repetition=repetition,
-                    seed=seed,
+                    seed=repetition_seed,
                     run_index=1,
                     removed_prefix_count=0,
                     included_rods=all_rods,
@@ -330,7 +338,7 @@ def main():
 
             row = make_row(
                 repetition=repetition,
-                seed=seed,
+                seed=repetition_seed,
                 run_index=1,
                 removed_prefix_count=0,
                 included_rods=all_rods,
@@ -357,6 +365,7 @@ def main():
                 prefix_counts,
                 start=2,
             ):
+                run_seed = repetition_seed + run_index - 1
                 included_rods, excluded_rods = rods_after_prefix_removal(
                     all_rods,
                     default_order,
@@ -371,13 +380,13 @@ def main():
                 searcher, removal_sequence, elapsed_ns = run_backward_search(
                     args=args,
                     included_rods=included_rods,
-                    seed=seed,
+                    seed=run_seed,
                     initial_supported=initial_supported,
                 )
 
                 row = make_row(
                     repetition=repetition,
-                    seed=seed,
+                    seed=run_seed,
                     run_index=run_index,
                     removed_prefix_count=removed_prefix_count,
                     included_rods=included_rods,
@@ -392,6 +401,7 @@ def main():
 
                 print(
                     f"Run {run_index}/{total_runs}: "
+                    f"seed {run_seed}, "
                     f"{len(included_rods)} rods, "
                     f"{len(initial_supported)} inherited supports, "
                     f"{elapsed_ns / 1_000_000_000:.3f}s"
