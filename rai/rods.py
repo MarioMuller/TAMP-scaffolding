@@ -7,7 +7,7 @@ from .utils import quaternion_from_z_to_vector
 import time
 
 class RodManager:
-    def __init__(self, C, truss, radius=0.0015, scale=0.00351):
+    def __init__(self, C, truss, radius=0.0015, scale=0.001):
         self.C = C
         self.truss = truss
         self.radius = radius
@@ -168,4 +168,3 @@ class RodManager:
         self.C.getFrame(frame_name).setRelativePosition([0.0, 0.0, z])
 
         return frame_name
-        

@@ -26,10 +26,10 @@ from truss import Truss
 
 
 DEFAULT_STRATEGIES = [
+    "fast_reduce_support",
     "default",
     "baseline",
     "highest_first",
-    "fast_reduce_support",
 ]
 
 
@@ -369,7 +369,7 @@ def parse_args():
     parser.add_argument(
         "--support-target-order",
         choices=AssemblyPlanner.SUPPORT_TARGET_ORDERS,
-        default="lowest_first",
+        default="random",
         help=(
             "Ordering used when choosing structural support rods; distance "
             "modes use Euclidean distance between rod centers."

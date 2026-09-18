@@ -11,7 +11,7 @@ from matplotlib.animation import FFMpegWriter
 def display_structural_assembly(
     truss,
     removal_steps,
-    scale=1.0,
+    scale=0.001,
     label_rods=False,
     video_path=None,
     seconds_per_step=2,

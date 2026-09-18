@@ -226,7 +226,7 @@ class AssemblyPlanner:
                 display_structural_assembly(
                     truss=self.truss,
                     removal_steps=list(self.debug_capture_steps),
-                    scale=0.0011,
+                    scale=0.001,
                     label_rods=True,
                     video_path=None,
                     seconds_per_step=0.5,
