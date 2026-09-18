@@ -28,11 +28,12 @@ from truss import Truss
 DEFAULT_STRATEGIES = [
     "default",
     "baseline",
-    "lowest_first",
     "highest_first",
     "rankbased",
     "full_reduce_support",
     "fast_reduce_support",
+    "reduced_new_supports",
+    "depth_first_cumulative_additions",
 ]
 
 
@@ -131,6 +132,7 @@ def run_structural_round(
     shuffle_ties,
     capture_key,
     optimal_objective,
+    support_target_order,
 ):
     searcher = AssemblyPlanner(
         truss=truss,
@@ -142,6 +144,7 @@ def run_structural_round(
         random_seed=seed,
         shuffle_ties=shuffle_ties,
         optimal_objective=optimal_objective,
+        support_target_order=support_target_order,
     )
 
     start = perf_counter()
@@ -209,6 +212,7 @@ def run_strategy(args, strategy_name, repeat_index):
             shuffle_ties=args.shuffle_ties,
             capture_key=args.capture_key,
             optimal_objective=args.optimal_objective,
+            support_target_order=args.support_target_order,
         )
         final_searcher = searcher
         cumulative["structural_time_s"] += structural_time
@@ -288,6 +292,7 @@ def run_strategy(args, strategy_name, repeat_index):
             if final_searcher is not None
             else None
         ),
+        "support_target_order": args.support_target_order,
         "optimal_objective": (
             args.optimal_objective
             if strategy_name == "optimal_supports"
@@ -408,6 +413,21 @@ def parse_args():
         help="Use seeded random tie-breaking instead of rod-id tie-breaking.",
     )
     parser.add_argument("--max-runtime", type=float, default=1800.0)
+    parser.add_argument(
+        "--support-target-order",
+        choices=(
+            "highest_first",
+            "lowest_first",
+            "random",
+            "closest_to_removed",
+            "furthest_from_supported",
+        ),
+        default="lowest_first",
+        help=(
+            "Ordering used when choosing structural support rods; distance "
+            "modes use Euclidean distance between rod centers."
+        ),
+    )
     parser.add_argument(
         "--optimal-objective",
         choices=("support_moves", "support_steps", "peak"),

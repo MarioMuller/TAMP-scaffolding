@@ -66,6 +66,7 @@ FIELDNAMES = [
     "rigidity_cache_hits",
     "rigidity_cache_misses",
     "rigidity_cached_entries",
+    "support_target_order",
     "optimal_objective",
     "optimality_proven",
     "best_support_moves",
@@ -97,12 +98,32 @@ def parse_args():
     parser.add_argument("--max-supports", type=int, default=2)
     parser.add_argument("--strategy-name", default="fast_reduce_support")
     parser.add_argument(
+        "--support-target-order",
+        choices=(
+            "highest_first",
+            "lowest_first",
+            "random",
+            "closest_to_removed",
+            "furthest_from_supported",
+        ),
+        default="lowest_first",
+        help=(
+            "Ordering used when choosing structural support rods; distance "
+            "modes use Euclidean distance between rod centers."
+        ),
+    )
+    parser.add_argument(
         "--optimal-objective",
         choices=("support_moves", "support_steps", "peak"),
         default="support_moves",
         help="Objective used by the optimal_supports strategy.",
     )
     parser.add_argument("--max-runtime", type=float, default=200.0)
+    parser.add_argument(
+        "--full-only",
+        action="store_true",
+        help="Run only the full scaffold and skip all prefix scaffolds.",
+    )
     parser.add_argument(
         "--shuffle-ties",
         action="store_true",
@@ -208,6 +229,7 @@ def run_backward_search(args, included_rods, seed, initial_supported=None):
         random_seed=seed,
         shuffle_ties=args.shuffle_ties,
         optimal_objective=args.optimal_objective,
+        support_target_order=args.support_target_order,
     )
 
     start_ns = time.perf_counter_ns()
@@ -263,6 +285,7 @@ def make_row(
         "matches_default_suffix": (
             success and removal_sequence == expected_sequence
         ),
+        "support_target_order": searcher.support_target_order,
         "optimal_objective": (
             searcher.optimal_objective
             if searcher.strategy_name == "optimal_supports"
@@ -361,7 +384,11 @@ def main():
 
             default_order = list(removal_sequence)
             full_structural_steps = list(searcher.final_node.structural_steps)
-            prefix_counts = list(range(2, len(default_order), 2))
+            prefix_counts = (
+                []
+                if args.full_only
+                else list(range(2, len(default_order), 2))
+            )
             total_runs = 1 + len(prefix_counts)
 
             row = make_row(

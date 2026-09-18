@@ -32,6 +32,7 @@ DEFAULT_TRUSS_PATH = (PROJECT_ROOT/"JSON/own_examples/260804_FoC_demo.json")
 SUPPORT_CSV_FIELDS = [
     "truss",
     "strategy_name",
+    "support_target_order",
     "optimal_objective",
     "optimality_proven",
     "best_support_moves",
@@ -77,6 +78,21 @@ def parse_args():
     )
     parser.add_argument("--max-supports", type=int, default=2)
     parser.add_argument("--strategy-name", default="fast_reduce_support")
+    parser.add_argument(
+        "--support-target-order",
+        choices=(
+            "highest_first",
+            "lowest_first",
+            "random",
+            "closest_to_removed",
+            "furthest_from_supported",
+        ),
+        default="lowest_first",
+        help=(
+            "Ordering used when choosing structural support rods; distance "
+            "modes use Euclidean distance between rod centers."
+        ),
+    )
     parser.add_argument(
         "--optimal-objective",
         choices=("support_moves", "support_steps", "peak"),
@@ -134,6 +150,7 @@ def save_support_summary(
     row = {
         "truss": str(args.truss),
         "strategy_name": args.strategy_name,
+        "support_target_order": args.support_target_order,
         "optimal_objective": (
             args.optimal_objective
             if args.strategy_name == "optimal_supports"
@@ -188,6 +205,7 @@ def main():
         strategy_name=args.strategy_name,
         random_seed=args.seed,
         optimal_objective=args.optimal_objective,
+        support_target_order=args.support_target_order,
     )
 
     start_ns = time.perf_counter_ns()

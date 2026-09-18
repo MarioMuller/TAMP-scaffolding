@@ -113,6 +113,7 @@ class AssemblyPlanner:
         random_seed=0,
         shuffle_ties=False,
         optimal_objective="support_moves",
+        support_target_order="lowest_first",
     ):
         self.truss = truss
         self.builder = builder
@@ -122,7 +123,21 @@ class AssemblyPlanner:
         self.rng = np.random.default_rng(random_seed)
         self.baseline_candidate_orders = {}
         self.support_evaluations = {}
+        self._rod_physical_distance_cache = {}
         self.shuffle_ties = shuffle_ties
+        if support_target_order not in {
+            "highest_first",
+            "lowest_first",
+            "random",
+            "closest_to_removed",
+            "furthest_from_supported",
+        }:
+            raise ValueError(
+                "support_target_order must be 'highest_first', "
+                "'lowest_first', 'random', 'closest_to_removed', or "
+                "'furthest_from_supported'."
+            )
+        self.support_target_order = support_target_order
         if optimal_objective not in {
             "peak",
             "support_steps",
@@ -433,9 +448,12 @@ class AssemblyPlanner:
                         support_context.continuing_supported_rods
                     ),
                     max_targets=len(support_context.free_supports),
-                    key=lambda rod_id: self.support_target_priority(
-                        rod_id,
-                        removed_rod=candidate_rod,
+                    contextual_key=lambda rod_id, supported_rods: (
+                        self.support_target_priority(
+                            rod_id,
+                            removed_rod=candidate_rod,
+                            supported_rods=supported_rods,
+                        )
                     ),
                     initial_result=rigidity_result,
                     return_result=True,
@@ -556,13 +574,6 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
-        if self.strategy_name == "lowest_first":
-            return (
-                len(node.state),
-                self.heuristic(rod_id),
-                tie_breaker,
-            )
-
         if self.strategy_name == "rankbased":
             if initial_rigidity_result is None:
                 raise ValueError(
@@ -579,6 +590,8 @@ class AssemblyPlanner:
             "full_reduce_support",
             "full_reduce_support_no_depth",
             "reduced_overall_supports",
+            "reduced_new_supports",
+            "depth_first_cumulative_additions",
         }:
             if actual_support_result is None:
                 raise ValueError(
@@ -599,6 +612,30 @@ class AssemblyPlanner:
                     len(node.state),
                     actual_support_result.support_count,
                     actual_support_result.new_support_count,
+                    tie_breaker,
+                )
+
+            if self.strategy_name == "reduced_new_supports":
+                return (
+                    len(node.state),
+                    actual_support_result.new_support_count,
+                    actual_support_result.support_count,
+                    supported_rank,
+                    connection_count,
+                    -self.heuristic(rod_id),
+                    tie_breaker,
+                )
+
+            if self.strategy_name == "depth_first_cumulative_additions":
+                return (
+                    len(node.state),
+                    node.support_additions_so_far
+                    + actual_support_result.new_support_count,
+                    actual_support_result.new_support_count,
+                    actual_support_result.support_count,
+                    supported_rank,
+                    connection_count,
+                    -self.heuristic(rod_id),
                     tie_breaker,
                 )
 
@@ -682,6 +719,8 @@ class AssemblyPlanner:
                 "full_reduce_support",
                 "full_reduce_support_no_depth",
                 "reduced_overall_supports",
+                "reduced_new_supports",
+                "depth_first_cumulative_additions",
             }:
                 actual_support_result = (
                     self.evaluate_supports_after_removal(
@@ -707,28 +746,64 @@ class AssemblyPlanner:
 
         return ranked_candidates
 
-    def support_target_priority(self, rod_id, removed_rod=None):
-        """Prefer support targets near the removed rod, then higher rods."""
-        local_rank = 0
+    def rod_physical_distance(self, rod_1, rod_2):
+        """Return and cache the Euclidean distance between rod centers."""
+        cache_key = tuple(sorted((rod_1, rod_2)))
+        cached_distance = self._rod_physical_distance_cache.get(cache_key)
 
-        # if removed_rod is not None:
-        #     direct_neighbours = self.rod_neighbors.get(
-        #         removed_rod,
-        #         set(),
-        #     )
+        if cached_distance is not None:
+            return cached_distance
 
-        #     if rod_id in direct_neighbours:
-        #         local_rank = 2
-        #     elif any(
-        #         rod_id in self.rod_neighbors.get(neighbour, set())
-        #         for neighbour in direct_neighbours
-        #     ):
-        #         local_rank = 1
-
-        return (
-            # local_rank,
-            -self.heuristic(rod_id),
+        node_1_start, node_1_end = self.truss.elements[rod_1]
+        node_2_start, node_2_end = self.truss.elements[rod_2]
+        center_1 = 0.5 * (
+            np.asarray(self.truss.nodes[node_1_start], dtype=float)
+            + np.asarray(self.truss.nodes[node_1_end], dtype=float)
         )
+        center_2 = 0.5 * (
+            np.asarray(self.truss.nodes[node_2_start], dtype=float)
+            + np.asarray(self.truss.nodes[node_2_end], dtype=float)
+        )
+        distance = float(np.linalg.norm(center_1 - center_2))
+        self._rod_physical_distance_cache[cache_key] = distance
+        return distance
+
+    def support_target_priority(
+        self,
+        rod_id,
+        removed_rod=None,
+        supported_rods=None,
+    ):
+        """Order structurally valid support targets by the configured rule."""
+        # TrussRigidityChecker sorts target keys with reverse=True.
+        if self.support_target_order == "random":
+            return (float(self.rng.random()),)
+
+        if self.support_target_order == "closest_to_removed":
+            distance = (
+                float("inf")
+                if removed_rod is None
+                else self.rod_physical_distance(rod_id, removed_rod)
+            )
+            return (-distance, self.priority_tie_breaker(rod_id))
+
+        if self.support_target_order == "furthest_from_supported":
+            supported_rods = set(supported_rods or ())
+            distance = (
+                min(
+                    self.rod_physical_distance(rod_id, supported_rod)
+                    for supported_rod in supported_rods
+                )
+                if supported_rods
+                else 0.0
+            )
+            return (distance, self.priority_tie_breaker(rod_id))
+
+        height_priority = self.heuristic(rod_id)
+        if self.support_target_order == "lowest_first":
+            height_priority = -height_priority
+
+        return (height_priority,)
 
     def minimum_support_outcome(
         self,
@@ -1190,6 +1265,7 @@ class AssemblyPlanner:
                 random_seed=seed,
                 shuffle_ties=self.shuffle_ties,
                 optimal_objective="support_moves",
+                support_target_order=self.support_target_order,
             )
             # Share the checker so incumbent checks remain cached for proof.
             greedy_searcher.rigidity = self.rigidity
@@ -2082,7 +2158,10 @@ class AssemblyPlanner:
                     initial_rigidity_result,
                 ) = heapq.heappop(open_list)
 
-                if self.strategy_name == "reduced_overall_supports":
+                if self.strategy_name in {
+                    "reduced_overall_supports",
+                    "depth_first_cumulative_additions",
+                }:
                     node_state_key = self.search_state_key(node)
 
                     if (
@@ -2268,7 +2347,10 @@ class AssemblyPlanner:
                     new_node
                 )
 
-                if self.strategy_name == "reduced_overall_supports":
+                if self.strategy_name in {
+                    "reduced_overall_supports",
+                    "depth_first_cumulative_additions",
+                }:
                     previous_cost = best_state_support_additions.get(
                         state_key
                     )

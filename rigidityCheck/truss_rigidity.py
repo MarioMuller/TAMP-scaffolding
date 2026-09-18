@@ -206,6 +206,7 @@ class TrussRigidityChecker:
         already_supported: Iterable[int] | None = None,
         max_targets: int = 2,
         key=None,
+        contextual_key=None,
         initial_result: RigidityResult | None = None,
         return_result: bool = False,
     ) -> list[int] | tuple[list[int], RigidityResult]:
@@ -250,8 +251,15 @@ class TrussRigidityChecker:
                 )
             ]
 
-            # sort candidates by the key function if provided, otherwise keep the original order
-            if key is not None:
+            if contextual_key is not None:
+                candidates.sort(
+                    key=lambda rod: contextual_key(
+                        rod,
+                        frozenset(supported),
+                    ),
+                    reverse=True,
+                )
+            elif key is not None:
                 candidates.sort(key=key, reverse=True)
 
             best_rod = None
