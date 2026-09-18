@@ -216,6 +216,9 @@ class SearchNode:
     
     # Builder-independent structural transitions
     structural_steps: list = field(default_factory=list)
+
+    # Number of support assignments established along this removal path.
+    support_additions_so_far: int = 0
     
     def unused_helpers(self, helper_grippers):
         return [

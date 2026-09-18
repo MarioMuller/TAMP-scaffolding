@@ -575,14 +575,35 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
-        if self.strategy_name == "full_reduce_support":
+        if self.strategy_name in {
+            "full_reduce_support",
+            "full_reduce_support_no_depth",
+            "reduced_overall_supports",
+        }:
             if actual_support_result is None:
                 raise ValueError(
-                    "full_reduce_support requires an evaluated support outcome."
+                    f"{self.strategy_name} requires an evaluated support "
+                    "outcome."
+                )
+
+            depth_priority = (
+                ()
+                if self.strategy_name == "full_reduce_support_no_depth"
+                else (len(node.state),)
+            )
+
+            if self.strategy_name == "reduced_overall_supports":
+                return (
+                    node.support_additions_so_far
+                    + actual_support_result.new_support_count,
+                    len(node.state),
+                    actual_support_result.support_count,
+                    actual_support_result.new_support_count,
+                    tie_breaker,
                 )
 
             return (
-                len(node.state),
+                *depth_priority,
                 actual_support_result.support_count,
                 actual_support_result.new_support_count,
                 tie_breaker,
@@ -657,7 +678,11 @@ class AssemblyPlanner:
                     ),
                 )
 
-            if self.strategy_name == "full_reduce_support":
+            if self.strategy_name in {
+                "full_reduce_support",
+                "full_reduce_support_no_depth",
+                "reduced_overall_supports",
+            }:
                 actual_support_result = (
                     self.evaluate_supports_after_removal(
                         node,
@@ -862,6 +887,9 @@ class AssemblyPlanner:
             support_q={},
             records=[],
             structural_steps=node.structural_steps + [structural_step],
+            support_additions_so_far=(
+                node.support_additions_so_far + len(added_supports)
+            ),
         )
 
     def minimum_peak_plan(
@@ -1979,6 +2007,9 @@ class AssemblyPlanner:
         visited = {
             self.search_state_key(initial_node)
         }
+        best_state_support_additions = {
+            self.search_state_key(initial_node): 0
+        }
         
         attempted_transitions = set()
 
@@ -2050,6 +2081,15 @@ class AssemblyPlanner:
                     support_evaluation,
                     initial_rigidity_result,
                 ) = heapq.heappop(open_list)
+
+                if self.strategy_name == "reduced_overall_supports":
+                    node_state_key = self.search_state_key(node)
+
+                    if (
+                        node.support_additions_so_far
+                        != best_state_support_additions.get(node_state_key)
+                    ):
+                        continue
 
                 # Reject candidate rods that are no longer present in the current state.
                 if candidate_rod not in node.state:
@@ -2218,16 +2258,36 @@ class AssemblyPlanner:
                         node.structural_steps
                         + [result["structural_step"]]
                     ),
+                    support_additions_so_far=(
+                        node.support_additions_so_far
+                        + len(result["structural_step"].added_supports)
+                    ),
                 )
                 
                 state_key = self.search_state_key(
                     new_node
                 )
 
-                if state_key in visited:
-                    continue
+                if self.strategy_name == "reduced_overall_supports":
+                    previous_cost = best_state_support_additions.get(
+                        state_key
+                    )
 
-                visited.add(state_key)
+                    if (
+                        previous_cost is not None
+                        and previous_cost
+                        <= new_node.support_additions_so_far
+                    ):
+                        continue
+
+                    best_state_support_additions[state_key] = (
+                        new_node.support_additions_so_far
+                    )
+                else:
+                    if state_key in visited:
+                        continue
+
+                    visited.add(state_key)
 
                 if len(new_state) < best_remaining:
                     best_node = new_node
