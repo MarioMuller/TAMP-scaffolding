@@ -219,6 +219,9 @@ class SearchNode:
 
     # Number of support assignments established along this removal path.
     support_additions_so_far: int = 0
+
+    # Sum of active support assignments after every removal along this path.
+    support_steps_so_far: int = 0
     
     def unused_helpers(self, helper_grippers):
         return [

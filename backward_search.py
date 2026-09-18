@@ -104,6 +104,7 @@ class AssemblyPlanner:
         "baseline",
         "highest_first",
         "fast_reduce_support",
+        "reduced_overall_support_steps",
         "reduced_overall_supports",
     )
     SUPPORT_TARGET_ORDERS = (
@@ -564,6 +565,25 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
+        if self.strategy_name == "reduced_overall_support_steps":
+            if actual_support_result is None:
+                raise ValueError(
+                    "reduced_overall_support_steps requires an evaluated "
+                    "support outcome."
+                )
+
+            # Each active support contributes one support-step after this
+            # removal. Rank by the projected cumulative support-steps.
+            return (
+                node.support_steps_so_far
+                + actual_support_result.support_count,
+                len(node.state),
+                actual_support_result.support_count,
+                actual_support_result.new_support_count,
+                tie_breaker,
+            )
+
+        # only for near optimal search
         if self.strategy_name == "reduced_overall_supports":
             if actual_support_result is None:
                 raise ValueError(
@@ -648,7 +668,10 @@ class AssemblyPlanner:
             )
             actual_support_result = None
 
-            if self.strategy_name == "reduced_overall_supports":
+            if self.strategy_name in {
+                "reduced_overall_support_steps",
+                "reduced_overall_supports",
+            }:
                 actual_support_result = (
                     self.evaluate_supports_after_removal(
                         node,
@@ -866,6 +889,9 @@ class AssemblyPlanner:
         best_state_support_additions = {
             self.search_state_key(initial_node): 0
         }
+        best_state_support_steps = {
+            self.search_state_key(initial_node): 0
+        }
         
         attempted_transitions = set()
 
@@ -944,6 +970,15 @@ class AssemblyPlanner:
                     if (
                         node.support_additions_so_far
                         != best_state_support_additions.get(node_state_key)
+                    ):
+                        continue
+
+                if self.strategy_name == "reduced_overall_support_steps":
+                    node_state_key = self.search_state_key(node)
+
+                    if (
+                        node.support_steps_so_far
+                        != best_state_support_steps.get(node_state_key)
                     ):
                         continue
 
@@ -1118,6 +1153,10 @@ class AssemblyPlanner:
                         node.support_additions_so_far
                         + len(result["structural_step"].added_supports)
                     ),
+                    support_steps_so_far=(
+                        node.support_steps_so_far
+                        + len(result["structural_step"].supports_after)
+                    ),
                 )
                 
                 state_key = self.search_state_key(
@@ -1138,6 +1177,18 @@ class AssemblyPlanner:
 
                     best_state_support_additions[state_key] = (
                         new_node.support_additions_so_far
+                    )
+                elif self.strategy_name == "reduced_overall_support_steps":
+                    previous_cost = best_state_support_steps.get(state_key)
+
+                    if (
+                        previous_cost is not None
+                        and previous_cost <= new_node.support_steps_so_far
+                    ):
+                        continue
+
+                    best_state_support_steps[state_key] = (
+                        new_node.support_steps_so_far
                     )
                 else:
                     if state_key in visited:
