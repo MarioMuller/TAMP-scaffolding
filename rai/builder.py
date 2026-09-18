@@ -290,6 +290,11 @@ class RaiTrussBuilder:
         self.metrics.inc("rai_transition_attempts")
         self.reset_scene_with_rods(current_state)
 
+        # reset_scene_with_rods imports every robot at its spawn configuration.
+        # Preserve that configuration before restoring the search node's q so
+        # idle support robots can be required to return home.
+        support_home_q = self.C.getJointState().copy()
+
         if q_start is not None:
             self.C.setJointState(q_start)
 
@@ -310,6 +315,20 @@ class RaiTrussBuilder:
 
             # print(f"Restoring support attachment: {support_gripper} -> {rod_frame}")
             self.C.attach(support_gripper, rod_frame)
+
+        initial_rod_poses = {
+            rod_id: (
+                np.asarray(
+                    self.C.getFrame(f"rod_{rod_id}").getPosition(),
+                    dtype=float,
+                ).copy(),
+                np.asarray(
+                    self.C.getFrame(f"rod_{rod_id}").getQuaternion(),
+                    dtype=float,
+                ).copy(),
+            )
+            for rod_id in current_state
+        }
 
         record = RodPathRecord(rod_id=rod_id)
 
@@ -338,6 +357,50 @@ class RaiTrussBuilder:
             accepted_keyframes = []
             q_current = np.asarray(q0, dtype=float).copy()
             self.C.setJointState(q_current)
+
+            def apply_attachments_after_segment(segment_id):
+                # RRT plans one segment at a time. Update its kinematic scene
+                # at the same boundaries used by replay so later segments see
+                # rods moving with the robot that holds them.
+                if segment_id == phase_info["main_grasp_segment"]:
+                    self.C.attach(
+                        "a1_ur_gripper_center",
+                        f"rod_{rod_id}",
+                    )
+
+                for support_gripper, support_rod_id in (
+                    new_support_assignments.items()
+                ):
+                    if (
+                        segment_id
+                        == phase_info["new_support_segments"][
+                            support_gripper
+                        ]
+                    ):
+                        self.C.attach(
+                            support_gripper,
+                            f"rod_{support_rod_id}",
+                        )
+
+            def restore_initial_attachments():
+                # A rejected RRT candidate must leave the shared scene exactly
+                # as the next KOMO/RRT candidate expects it.
+                self.C.setJointState(q0)
+
+                for restored_rod_id, (position, quaternion) in (
+                    initial_rod_poses.items()
+                ):
+                    rod_frame = f"rod_{restored_rod_id}"
+                    self.C.attach("table", rod_frame)
+                    self.C.getFrame(rod_frame) \
+                        .setPosition(position) \
+                        .setQuaternion(quaternion)
+
+                for support_gripper, supported_rod in supported.items():
+                    self.C.attach(
+                        support_gripper,
+                        f"rod_{supported_rod}",
+                    )
 
             try:
                 for i, q_goal in enumerate(keyframes):
@@ -433,6 +496,7 @@ class RaiTrussBuilder:
                     accepted_keyframes.append(q_goal.copy())
                     self.C.setJointState(q_goal)
                     q_current = q_goal
+                    apply_attachments_after_segment(i)
 
             except RuntimeError as error:
                 self.metrics.inc("rrt_candidate_rejections")
@@ -443,7 +507,7 @@ class RaiTrussBuilder:
                 return False
 
             finally:
-                self.C.setJointState(q0)
+                restore_initial_attachments()
 
             rrt_segments = planned_segments
             rrt_keyframes = np.asarray(
@@ -464,6 +528,8 @@ class RaiTrussBuilder:
             releasable_supports=releasable_supports,
             new_support_assignments=new_support_assignments,
             support_fractions=support_fractions,
+            support_grippers=self.support_grippers,
+            support_home_q=support_home_q,
             accept_keyframes=accept_keyframes_with_rrt,
             view_last_komo_attempt=view_last_komo_attempt,
             use_ssik_initialization=use_ssik_initialization,

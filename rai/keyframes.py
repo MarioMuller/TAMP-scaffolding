@@ -1191,6 +1191,8 @@ class KeyframePlanner:
         new_support_assignments=None,
         support_fraction=0.25,
         support_fractions=None,
+        support_grippers=None,
+        support_home_q=None,
         accept_keyframes=None,
         view_last_komo_attempt=False,
         use_ssik_initialization=True,
@@ -1223,6 +1225,11 @@ class KeyframePlanner:
         new_support_assignments:
             support_gripper -> affected_rod_id that must be newly supported
             before removing rod_id.
+
+        support_home_q:
+            Full robot configuration immediately after importing the robots.
+            Support robots that are unused after this removal must return to
+            their part of this configuration at the final phase.
         """
 
         rod = f"rod_{rod_id}"
@@ -1239,6 +1246,19 @@ class KeyframePlanner:
         continuing_supports = dict(continuing_supports or {})
         releasable_supports = dict(releasable_supports or {})
         new_support_assignments = dict(new_support_assignments or {})
+        support_grippers = tuple(support_grippers or ())
+
+        if support_home_q is not None:
+            support_home_q = np.asarray(
+                support_home_q,
+                dtype=float,
+            ).copy()
+
+            if support_home_q.shape != q0.shape:
+                raise ValueError(
+                    "support_home_q must have the same shape as the current "
+                    f"configuration: {support_home_q.shape} != {q0.shape}"
+                )
 
         # Determine whether the old support is being reused for a new affected rod.
         old_support_is_reused = (
@@ -1442,14 +1462,91 @@ class KeyframePlanner:
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e2])
         komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
 
+        joint_names = list(self.C.getJointNames())
+
+        main_joint_indices = [
+            index
+            for index, joint_name in enumerate(joint_names)
+            if (
+                joint_name == "husky_base_XYPhi_joint"
+                or joint_name.startswith("husky_base_XYPhi_joint:")
+                or joint_name.startswith("a1_")
+                or joint_name.startswith("a2_")
+            )
+        ]
+
+        def joint_selection(selected_indices):
+            selection = np.zeros(
+                (len(selected_indices), len(q0)),
+                dtype=float,
+            )
+
+            for row, joint_index in enumerate(selected_indices):
+                selection[row, joint_index] = 1e2
+
+            return selection
+
+        def support_joint_indices(support_gripper):
+            arm_name = support_gripper.removesuffix(
+                "_ur_gripper_center"
+            )
+            robot_prefix = support_gripper.split("_", maxsplit=1)[0]
+            base_joint = f"{robot_prefix}_base_XYPhi_joint"
+            arm_prefix = f"{arm_name}_"
+
+            return [
+                index
+                for index, joint_name in enumerate(joint_names)
+                if (
+                    joint_name == base_joint
+                    or joint_name.startswith(f"{base_joint}:")
+                    or joint_name.startswith(arm_prefix)
+                )
+            ]
+
+        def support_joint_selection(support_grippers_to_select):
+            selected_indices = []
+
+            for support_gripper in sorted(support_grippers_to_select):
+                selected_indices.extend(
+                    support_joint_indices(support_gripper)
+                )
+
+            return joint_selection(selected_indices)
+
+        # A support is idle after this transition when it neither continues an
+        # existing hold nor receives a new support assignment. Constrain only
+        # those robots at the final phase, allowing a released support to move
+        # away first and then return to its imported base and arm configuration.
+        active_support_grippers = (
+            set(continuing_supports)
+            | set(new_support_assignments)
+        )
+        idle_support_grippers = (
+            set(support_grippers) - active_support_grippers
+        )
+
+        if support_home_q is not None and idle_support_grippers:
+            home_selection = support_joint_selection(
+                idle_support_grippers
+            )
+
+            if home_selection.shape[0]:
+                komo.addObjective(
+                    [t_pickup],
+                    ry.FS.qItself,
+                    [],
+                    ry.OT.eq,
+                    home_selection,
+                    support_home_q,
+                )
+
         # ------------------------------------------------------------
         # Keep continuing support robots exactly in place.
         #
-        # This replaces the previous qItself freeze.
-        # qItself is too indirect here and can also create conflicts.
-        # The actual requirement is:
-        #   - this support gripper stays at its current support pose
-        #   - the rod it supports stays at its installed pose
+        # The complete base and arm state is fixed, not only the gripper pose.
+        # The pose constraints below additionally preserve the explicit
+        # gripper/rod relationship in the switched kinematic scene.
         # ------------------------------------------------------------
 
         for support_gripper, supported_rod_id in continuing_supports.items():
@@ -1457,6 +1554,15 @@ class KeyframePlanner:
 
             gripper_target = continuing_gripper_target_by_gripper[support_gripper]
             rod_target = continuing_rod_target_by_gripper[support_gripper]
+
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.qItself,
+                [],
+                ry.OT.eq,
+                support_joint_selection([support_gripper]),
+                q0,
+            )
 
             # Keep the support gripper at its current pose over the whole plan.
             komo.addObjective(
@@ -1501,6 +1607,15 @@ class KeyframePlanner:
         # ------------------------------------------------------------
 
         for support_gripper, gripper_target in releasable_gripper_target_by_gripper.items():
+            komo.addObjective(
+                [t_grasp],
+                ry.FS.qItself,
+                [],
+                ry.OT.eq,
+                support_joint_selection([support_gripper]),
+                q0,
+            )
+
             komo.addObjective(
                 [t_grasp],
                 ry.FS.positionDiff,
@@ -1555,6 +1670,22 @@ class KeyframePlanner:
         #     )
             
         last_installed_phase = t_pickup - 1.0
+
+        # Once the main robot has grasped the candidate, freeze its complete
+        # base and arm configuration while supports are released or placed.
+        # It becomes movable again for the final pickup phase.
+        main_hold_start = t_grasp + 1.0
+
+        if main_hold_start <= last_installed_phase:
+            komo.addObjective(
+                [main_hold_start, last_installed_phase],
+                ry.FS.qItself,
+                [],
+                ry.OT.eq,
+                joint_selection(main_joint_indices),
+                [],
+                1,
+            )
 
         komo.addObjective(
             [t_grasp, last_installed_phase],
@@ -1649,6 +1780,21 @@ class KeyframePlanner:
             support_rod = support_rod_frame_by_gripper[support_gripper]
 
             support_target = support_target_by_gripper[support_gripper]
+
+            # The robot may move into the support phase. From the following
+            # phase onward, every base and arm joint must remain unchanged.
+            freeze_start = t_support + 1.0
+
+            if freeze_start <= t_pickup:
+                komo.addObjective(
+                    [freeze_start, t_pickup],
+                    ry.FS.qItself,
+                    [],
+                    ry.OT.eq,
+                    support_joint_selection([support_gripper]),
+                    [],
+                    1,
+                )
 
             # Support gripper moves onto the affected rod.
             komo.addObjective(
@@ -1877,12 +2023,61 @@ class KeyframePlanner:
                 "label": ", ".join(label_parts) or None,
             })
 
+        def freeze_supported_robot_keyframes(keyframes):
+            frozen_keyframes = np.asarray(
+                keyframes,
+                dtype=float,
+            ).copy()
+
+            main_grasp_segment = phase_info["main_grasp_segment"]
+            pickup_segment = phase_info["pickup_segment"]
+
+            if pickup_segment > main_grasp_segment + 1:
+                main_grasp_configuration = frozen_keyframes[
+                    main_grasp_segment,
+                    main_joint_indices,
+                ].copy()
+                frozen_keyframes[
+                    main_grasp_segment + 1:pickup_segment,
+                    main_joint_indices,
+                ] = main_grasp_configuration
+
+            for support_gripper in continuing_supports:
+                indices = support_joint_indices(support_gripper)
+                frozen_keyframes[:, indices] = q0[indices]
+
+            for support_gripper in releasable_supports:
+                indices = support_joint_indices(support_gripper)
+                last_locked_segment = phase_info[
+                    "main_grasp_segment"
+                ]
+                frozen_keyframes[
+                    :last_locked_segment + 1,
+                    indices,
+                ] = q0[indices]
+
+            for support_gripper in new_support_assignments:
+                indices = support_joint_indices(support_gripper)
+                support_segment = phase_info[
+                    "new_support_segments"
+                ][support_gripper]
+                support_configuration = frozen_keyframes[
+                    support_segment,
+                    indices,
+                ].copy()
+                frozen_keyframes[
+                    support_segment + 1:,
+                    indices,
+                ] = support_configuration
+
+            return frozen_keyframes
+
         keyframe_acceptor = None
 
         if accept_keyframes is not None:
             def keyframe_acceptor(keyframes, q0, label):
                 return accept_keyframes(
-                    keyframes,
+                    freeze_supported_robot_keyframes(keyframes),
                     q0,
                     label,
                     phase_info,
@@ -1909,6 +2104,8 @@ class KeyframePlanner:
             failed_supported.update(continuing_supports)
             failed_supported.update(new_support_assignments)
             return None, q0, failed_supported, phase_info
+
+        keyframes = freeze_supported_robot_keyframes(keyframes)
 
         # ------------------------------------------------------------
         # Update support state
