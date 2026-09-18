@@ -209,6 +209,7 @@ class TrussRigidityChecker:
         contextual_key=None,
         initial_result: RigidityResult | None = None,
         return_result: bool = False,
+        candidate_filter=None,
     ) -> list[int] | tuple[list[int], RigidityResult]:
         """
         Greedily choose rods to treat as external supports.
@@ -248,6 +249,10 @@ class TrussRigidityChecker:
                     rod not in supported
                     and current_result.statuses[rod]
                     != ElementStatus.fixed
+                    and (
+                        candidate_filter is None
+                        or candidate_filter(rod)
+                    )
                 )
             ]
 

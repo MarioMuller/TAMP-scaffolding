@@ -128,6 +128,7 @@ def run_structural_round(
     shuffle_ties,
     capture_key,
     support_target_order,
+    require_connected_supports,
 ):
     searcher = AssemblyPlanner(
         truss=truss,
@@ -139,6 +140,7 @@ def run_structural_round(
         random_seed=seed,
         shuffle_ties=shuffle_ties,
         support_target_order=support_target_order,
+        require_connected_supports=require_connected_supports,
     )
 
     start = perf_counter()
@@ -206,6 +208,7 @@ def run_strategy(args, strategy_name, repeat_index):
             shuffle_ties=args.shuffle_ties,
             capture_key=args.capture_key,
             support_target_order=args.support_target_order,
+            require_connected_supports=args.require_connected_supports,
         )
         final_searcher = searcher
         cumulative["structural_time_s"] += structural_time
@@ -286,6 +289,7 @@ def run_strategy(args, strategy_name, repeat_index):
             else None
         ),
         "support_target_order": args.support_target_order,
+        "require_connected_supports": args.require_connected_supports,
     }
 
     row.update(cumulative)
@@ -373,6 +377,15 @@ def parse_args():
         help=(
             "Ordering used when choosing structural support rods; distance "
             "modes use Euclidean distance between rod centers."
+        ),
+    )
+    parser.add_argument(
+        "--require-connected-supports",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Require every supported rod to remain coupled to at least one "
+            "other active rod (default: enabled)."
         ),
     )
     parser.add_argument("--max-replans", type=int, default=1000)

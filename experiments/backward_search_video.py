@@ -33,6 +33,7 @@ SUPPORT_CSV_FIELDS = [
     "truss",
     "strategy_name",
     "support_target_order",
+    "require_connected_supports",
     "max_supports",
     "seed",
     "runtime_s",
@@ -81,6 +82,15 @@ def parse_args():
         help=(
             "Ordering used when choosing structural support rods; distance "
             "modes use Euclidean distance between rod centers."
+        ),
+    )
+    parser.add_argument(
+        "--require-connected-supports",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Require every supported rod to remain coupled to at least one "
+            "other active rod (default: enabled)."
         ),
     )
     parser.add_argument("--seed", type=int, default=0)
@@ -135,6 +145,7 @@ def save_support_summary(
         "truss": str(args.truss),
         "strategy_name": args.strategy_name,
         "support_target_order": args.support_target_order,
+        "require_connected_supports": args.require_connected_supports,
         "max_supports": args.max_supports,
         "seed": args.seed,
         "runtime_s": f"{runtime_s:.9f}",
@@ -177,6 +188,7 @@ def main():
         strategy_name=args.strategy_name,
         random_seed=args.seed,
         support_target_order=args.support_target_order,
+        require_connected_supports=args.require_connected_supports,
     )
 
     start_ns = time.perf_counter_ns()
