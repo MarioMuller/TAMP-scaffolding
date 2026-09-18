@@ -14,6 +14,8 @@ from experiment_metrics import CounterMetrics
 
 class RaiTrussBuilder:
 
+    _robot_scene_templates = {}
+
     def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2, metrics=None, random_seed=0):
         
         self.truss = truss
@@ -24,6 +26,7 @@ class RaiTrussBuilder:
 
         self.scene = RaiScene()
         self.C = self.scene.C
+        self._robot_scene_template = None
 
         self.rods = RodManager(self.C, truss, radius=radius, scale=scale)
 
@@ -50,7 +53,27 @@ class RaiTrussBuilder:
         
 
     def import_robots(self, debug=False):
-        
+        import_start = time.perf_counter()
+        template_key = (
+            self.main_robot_arm_count,
+            bool(debug),
+        )
+        cached_template = self._robot_scene_templates.get(
+            template_key
+        )
+
+        if cached_template is not None:
+            self.C.clear()
+            self.C.addConfigurationCopy(cached_template)
+            self._robot_scene_template = cached_template
+            self._detect_support_grippers()
+            self.metrics.inc("rai_robot_template_cache_hits")
+            self.metrics.add(
+                "rai_robot_template_restore_time_s",
+                time.perf_counter() - import_start,
+            )
+            return
+
         if debug:
             self.import_pineapple_model()
             
@@ -61,16 +84,41 @@ class RaiTrussBuilder:
 
         self._detect_support_grippers()
 
+        # Robot model files are expensive to parse. Keep a pristine deep copy
+        # that can be restored before each transition without re-importing all
+        # three robots. The live Config object itself is retained so every
+        # planner continues to reference the same object.
+        robot_scene_template = ry.Config()
+        robot_scene_template.addConfigurationCopy(self.C)
+        self._robot_scene_template = robot_scene_template
+        self._robot_scene_templates[
+            template_key
+        ] = robot_scene_template
+        self.metrics.inc("rai_robot_model_imports")
+        self.metrics.add(
+            "rai_robot_import_time_s",
+            time.perf_counter() - import_start,
+        )
+
     def display_recorded_plan_viser(self, *args, **kwargs):
         return self.viser_replayer.display_recorded_plan_viser(*args, **kwargs)
 
     def reset_scene_with_rods(self, remaining_rods):
         """
-        Rebuild scene with not-yet-removed rods in their final installed poses.
+        Restore a clean robot scene and add the not-yet-removed rods.
+
+        The robot models are copied from the pristine template captured by
+        import_robots(), avoiding repeated parsing of their model files.
         """
 
-        self.scene.clear()
-        self.import_robots()
+        reset_start = time.perf_counter()
+
+        if self._robot_scene_template is None:
+            self.import_robots()
+
+        self.C.clear()
+        self.C.addConfigurationCopy(self._robot_scene_template)
+        self._detect_support_grippers()
 
         for rod_id in remaining_rods:
             
@@ -78,6 +126,12 @@ class RaiTrussBuilder:
 
             if self.C.getFrame("table") is not None:
                 self.C.attach("table", f"rod_{rod_id}")
+
+        self.metrics.inc("rai_scene_template_restores")
+        self.metrics.add(
+            "rai_scene_reset_time_s",
+            time.perf_counter() - reset_start,
+        )
 
         # self.C.view()
         # time.sleep(5)
@@ -290,9 +344,9 @@ class RaiTrussBuilder:
         self.metrics.inc("rai_transition_attempts")
         self.reset_scene_with_rods(current_state)
 
-        # reset_scene_with_rods imports every robot at its spawn configuration.
-        # Preserve that configuration before restoring the search node's q so
-        # idle support robots can be required to return home.
+        # The clean template places every robot at its spawn configuration.
+        # Preserve it before restoring the search node's q so idle support
+        # robots can be required to return home.
         support_home_q = self.C.getJointState().copy()
 
         if q_start is not None:
