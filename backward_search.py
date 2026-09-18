@@ -3,9 +3,7 @@ import hashlib
 from shapely import node
 from truss import Truss
 from collections import deque
-from itertools import combinations
 import heapq
-import io
 import time
 import numpy as np
 from dataclasses import dataclass
@@ -101,6 +99,20 @@ class TerminalHotkey:
             )
 
 class AssemblyPlanner:
+    STRATEGY_NAMES = (
+        "default",
+        "baseline",
+        "highest_first",
+        "fast_reduce_support",
+        "reduced_overall_supports",
+    )
+    SUPPORT_TARGET_ORDERS = (
+        "lowest_first",
+        "least_connected",
+        "random",
+        "furthest_from_removed",
+    )
+
     def __init__(
         self,
         truss,
@@ -112,12 +124,16 @@ class AssemblyPlanner:
         strategy_name="default",
         random_seed=0,
         shuffle_ties=False,
-        optimal_objective="support_moves",
         support_target_order="lowest_first",
     ):
         self.truss = truss
         self.builder = builder
         self.max_supports = max_supports
+        if strategy_name not in self.STRATEGY_NAMES:
+            raise ValueError(
+                "strategy_name must be one of: "
+                f"{', '.join(self.STRATEGY_NAMES)}."
+            )
         self.strategy_name = strategy_name
         self.random_seed = int(random_seed)
         self.rng = np.random.default_rng(random_seed)
@@ -125,29 +141,13 @@ class AssemblyPlanner:
         self.support_evaluations = {}
         self._rod_physical_distance_cache = {}
         self.shuffle_ties = shuffle_ties
-        if support_target_order not in {
-            "highest_first",
-            "lowest_first",
-            "random",
-            "closest_to_removed",
-            "furthest_from_supported",
-        }:
+        if support_target_order not in self.SUPPORT_TARGET_ORDERS:
             raise ValueError(
-                "support_target_order must be 'highest_first', "
-                "'lowest_first', 'random', 'closest_to_removed', or "
-                "'furthest_from_supported'."
+                "support_target_order must be 'lowest_first', "
+                "'least_connected', 'random', or "
+                "'furthest_from_removed'."
             )
         self.support_target_order = support_target_order
-        if optimal_objective not in {
-            "peak",
-            "support_steps",
-            "support_moves",
-        }:
-            raise ValueError(
-                "optimal_objective must be 'support_moves', "
-                "'support_steps', or 'peak'."
-            )
-        self.optimal_objective = optimal_objective
 
         self.rigidity = TrussRigidityChecker(
             truss,
@@ -160,14 +160,6 @@ class AssemblyPlanner:
         self.search_attempted_transitions = 0
         self.search_enqueued_candidates = 0
         self.search_backtracks = 0
-        self.optimal_support_peak = None
-        self.optimal_support_steps = None
-        self.optimal_support_moves = None
-        self.best_support_peak = None
-        self.best_support_steps = None
-        self.best_support_moves = None
-        self.optimality_proven = False
-
         self._support_grippers_override = (
             tuple(support_grippers)
             if support_grippers is not None
@@ -330,7 +322,7 @@ class AssemblyPlanner:
             candidate_rod=structural_step.rod_id,
         )
 
-    def heuristic(self, rod_id):
+    def rod_midpoint_height(self, rod_id):
         """Return the rod midpoint height used by height-based heuristics."""
         n1, n2 = self.truss.elements[rod_id]
         return 0.5 * (self.truss.nodes[n1][2] + self.truss.nodes[n2][2])
@@ -448,11 +440,11 @@ class AssemblyPlanner:
                         support_context.continuing_supported_rods
                     ),
                     max_targets=len(support_context.free_supports),
-                    contextual_key=lambda rod_id, supported_rods: (
+                    contextual_key=lambda rod_id, _supported_rods: (
                         self.support_target_priority(
                             rod_id,
                             removed_rod=candidate_rod,
-                            supported_rods=supported_rods,
+                            active_rods=support_context.new_state,
                         )
                     ),
                     initial_result=rigidity_result,
@@ -526,7 +518,6 @@ class AssemblyPlanner:
         rod_id,
         ground_distances=None,
         actual_support_result=None,
-        initial_rigidity_result=None,
         minimum_new_support_count=0,
         tie_breaker=None,
     ):
@@ -563,84 +554,28 @@ class AssemblyPlanner:
                 supported_rank,
                 connection_count,
                 # -distance,
-                -self.heuristic(rod_id),
+                -self.rod_midpoint_height(rod_id),
                 tie_breaker,
             )
 
         if self.strategy_name == "highest_first":
             return (
                 len(node.state),
-                -self.heuristic(rod_id),
+                -self.rod_midpoint_height(rod_id),
                 tie_breaker,
             )
 
-        if self.strategy_name == "rankbased":
-            if initial_rigidity_result is None:
-                raise ValueError(
-                    "rankbased requires the post-removal rigidity result."
-                )
-
-            return (
-                len(node.state),
-                -initial_rigidity_result.rank,
-                tie_breaker,
-            )
-
-        if self.strategy_name in {
-            "full_reduce_support",
-            "full_reduce_support_no_depth",
-            "reduced_overall_supports",
-            "reduced_new_supports",
-            "depth_first_cumulative_additions",
-        }:
+        if self.strategy_name == "reduced_overall_supports":
             if actual_support_result is None:
                 raise ValueError(
-                    f"{self.strategy_name} requires an evaluated support "
-                    "outcome."
-                )
-
-            depth_priority = (
-                ()
-                if self.strategy_name == "full_reduce_support_no_depth"
-                else (len(node.state),)
-            )
-
-            if self.strategy_name == "reduced_overall_supports":
-                return (
-                    node.support_additions_so_far
-                    + actual_support_result.new_support_count,
-                    len(node.state),
-                    actual_support_result.support_count,
-                    actual_support_result.new_support_count,
-                    tie_breaker,
-                )
-
-            if self.strategy_name == "reduced_new_supports":
-                return (
-                    len(node.state),
-                    actual_support_result.new_support_count,
-                    actual_support_result.support_count,
-                    supported_rank,
-                    connection_count,
-                    -self.heuristic(rod_id),
-                    tie_breaker,
-                )
-
-            if self.strategy_name == "depth_first_cumulative_additions":
-                return (
-                    len(node.state),
-                    node.support_additions_so_far
-                    + actual_support_result.new_support_count,
-                    actual_support_result.new_support_count,
-                    actual_support_result.support_count,
-                    supported_rank,
-                    connection_count,
-                    -self.heuristic(rod_id),
-                    tie_breaker,
+                    "reduced_overall_supports requires an evaluated "
+                    "support outcome."
                 )
 
             return (
-                *depth_priority,
+                node.support_additions_so_far
+                + actual_support_result.new_support_count,
+                len(node.state),
                 actual_support_result.support_count,
                 actual_support_result.new_support_count,
                 tie_breaker,
@@ -662,7 +597,7 @@ class AssemblyPlanner:
                     minimum_new_support_count,
                     supported_rank,
                     connection_count,
-                    -self.heuristic(rod_id),
+                    -self.rod_midpoint_height(rod_id),
                     tie_breaker,
                 )
 
@@ -672,7 +607,7 @@ class AssemblyPlanner:
                 actual_support_result.new_support_count,
                 supported_rank,
                 connection_count,
-                -self.heuristic(rod_id),
+                -self.rod_midpoint_height(rod_id),
                 tie_breaker,
             )
 
@@ -701,27 +636,8 @@ class AssemblyPlanner:
                 else rod_id
             )
             actual_support_result = None
-            initial_rigidity_result = None
 
-            if self.strategy_name == "rankbased":
-                support_context = self.support_context_after_removal(
-                    node,
-                    rod_id,
-                )
-                initial_rigidity_result = self.rigidity.check(
-                    support_context.new_state,
-                    supported_rods=(
-                        support_context.continuing_supported_rods
-                    ),
-                )
-
-            if self.strategy_name in {
-                "full_reduce_support",
-                "full_reduce_support_no_depth",
-                "reduced_overall_supports",
-                "reduced_new_supports",
-                "depth_first_cumulative_additions",
-            }:
+            if self.strategy_name == "reduced_overall_supports":
                 actual_support_result = (
                     self.evaluate_supports_after_removal(
                         node,
@@ -736,7 +652,6 @@ class AssemblyPlanner:
                 node,
                 rod_id,
                 actual_support_result=actual_support_result,
-                initial_rigidity_result=initial_rigidity_result,
                 tie_breaker=tie_breaker,
             )
 
@@ -772,1162 +687,32 @@ class AssemblyPlanner:
         self,
         rod_id,
         removed_rod=None,
-        supported_rods=None,
+        active_rods=None,
     ):
         """Order structurally valid support targets by the configured rule."""
         # TrussRigidityChecker sorts target keys with reverse=True.
         if self.support_target_order == "random":
             return (float(self.rng.random()),)
 
-        if self.support_target_order == "closest_to_removed":
-            distance = (
-                float("inf")
-                if removed_rod is None
-                else self.rod_physical_distance(rod_id, removed_rod)
+        if self.support_target_order == "least_connected":
+            active_rods = set(active_rods or ())
+            connection_count = len(
+                self.rod_neighbors[rod_id] & active_rods
             )
-            return (-distance, self.priority_tie_breaker(rod_id))
+            return (
+                -connection_count,
+                self.priority_tie_breaker(rod_id),
+            )
 
-        if self.support_target_order == "furthest_from_supported":
-            supported_rods = set(supported_rods or ())
+        if self.support_target_order == "furthest_from_removed":
             distance = (
-                min(
-                    self.rod_physical_distance(rod_id, supported_rod)
-                    for supported_rod in supported_rods
-                )
-                if supported_rods
-                else 0.0
+                self.rod_physical_distance(rod_id, removed_rod)
+                if removed_rod is not None
+                else float("-inf")
             )
             return (distance, self.priority_tie_breaker(rod_id))
 
-        height_priority = self.heuristic(rod_id)
-        if self.support_target_order == "lowest_first":
-            height_priority = -height_priority
-
-        return (height_priority,)
-
-    def minimum_support_outcome(
-        self,
-        active_rods,
-        support_limit,
-        outcome_cache,
-        deadline=None,
-    ):
-        """Find one minimum-cardinality support set for an active state."""
-        active_rods = frozenset(active_rods)
-        cache_key = (active_rods, support_limit)
-
-        if cache_key in outcome_cache:
-            return outcome_cache[cache_key]
-
-        if deadline is not None and time.monotonic() >= deadline:
-            raise TimeoutError
-
-        initial_result = self.rigidity.check(
-            active_rods,
-            supported_rods=(),
-        )
-
-        if initial_result.is_rigid:
-            outcome_cache[cache_key] = (frozenset(), initial_result)
-            return outcome_cache[cache_key]
-
-        frontier = {frozenset(): initial_result}
-        evaluated = {frozenset()}
-
-        for _ in range(min(support_limit, len(active_rods))):
-            next_frontier = {}
-
-            for supported_rods, current_result in frontier.items():
-                candidates = [
-                    rod_id
-                    for rod_id in sorted(active_rods)
-                    if (
-                        rod_id not in supported_rods
-                        and current_result.statuses[rod_id]
-                        != ElementStatus.fixed
-                    )
-                ]
-
-                for rod_id in candidates:
-                    next_supported_rods = frozenset(
-                        set(supported_rods) | {rod_id}
-                    )
-
-                    if next_supported_rods in evaluated:
-                        continue
-
-                    evaluated.add(next_supported_rods)
-
-                    if deadline is not None and time.monotonic() >= deadline:
-                        raise TimeoutError
-
-                    rigidity_result = self.rigidity.check(
-                        active_rods,
-                        supported_rods=next_supported_rods,
-                    )
-
-                    if rigidity_result.is_rigid:
-                        outcome_cache[cache_key] = (
-                            next_supported_rods,
-                            rigidity_result,
-                        )
-                        return outcome_cache[cache_key]
-
-                    next_frontier[next_supported_rods] = rigidity_result
-
-            frontier = next_frontier
-
-            if not frontier:
-                break
-
-        outcome_cache[cache_key] = None
-        return None
-
-    def support_mapping_for_rods(self, current_supports, supported_rods):
-        """Preserve existing holds when assigning structural support rods."""
-        supported_rods = set(supported_rods)
-        next_supports = {
-            support: rod_id
-            for support, rod_id in current_supports.items()
-            if rod_id in supported_rods
-        }
-        assigned_rods = set(next_supports.values())
-        free_supports = [
-            support
-            for support in self.helper_grippers
-            if support not in next_supports
-        ]
-
-        for support, rod_id in zip(
-            free_supports,
-            sorted(supported_rods - assigned_rods),
-        ):
-            next_supports[support] = rod_id
-
-        return next_supports
-
-    def optimal_candidate_order(self, active_rods):
-        ordering_node = SearchNode(
-            state=frozenset(active_rods),
-            supported={},
-        )
-        random_order = self.random_candidate_order(
-            ordering_node,
-            active_rods,
-        )
-        return sorted(
-            active_rods,
-            key=lambda rod_id: random_order[rod_id],
-        )
-
-    def optimal_successor_node(
-        self,
-        node,
-        candidate_rod,
-        supported_rods,
-        rigidity_result,
-    ):
-        new_state = frozenset(node.state - {candidate_rod})
-        next_supported = self.support_mapping_for_rods(
-            node.supported,
-            supported_rods,
-        )
-        added_supports = {
-            support: rod_id
-            for support, rod_id in next_supported.items()
-            if node.supported.get(support) != rod_id
-        }
-        released_supports = {
-            support: rod_id
-            for support, rod_id in node.supported.items()
-            if next_supported.get(support) != rod_id
-        }
-        structural_step = StructuralRemovalStep(
-            rod_id=candidate_rod,
-            rods_before=frozenset(node.state),
-            rods_after=new_state,
-            supports_before=dict(node.supported),
-            supports_after=dict(next_supported),
-            added_supports=dict(added_supports),
-            released_supports=dict(released_supports),
-            rank_after=rigidity_result.rank,
-            dof_after=rigidity_result.dof,
-        )
-
-        return SearchNode(
-            state=new_state,
-            sequence=node.sequence + [candidate_rod],
-            q=None,
-            supported=next_supported,
-            support_q={},
-            records=[],
-            structural_steps=node.structural_steps + [structural_step],
-            support_additions_so_far=(
-                node.support_additions_so_far + len(added_supports)
-            ),
-        )
-
-    def minimum_peak_plan(
-        self,
-        initial_node,
-        outcome_cache,
-        randomize=True,
-        deadline=None,
-    ):
-        """Prove the minimum simultaneous support count and return one plan."""
-        initial_peak = len(initial_node.supported)
-
-        for support_limit in range(
-            initial_peak,
-            len(self.helper_grippers) + 1,
-        ):
-            failed_states = set()
-            print(f"Testing support peak <= {support_limit}.")
-
-            def find_plan(state):
-                state = frozenset(state)
-
-                if deadline is not None and time.monotonic() >= deadline:
-                    raise TimeoutError
-
-                if not state:
-                    return []
-
-                if state in failed_states:
-                    return None
-
-                candidate_rods = (
-                    self.optimal_candidate_order(state)
-                    if randomize
-                    else sorted(state)
-                )
-
-                for candidate_rod in candidate_rods:
-                    self.search_expansions += 1
-                    self.search_attempted_transitions += 1
-                    new_state = frozenset(state - {candidate_rod})
-                    outcome = self.minimum_support_outcome(
-                        new_state,
-                        support_limit=support_limit,
-                        outcome_cache=outcome_cache,
-                        deadline=deadline,
-                    )
-
-                    if outcome is None:
-                        self.search_backtracks += 1
-                        continue
-
-                    self.search_enqueued_candidates += 1
-                    supported_rods, rigidity_result = outcome
-                    suffix = find_plan(new_state)
-
-                    if suffix is not None:
-                        return [
-                            (
-                                candidate_rod,
-                                supported_rods,
-                                rigidity_result,
-                            )
-                        ] + suffix
-
-                failed_states.add(state)
-                return None
-
-            plan = find_plan(initial_node.state)
-
-            if plan is not None:
-                return support_limit, plan
-
-        return None, None
-
-    def build_node_from_optimal_plan(self, initial_node, plan):
-        node = initial_node
-
-        for candidate_rod, supported_rods, rigidity_result in plan:
-            node = self.optimal_successor_node(
-                node,
-                candidate_rod,
-                supported_rods,
-                rigidity_result,
-            )
-
-        return node
-
-    def rigid_support_outcomes(
-        self,
-        active_rods,
-        outcome_cache,
-        deadline=None,
-    ):
-        """Return every rigid support-rod set within the support limit."""
-        active_rods = frozenset(active_rods)
-
-        if active_rods in outcome_cache:
-            return outcome_cache[active_rods]
-
-        outcomes = []
-        maximum_supports = min(
-            len(self.helper_grippers),
-            len(active_rods),
-        )
-
-        for support_count in range(maximum_supports + 1):
-            for supported_tuple in combinations(
-                sorted(active_rods),
-                support_count,
-            ):
-                if deadline is not None and time.monotonic() >= deadline:
-                    raise TimeoutError
-
-                supported_rods = frozenset(supported_tuple)
-                rigidity_result = self.rigidity.check(
-                    active_rods,
-                    supported_rods=supported_rods,
-                )
-
-                if rigidity_result.is_rigid:
-                    outcomes.append((supported_rods, rigidity_result))
-
-        outcome_cache[active_rods] = tuple(outcomes)
-        return outcome_cache[active_rods]
-
-    def support_move_outcomes(
-        self,
-        active_rods,
-        continuing_supported_rods,
-        outcome_cache,
-        deadline=None,
-    ):
-        """Return useful rigid outcomes for placement-count optimization."""
-        continuing_supported_rods = frozenset(
-            continuing_supported_rods
-        ) & frozenset(active_rods)
-        outcomes = self.rigid_support_outcomes(
-            active_rods,
-            outcome_cache=outcome_cache,
-            deadline=deadline,
-        )
-        rigid_sets = {
-            supported_rods
-            for supported_rods, _ in outcomes
-        }
-        useful_outcomes = []
-
-        for supported_rods, rigidity_result in outcomes:
-            newly_supported = (
-                supported_rods - continuing_supported_rods
-            )
-
-            # A newly placed support that is not needed yet can always be
-            # deferred. Deferring has the same move cost and fewer occupied
-            # support-steps, so such an outcome is dominated.
-            if any(
-                supported_rods - {rod_id} in rigid_sets
-                for rod_id in newly_supported
-            ):
-                continue
-
-            useful_outcomes.append((supported_rods, rigidity_result))
-
-        useful_outcomes.sort(
-            key=lambda item: (
-                len(item[0] - continuing_supported_rods),
-                len(item[0]),
-                tuple(sorted(item[0])),
-            )
-        )
-        return useful_outcomes
-
-    def support_move_incumbent_plan(
-        self,
-        initial_node,
-        outcome_cache,
-        deadline=None,
-    ):
-        """Find a complete low-move plan to bound the exact search."""
-        failed_states = set()
-
-        def find_plan(state, supported_rods):
-            state = frozenset(state)
-            supported_rods = frozenset(supported_rods) & state
-            state_key = (state, supported_rods)
-
-            if deadline is not None and time.monotonic() >= deadline:
-                raise TimeoutError
-            if not state:
-                return []
-            if state_key in failed_states:
-                return None
-
-            transitions = []
-
-            for candidate_rod in self.optimal_candidate_order(state):
-                new_state = frozenset(state - {candidate_rod})
-                continuing_supported_rods = (
-                    supported_rods - {candidate_rod}
-                )
-                outcomes = self.support_move_outcomes(
-                    new_state,
-                    continuing_supported_rods,
-                    outcome_cache=outcome_cache,
-                    deadline=deadline,
-                )
-
-                for outcome in outcomes:
-                    next_supported_rods, _ = outcome
-                    transitions.append(
-                        (
-                            (
-                                len(
-                                    next_supported_rods
-                                    - continuing_supported_rods
-                                ),
-                                len(next_supported_rods),
-                                self.heuristic(candidate_rod),
-                            ),
-                            candidate_rod,
-                            outcome,
-                        )
-                    )
-
-            transitions.sort(key=lambda item: item[0])
-
-            for _, candidate_rod, outcome in transitions:
-                self.search_expansions += 1
-                self.search_attempted_transitions += 1
-                next_supported_rods, rigidity_result = outcome
-                suffix = find_plan(
-                    state - {candidate_rod},
-                    next_supported_rods,
-                )
-
-                if suffix is not None:
-                    self.search_enqueued_candidates += 1
-                    return [
-                        (
-                            candidate_rod,
-                            next_supported_rods,
-                            rigidity_result,
-                        )
-                    ] + suffix
-
-                self.search_backtracks += 1
-
-            failed_states.add(state_key)
-            return None
-
-        return find_plan(
-            initial_node.state,
-            frozenset(initial_node.supported.values()),
-        )
-
-    def support_move_greedy_incumbent(
-        self,
-        initial_node,
-        deadline=None,
-    ):
-        """Seed exact optimization with the fast reduced-support strategy."""
-        remaining_runtime = (
-            max(0.0, deadline - time.monotonic())
-            if deadline is not None
-            else 30.0
-        )
-
-        if remaining_runtime <= 0:
-            return None
-
-        incumbent_deadline = time.monotonic() + min(
-            30.0,
-            remaining_runtime,
-        )
-        best_node = None
-        best_cost = None
-        trials = [
-            ("fast_reduce_support", self.random_seed),
-            ("full_reduce_support", self.random_seed),
-            ("full_reduce_support", self.random_seed + 10_000),
-            ("full_reduce_support", self.random_seed + 20_000),
-        ]
-
-        for strategy_name, seed in trials:
-            trial_runtime = incumbent_deadline - time.monotonic()
-
-            if trial_runtime <= 0:
-                break
-
-            greedy_searcher = AssemblyPlanner(
-                truss=self.truss,
-                builder=None,
-                max_supports=len(self.helper_grippers),
-                support_grippers=self.helper_grippers,
-                forbidden_transitions=None,
-                strategy_name=strategy_name,
-                random_seed=seed,
-                shuffle_ties=self.shuffle_ties,
-                optimal_objective="support_moves",
-                support_target_order=self.support_target_order,
-            )
-            # Share the checker so incumbent checks remain cached for proof.
-            greedy_searcher.rigidity = self.rigidity
-            with redirect_stdout(io.StringIO()):
-                sequence = greedy_searcher.backward_search(
-                    capture_key=None,
-                    max_runtime=trial_runtime,
-                    max_expansions_without_progress=None,
-                    initial_supported=initial_node.supported,
-                    initial_support_q=initial_node.support_q,
-                )
-            self.search_expansions += greedy_searcher.search_expansions
-            self.search_attempted_transitions += (
-                greedy_searcher.search_attempted_transitions
-            )
-            self.search_enqueued_candidates += (
-                greedy_searcher.search_enqueued_candidates
-            )
-            self.search_backtracks += greedy_searcher.search_backtracks
-
-            if sequence is None:
-                continue
-
-            node = greedy_searcher.final_node
-            cost = (
-                sum(
-                    len(step.added_supports)
-                    for step in node.structural_steps
-                ),
-                sum(
-                    len(step.supports_after)
-                    for step in node.structural_steps
-                ),
-                max(
-                    [len(initial_node.supported)]
-                    + [
-                        len(step.supports_after)
-                        for step in node.structural_steps
-                    ]
-                ),
-            )
-
-            if best_cost is None or cost < best_cost:
-                best_node = node
-                best_cost = cost
-
-            if best_cost[0] == 0:
-                break
-
-        return best_node
-
-    def optimal_support_moves_search(
-        self,
-        initial_node,
-        outcome_cache,
-        deadline,
-        max_expansions_without_progress,
-        best_goal_node,
-        best_goal_cost,
-    ):
-        """Minimize placements/moves, then occupancy, then peak supports."""
-        initial_supported_rods = frozenset(
-            initial_node.supported.values()
-        )
-        initial_cost = (0, 0, len(initial_node.supported))
-        initial_key = (
-            frozenset(initial_node.state),
-            initial_supported_rods,
-        )
-        best_costs = {initial_key: initial_cost}
-        open_list = []
-        counter = 0
-        heapq.heappush(
-            open_list,
-            (
-                initial_cost,
-                len(initial_node.state),
-                counter,
-                initial_node,
-            ),
-        )
-        counter += 1
-        best_remaining = len(initial_node.state)
-        last_progress_expansion = self.search_expansions
-
-        def finish_with_goal(proven, stop_reason="runtime_limit"):
-            self.final_node = best_goal_node
-            self.best_support_moves = best_goal_cost[0]
-            self.best_support_steps = best_goal_cost[1]
-            self.best_support_peak = best_goal_cost[2]
-            self.optimality_proven = proven
-
-            if proven:
-                self.optimal_support_moves = best_goal_cost[0]
-                self.optimal_support_steps = best_goal_cost[1]
-                self.optimal_support_peak = best_goal_cost[2]
-                self.search_stop_reason = "complete"
-                print(
-                    "Optimal support cost: "
-                    f"moves={best_goal_cost[0]}, "
-                    f"support_steps={best_goal_cost[1]}, "
-                    f"peak={best_goal_cost[2]}."
-                )
-            else:
-                self.search_stop_reason = stop_reason
-                print(
-                    "Support-move optimum not proven before the search "
-                    "limit. Returning the best complete path found: "
-                    f"moves={best_goal_cost[0]}, "
-                    f"support_steps={best_goal_cost[1]}, "
-                    f"peak={best_goal_cost[2]}."
-                )
-
-            return best_goal_node.sequence
-
-        while open_list:
-            if open_list[0][0] >= best_goal_cost:
-                return finish_with_goal(proven=True)
-            if deadline is not None and time.monotonic() >= deadline:
-                return finish_with_goal(proven=False)
-            if (
-                max_expansions_without_progress is not None
-                and self.search_expansions - last_progress_expansion
-                >= max_expansions_without_progress
-            ):
-                return finish_with_goal(
-                    proven=False,
-                    stop_reason="stagnation_limit",
-                )
-
-            cost, _, _, node = heapq.heappop(open_list)
-            supported_rods = frozenset(node.supported.values())
-            state_key = (frozenset(node.state), supported_rods)
-
-            if cost != best_costs.get(state_key):
-                continue
-            if not node.state:
-                best_goal_node = node
-                best_goal_cost = cost
-                return finish_with_goal(proven=True)
-
-            for candidate_rod in self.optimal_candidate_order(node.state):
-                self.search_expansions += 1
-                self.search_attempted_transitions += 1
-                new_state = frozenset(node.state - {candidate_rod})
-                continuing_supported_rods = (
-                    supported_rods - {candidate_rod}
-                )
-
-                try:
-                    outcomes = self.support_move_outcomes(
-                        new_state,
-                        continuing_supported_rods,
-                        outcome_cache=outcome_cache,
-                        deadline=deadline,
-                    )
-                except TimeoutError:
-                    return finish_with_goal(proven=False)
-
-                if not outcomes:
-                    self.search_backtracks += 1
-                    continue
-
-                for next_supported_rods, rigidity_result in outcomes:
-                    new_node = self.optimal_successor_node(
-                        node,
-                        candidate_rod,
-                        next_supported_rods,
-                        rigidity_result,
-                    )
-                    transition = new_node.structural_steps[-1]
-                    new_cost = (
-                        cost[0] + len(transition.added_supports),
-                        cost[1] + len(transition.supports_after),
-                        max(cost[2], len(transition.supports_after)),
-                    )
-
-                    if new_cost >= best_goal_cost:
-                        continue
-
-                    new_key = (
-                        frozenset(new_node.state),
-                        frozenset(next_supported_rods),
-                    )
-                    previous_cost = best_costs.get(new_key)
-
-                    if previous_cost is not None and previous_cost <= new_cost:
-                        continue
-
-                    best_costs[new_key] = new_cost
-                    self.search_enqueued_candidates += 1
-                    heapq.heappush(
-                        open_list,
-                        (
-                            new_cost,
-                            len(new_node.state),
-                            counter,
-                            new_node,
-                        ),
-                    )
-                    counter += 1
-
-                    if len(new_node.state) < best_remaining:
-                        best_remaining = len(new_node.state)
-                        last_progress_expansion = self.search_expansions
-                        self.final_node = new_node
-
-        return finish_with_goal(proven=True)
-
-    def optimal_support_steps_search(
-        self,
-        initial_node,
-        outcome_cache,
-        deadline,
-        max_expansions_without_progress,
-        best_goal_node,
-        best_goal_cost,
-    ):
-        """Minimize total support occupancy, with peak as a tie-breaker."""
-        initial_peak = len(initial_node.supported)
-        initial_cost = (0, initial_peak)
-        best_costs = {frozenset(initial_node.state): initial_cost}
-        best_pending_costs = {}
-        open_list = []
-        counter = 0
-        heapq.heappush(
-            open_list,
-            (
-                initial_cost,
-                len(initial_node.state),
-                counter,
-                "node",
-                initial_node,
-            ),
-        )
-        counter += 1
-        best_node = initial_node
-        best_remaining = len(initial_node.state)
-        last_progress_expansion = 0
-
-        def finish_with_goal(proven, stop_reason="runtime_limit"):
-            self.final_node = best_goal_node
-            self.best_support_steps = best_goal_cost[0]
-            self.best_support_peak = best_goal_cost[1]
-            self.optimality_proven = proven
-
-            if proven:
-                self.optimal_support_steps = best_goal_cost[0]
-                self.optimal_support_peak = best_goal_cost[1]
-                self.search_stop_reason = "complete"
-                print(
-                    "Optimal support cost: "
-                    f"support_steps={best_goal_cost[0]}, "
-                    f"peak={best_goal_cost[1]}."
-                )
-            else:
-                self.search_stop_reason = stop_reason
-                print(
-                    "Support-step optimum not proven before the runtime "
-                    "limit. Returning the best complete path found: "
-                    f"support_steps={best_goal_cost[0]}, "
-                    f"peak={best_goal_cost[1]}."
-                )
-
-            return best_goal_node.sequence
-
-        def enqueue_node(
-            parent_node,
-            candidate_rod,
-            outcome,
-            new_cost,
-        ):
-            nonlocal counter
-            nonlocal best_node
-            nonlocal best_remaining
-            nonlocal last_progress_expansion
-
-            supported_rods, rigidity_result = outcome
-            new_node = self.optimal_successor_node(
-                parent_node,
-                candidate_rod,
-                supported_rods,
-                rigidity_result,
-            )
-            new_state = frozenset(new_node.state)
-            previous_cost = best_costs.get(new_state)
-
-            if previous_cost is not None and previous_cost <= new_cost:
-                return
-
-            if new_cost >= best_goal_cost:
-                return
-
-            best_costs[new_state] = new_cost
-            self.search_enqueued_candidates += 1
-            heapq.heappush(
-                open_list,
-                (
-                    new_cost,
-                    len(new_state),
-                    counter,
-                    "node",
-                    new_node,
-                ),
-            )
-            counter += 1
-
-            if len(new_state) < best_remaining:
-                best_node = new_node
-                best_remaining = len(new_state)
-                last_progress_expansion = self.search_expansions
-                self.final_node = best_node
-
-        def enqueue_pending(
-            parent_node,
-            parent_cost,
-            candidate_rod,
-            support_limit,
-        ):
-            nonlocal counter
-            new_state = frozenset(parent_node.state - {candidate_rod})
-            pending_cost = (
-                parent_cost[0] + support_limit,
-                max(parent_cost[1], support_limit),
-            )
-            pending_key = (new_state, support_limit)
-            previous_cost = best_pending_costs.get(pending_key)
-
-            if previous_cost is not None and previous_cost <= pending_cost:
-                return
-
-            state_cost = best_costs.get(new_state)
-            if state_cost is not None and state_cost <= pending_cost:
-                return
-            if pending_cost >= best_goal_cost:
-                return
-
-            best_pending_costs[pending_key] = pending_cost
-            self.search_enqueued_candidates += 1
-            heapq.heappush(
-                open_list,
-                (
-                    pending_cost,
-                    len(new_state),
-                    counter,
-                    "pending",
-                    (
-                        parent_node,
-                        parent_cost,
-                        candidate_rod,
-                        support_limit,
-                    ),
-                ),
-            )
-            counter += 1
-
-        while open_list:
-            if open_list[0][0] >= best_goal_cost:
-                return finish_with_goal(proven=True)
-
-            if deadline is not None and time.monotonic() >= deadline:
-                return finish_with_goal(proven=False)
-
-            if (
-                max_expansions_without_progress is not None
-                and self.search_expansions - last_progress_expansion
-                >= max_expansions_without_progress
-            ):
-                return finish_with_goal(
-                    proven=False,
-                    stop_reason="stagnation_limit",
-                )
-
-            cost, _, _, entry_type, payload = heapq.heappop(open_list)
-
-            if entry_type == "pending":
-                (
-                    parent_node,
-                    parent_cost,
-                    candidate_rod,
-                    support_limit,
-                ) = payload
-                new_state = frozenset(
-                    parent_node.state - {candidate_rod}
-                )
-                pending_key = (new_state, support_limit)
-
-                if cost != best_pending_costs.get(pending_key):
-                    continue
-                if cost >= best_goal_cost:
-                    continue
-
-                state_cost = best_costs.get(new_state)
-                if state_cost is not None and state_cost <= cost:
-                    continue
-
-                try:
-                    outcome = self.minimum_support_outcome(
-                        new_state,
-                        support_limit=support_limit,
-                        outcome_cache=outcome_cache,
-                        deadline=deadline,
-                    )
-                except TimeoutError:
-                    return finish_with_goal(proven=False)
-
-                if outcome is None:
-                    if support_limit < len(self.helper_grippers):
-                        enqueue_pending(
-                            parent_node,
-                            parent_cost,
-                            candidate_rod,
-                            support_limit + 1,
-                        )
-                    else:
-                        self.search_backtracks += 1
-                    continue
-
-                supported_rods, _ = outcome
-                actual_cost = (
-                    parent_cost[0] + len(supported_rods),
-                    max(parent_cost[1], len(supported_rods)),
-                )
-                enqueue_node(
-                    parent_node,
-                    candidate_rod,
-                    outcome,
-                    actual_cost,
-                )
-                continue
-
-            node = payload
-            state_key = frozenset(node.state)
-
-            if cost != best_costs.get(state_key):
-                continue
-
-            if not node.state:
-                best_goal_node = node
-                best_goal_cost = cost
-                return finish_with_goal(proven=True)
-
-            for candidate_rod in self.optimal_candidate_order(node.state):
-                self.search_expansions += 1
-                self.search_attempted_transitions += 1
-                new_state = frozenset(node.state - {candidate_rod})
-
-                try:
-                    outcome = self.minimum_support_outcome(
-                        new_state,
-                        support_limit=0,
-                        outcome_cache=outcome_cache,
-                        deadline=deadline,
-                    )
-                except TimeoutError:
-                    return finish_with_goal(proven=False)
-
-                if outcome is None:
-                    if self.helper_grippers:
-                        enqueue_pending(
-                            node,
-                            cost,
-                            candidate_rod,
-                            support_limit=1,
-                        )
-                    else:
-                        self.search_backtracks += 1
-                    continue
-
-                enqueue_node(
-                    node,
-                    candidate_rod,
-                    outcome,
-                    cost,
-                )
-
-        return finish_with_goal(proven=True)
-
-    def optimal_support_search(
-        self,
-        initial_node,
-        max_runtime,
-        max_expansions_without_progress,
-    ):
-        """Run the selected exact structural support objective."""
-        if self.builder is not None or self.forbidden_transitions:
-            raise ValueError(
-                "optimal_supports requires rigidity-only search without "
-                "forbidden transitions."
-            )
-
-        deadline = (
-            time.monotonic() + max_runtime
-            if max_runtime is not None
-            else None
-        )
-        outcome_cache = {}
-
-        if self.optimal_objective == "support_moves":
-            best_goal_node = self.support_move_greedy_incumbent(
-                initial_node,
-                deadline=deadline,
-            )
-
-            if best_goal_node is None:
-                try:
-                    incumbent_plan = self.support_move_incumbent_plan(
-                        initial_node,
-                        outcome_cache=outcome_cache,
-                        deadline=deadline,
-                    )
-                except TimeoutError:
-                    self.search_stop_reason = "runtime_limit"
-                    self.final_node = initial_node
-                    print(
-                        "Search runtime limit reached before a complete "
-                        "support-move incumbent was found."
-                    )
-                    return None
-
-                if incumbent_plan is None:
-                    self.search_stop_reason = "open_list_exhausted"
-                    self.final_node = initial_node
-                    print(
-                        "No complete sequence exists with available supports."
-                    )
-                    return None
-
-                best_goal_node = self.build_node_from_optimal_plan(
-                    initial_node,
-                    incumbent_plan,
-                )
-            best_goal_cost = (
-                sum(
-                    len(step.added_supports)
-                    for step in best_goal_node.structural_steps
-                ),
-                sum(
-                    len(step.supports_after)
-                    for step in best_goal_node.structural_steps
-                ),
-                max(
-                    [len(initial_node.supported)]
-                    + [
-                        len(step.supports_after)
-                        for step in best_goal_node.structural_steps
-                    ]
-                ),
-            )
-            self.best_support_moves = best_goal_cost[0]
-            self.best_support_steps = best_goal_cost[1]
-            self.best_support_peak = best_goal_cost[2]
-            print(
-                "Optimal support-move search running with incumbent: "
-                f"moves={best_goal_cost[0]}, "
-                f"support_steps={best_goal_cost[1]}, "
-                f"peak={best_goal_cost[2]}."
-            )
-            return self.optimal_support_moves_search(
-                initial_node,
-                outcome_cache=outcome_cache,
-                deadline=deadline,
-                max_expansions_without_progress=(
-                    max_expansions_without_progress
-                ),
-                best_goal_node=best_goal_node,
-                best_goal_cost=best_goal_cost,
-            )
-
-        if self.optimal_objective == "support_steps":
-            try:
-                _, incumbent_plan = self.minimum_peak_plan(
-                    initial_node,
-                    outcome_cache=outcome_cache,
-                    randomize=False,
-                    deadline=deadline,
-                )
-            except TimeoutError:
-                self.search_stop_reason = "runtime_limit"
-                self.final_node = initial_node
-                print(
-                    "Search runtime limit reached before a complete "
-                    "support-step incumbent was found."
-                )
-                return None
-
-            if incumbent_plan is None:
-                self.search_stop_reason = "open_list_exhausted"
-                self.final_node = initial_node
-                print("No complete sequence exists with available supports.")
-                return None
-
-            best_goal_node = self.build_node_from_optimal_plan(
-                initial_node,
-                incumbent_plan,
-            )
-            best_goal_cost = (
-                sum(
-                    len(step.supports_after)
-                    for step in best_goal_node.structural_steps
-                ),
-                max(
-                    [len(initial_node.supported)]
-                    + [
-                        len(step.supports_after)
-                        for step in best_goal_node.structural_steps
-                    ]
-                ),
-            )
-            self.best_support_steps = best_goal_cost[0]
-            self.best_support_peak = best_goal_cost[1]
-            print(
-                "Optimal support-step search running with incumbent: "
-                f"support_steps={best_goal_cost[0]}, "
-                f"peak={best_goal_cost[1]}."
-            )
-            return self.optimal_support_steps_search(
-                initial_node,
-                outcome_cache=outcome_cache,
-                deadline=deadline,
-                max_expansions_without_progress=(
-                    max_expansions_without_progress
-                ),
-                best_goal_node=best_goal_node,
-                best_goal_cost=best_goal_cost,
-            )
-
-        try:
-            minimum_peak, plan = self.minimum_peak_plan(
-                initial_node,
-                outcome_cache=outcome_cache,
-                deadline=deadline,
-            )
-        except TimeoutError:
-            self.search_stop_reason = "runtime_limit"
-            self.final_node = initial_node
-            print("Search runtime limit reached while proving support peak.")
-            return None
-
-        if plan is None:
-            self.search_stop_reason = "open_list_exhausted"
-            self.final_node = initial_node
-            print("No complete sequence exists with the available supports.")
-            return None
-
-        final_node = self.build_node_from_optimal_plan(initial_node, plan)
-        self.final_node = final_node
-        self.optimal_support_peak = minimum_peak
-        self.best_support_peak = minimum_peak
-        self.search_stop_reason = "complete"
-        support_steps = sum(
-            len(step.supports_after)
-            for step in final_node.structural_steps
-        )
-        self.best_support_steps = support_steps
-        self.optimality_proven = True
-        print(
-            f"Minimum support peak proven: {minimum_peak}. "
-            f"Returned path uses {support_steps} support-steps."
-        )
-        return final_node.sequence
-    
+        return (-self.rod_midpoint_height(rod_id),)
 
     # greedy backward search
     def backward_search(
@@ -2058,22 +843,6 @@ class AssemblyPlanner:
         self.search_attempted_transitions = 0
         self.search_enqueued_candidates = 0
         self.search_backtracks = 0
-        self.optimal_support_peak = None
-        self.optimal_support_steps = None
-        self.optimal_support_moves = None
-        self.best_support_peak = None
-        self.best_support_steps = None
-        self.best_support_moves = None
-        self.optimality_proven = False
-
-        if self.strategy_name == "optimal_supports":
-            return self.optimal_support_search(
-                initial_node,
-                max_runtime=max_runtime,
-                max_expansions_without_progress=(
-                    max_expansions_without_progress
-                ),
-            )
 
         start_time = time.monotonic()
         best_node = initial_node
@@ -2158,10 +927,7 @@ class AssemblyPlanner:
                     initial_rigidity_result,
                 ) = heapq.heappop(open_list)
 
-                if self.strategy_name in {
-                    "reduced_overall_supports",
-                    "depth_first_cumulative_additions",
-                }:
+                if self.strategy_name == "reduced_overall_supports":
                     node_state_key = self.search_state_key(node)
 
                     if (
@@ -2347,10 +1113,7 @@ class AssemblyPlanner:
                     new_node
                 )
 
-                if self.strategy_name in {
-                    "reduced_overall_supports",
-                    "depth_first_cumulative_additions",
-                }:
+                if self.strategy_name == "reduced_overall_supports":
                     previous_cost = best_state_support_additions.get(
                         state_key
                     )

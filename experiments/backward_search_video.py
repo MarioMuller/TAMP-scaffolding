@@ -33,14 +33,6 @@ SUPPORT_CSV_FIELDS = [
     "truss",
     "strategy_name",
     "support_target_order",
-    "optimal_objective",
-    "optimality_proven",
-    "best_support_moves",
-    "best_support_peak",
-    "best_support_steps",
-    "optimal_support_moves",
-    "optimal_support_peak",
-    "optimal_support_steps",
     "max_supports",
     "seed",
     "runtime_s",
@@ -77,27 +69,19 @@ def parse_args():
         ),
     )
     parser.add_argument("--max-supports", type=int, default=2)
-    parser.add_argument("--strategy-name", default="fast_reduce_support")
+    parser.add_argument(
+        "--strategy-name",
+        choices=AssemblyPlanner.STRATEGY_NAMES,
+        default="fast_reduce_support",
+    )
     parser.add_argument(
         "--support-target-order",
-        choices=(
-            "highest_first",
-            "lowest_first",
-            "random",
-            "closest_to_removed",
-            "furthest_from_supported",
-        ),
+        choices=AssemblyPlanner.SUPPORT_TARGET_ORDERS,
         default="lowest_first",
         help=(
             "Ordering used when choosing structural support rods; distance "
             "modes use Euclidean distance between rod centers."
         ),
-    )
-    parser.add_argument(
-        "--optimal-objective",
-        choices=("support_moves", "support_steps", "peak"),
-        default="support_moves",
-        help="Objective used by the optimal_supports strategy.",
     )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-runtime", type=float, default=1800.0)
@@ -151,18 +135,6 @@ def save_support_summary(
         "truss": str(args.truss),
         "strategy_name": args.strategy_name,
         "support_target_order": args.support_target_order,
-        "optimal_objective": (
-            args.optimal_objective
-            if args.strategy_name == "optimal_supports"
-            else None
-        ),
-        "optimality_proven": searcher.optimality_proven,
-        "best_support_moves": searcher.best_support_moves,
-        "best_support_peak": searcher.best_support_peak,
-        "best_support_steps": searcher.best_support_steps,
-        "optimal_support_moves": searcher.optimal_support_moves,
-        "optimal_support_peak": searcher.optimal_support_peak,
-        "optimal_support_steps": searcher.optimal_support_steps,
         "max_supports": args.max_supports,
         "seed": args.seed,
         "runtime_s": f"{runtime_s:.9f}",
@@ -204,7 +176,6 @@ def main():
         max_supports=args.max_supports,
         strategy_name=args.strategy_name,
         random_seed=args.seed,
-        optimal_objective=args.optimal_objective,
         support_target_order=args.support_target_order,
     )
 

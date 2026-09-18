@@ -67,14 +67,6 @@ FIELDNAMES = [
     "rigidity_cache_misses",
     "rigidity_cached_entries",
     "support_target_order",
-    "optimal_objective",
-    "optimality_proven",
-    "best_support_moves",
-    "best_support_peak",
-    "best_support_steps",
-    "optimal_support_moves",
-    "optimal_support_peak",
-    "optimal_support_steps",
     "peak_supports",
     "support_steps",
     "support_moves",
@@ -96,27 +88,19 @@ def parse_args():
     parser.add_argument("--repetitions", type=int, default=2)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-supports", type=int, default=2)
-    parser.add_argument("--strategy-name", default="fast_reduce_support")
+    parser.add_argument(
+        "--strategy-name",
+        choices=AssemblyPlanner.STRATEGY_NAMES,
+        default="fast_reduce_support",
+    )
     parser.add_argument(
         "--support-target-order",
-        choices=(
-            "highest_first",
-            "lowest_first",
-            "random",
-            "closest_to_removed",
-            "furthest_from_supported",
-        ),
+        choices=AssemblyPlanner.SUPPORT_TARGET_ORDERS,
         default="lowest_first",
         help=(
             "Ordering used when choosing structural support rods; distance "
             "modes use Euclidean distance between rod centers."
         ),
-    )
-    parser.add_argument(
-        "--optimal-objective",
-        choices=("support_moves", "support_steps", "peak"),
-        default="support_moves",
-        help="Objective used by the optimal_supports strategy.",
     )
     parser.add_argument("--max-runtime", type=float, default=200.0)
     parser.add_argument(
@@ -228,7 +212,6 @@ def run_backward_search(args, included_rods, seed, initial_supported=None):
         strategy_name=args.strategy_name,
         random_seed=seed,
         shuffle_ties=args.shuffle_ties,
-        optimal_objective=args.optimal_objective,
         support_target_order=args.support_target_order,
     )
 
@@ -286,18 +269,6 @@ def make_row(
             success and removal_sequence == expected_sequence
         ),
         "support_target_order": searcher.support_target_order,
-        "optimal_objective": (
-            searcher.optimal_objective
-            if searcher.strategy_name == "optimal_supports"
-            else None
-        ),
-        "optimality_proven": searcher.optimality_proven,
-        "best_support_moves": searcher.best_support_moves,
-        "best_support_peak": searcher.best_support_peak,
-        "best_support_steps": searcher.best_support_steps,
-        "optimal_support_moves": searcher.optimal_support_moves,
-        "optimal_support_peak": searcher.optimal_support_peak,
-        "optimal_support_steps": searcher.optimal_support_steps,
     }
     row.update(structural_summary(searcher))
     return row
