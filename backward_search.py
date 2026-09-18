@@ -553,7 +553,6 @@ class AssemblyPlanner:
                 len(node.state),
                 supported_rank,
                 connection_count,
-                # -distance,
                 -self.rod_midpoint_height(rod_id),
                 tie_breaker,
             )
@@ -572,40 +571,52 @@ class AssemblyPlanner:
                     "support outcome."
                 )
 
+            # reduce the total number of supports used in the entire assembly sequence
+            # secondary tie-breakers: maximize the number of rods removed, minimize the number of current supports
             return (
                 node.support_additions_so_far
                 + actual_support_result.new_support_count,
                 len(node.state),
                 actual_support_result.support_count,
-                actual_support_result.new_support_count,
                 tie_breaker,
             )
 
         if self.strategy_name == "fast_reduce_support":
             if actual_support_result is None:
-                # Continuing supports are unavoidable. Additional supports
-                # start at an optimistic lower bound until evaluated.
+                # This candidate has not had its full support search yet. Build
+                # a cheap lower-bound priority so promising candidates can be
+                # evaluated lazily instead of evaluating every possible removal.
+                
+                # Existing supports on rods other than the candidate continue
+                # after removal. A support on the candidate itself is excluded,
+                # because removing that rod releases the support.
                 continuing_support_count = sum(
                     supported_rod != rod_id
                     for supported_rod in node.supported.values()
                 )
 
                 return (
+                    # Prefer states that have already removed more rods.
                     len(node.state),
-                    continuing_support_count
-                    + minimum_new_support_count,
+                    # Estimated total supports after removal: assuming unavoidable continuing supports plus the known lower bound on new ones.
+                    continuing_support_count + minimum_new_support_count,
+                    # Among equal totals, prefer fewer newly placed supports.
                     minimum_new_support_count,
-                    supported_rank,
+                    # Then prefer rods connected to fewer remaining rods.
                     connection_count,
+                    # Then prefer physically higher rods.
                     -self.rod_midpoint_height(rod_id),
+                    # Final deterministic or seeded-random tie breaker.
                     tie_breaker,
                 )
 
+            # The expensive support evaluation has now been performed. Replace
+            # the lower bounds above with the actual number of supports that
+            # remain assigned and the actual number of newly assigned supports.
             return (
                 len(node.state),
                 actual_support_result.support_count,
                 actual_support_result.new_support_count,
-                supported_rank,
                 connection_count,
                 -self.rod_midpoint_height(rod_id),
                 tie_breaker,
