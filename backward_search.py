@@ -103,6 +103,7 @@ class AssemblyPlanner:
         "default",
         "baseline",
         "highest_first",
+        "fewest_mandatory_supports",
         "fast_reduce_support",
         "reduced_overall_support_steps",
         "reduced_overall_supports",
@@ -218,6 +219,47 @@ class AssemblyPlanner:
                 and len(self.rod_neighbors[rod_id] & active) == 1
             )
         }
+
+    def projected_mandatory_support_count(
+        self,
+        node,
+        candidate_rod,
+        active_degrees=None,
+        current_count=None,
+    ):
+        """Count non-grounded degree-one rods after a candidate removal."""
+        active = node.state
+
+        if active_degrees is None:
+            active_degrees = {
+                rod_id: len(self.rod_neighbors[rod_id] & active)
+                for rod_id in active
+            }
+
+        if current_count is None:
+            current_count = sum(
+                rod_id not in self.truss.grounded_rods and degree == 1
+                for rod_id, degree in active_degrees.items()
+            )
+
+        projected_count = current_count
+        candidate_degree = active_degrees[candidate_rod]
+
+        if (
+            candidate_rod not in self.truss.grounded_rods
+            and candidate_degree == 1
+        ):
+            projected_count -= 1
+
+        for neighbor in self.rod_neighbors[candidate_rod] & active:
+            if neighbor in self.truss.grounded_rods:
+                continue
+
+            old_degree = active_degrees[neighbor]
+            new_degree = old_degree - 1
+            projected_count += int(new_degree == 1) - int(old_degree == 1)
+
+        return projected_count
 
     def removal_preserves_connected_supports(
         self,
@@ -634,6 +676,7 @@ class AssemblyPlanner:
         ground_distances=None,
         actual_support_result=None,
         minimum_new_support_count=0,
+        projected_mandatory_support_count=None,
         tie_breaker=None,
     ):
         """Return a priority tuple; lower values are preferred."""
@@ -675,6 +718,23 @@ class AssemblyPlanner:
         if self.strategy_name == "highest_first":
             return (
                 len(node.state),
+                -self.rod_midpoint_height(rod_id),
+                tie_breaker,
+            )
+
+        if self.strategy_name == "fewest_mandatory_supports":
+            if projected_mandatory_support_count is None:
+                projected_mandatory_support_count = (
+                    self.projected_mandatory_support_count(
+                        node,
+                        rod_id,
+                    )
+                )
+
+            return (
+                len(node.state),
+                projected_mandatory_support_count,
+                connection_count,
                 -self.rod_midpoint_height(rod_id),
                 tie_breaker,
             )
@@ -774,6 +834,18 @@ class AssemblyPlanner:
 
         ranked_candidates = []
 
+        active_degrees = None
+        current_mandatory_support_count = None
+        if self.strategy_name == "fewest_mandatory_supports":
+            active_degrees = {
+                rod_id: len(self.rod_neighbors[rod_id] & node.state)
+                for rod_id in node.state
+            }
+            current_mandatory_support_count = sum(
+                rod_id not in self.truss.grounded_rods and degree == 1
+                for rod_id, degree in active_degrees.items()
+            )
+
         for rod_id in candidates:
             # Reject an invalid continuing-support transition before it enters
             # the heap or triggers any rigidity calculations.
@@ -789,6 +861,17 @@ class AssemblyPlanner:
                 else rod_id
             )
             actual_support_result = None
+            projected_mandatory_support_count = None
+
+            if self.strategy_name == "fewest_mandatory_supports":
+                projected_mandatory_support_count = (
+                    self.projected_mandatory_support_count(
+                        node,
+                        rod_id,
+                        active_degrees=active_degrees,
+                        current_count=current_mandatory_support_count,
+                    )
+                )
 
             if self.strategy_name in {
                 "reduced_overall_support_steps",
@@ -808,6 +891,9 @@ class AssemblyPlanner:
                 node,
                 rod_id,
                 actual_support_result=actual_support_result,
+                projected_mandatory_support_count=(
+                    projected_mandatory_support_count
+                ),
                 tie_breaker=tie_breaker,
             )
 
