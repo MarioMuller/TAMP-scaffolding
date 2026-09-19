@@ -5,6 +5,7 @@ import os
 import sys
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 from typing import Iterable
 
 import numpy as np
@@ -124,6 +125,9 @@ class TrussRigidityChecker:
         self.check_calls = 0
         self.cache_hits = 0
         self.cache_misses = 0
+        self.incremental_support_updates = 0
+        self.incremental_support_cache_hits = 0
+        self.incremental_support_fallbacks = 0
 
     def clear_cache(self) -> None:
         """Drop cached results and reset the cache statistics."""
@@ -131,6 +135,9 @@ class TrussRigidityChecker:
         self.check_calls = 0
         self.cache_hits = 0
         self.cache_misses = 0
+        self.incremental_support_updates = 0
+        self.incremental_support_cache_hits = 0
+        self.incremental_support_fallbacks = 0
 
     def cache_info(self) -> dict[str, int]:
         """Return counters useful for measuring the cache benefit."""
@@ -140,6 +147,13 @@ class TrussRigidityChecker:
             "cache_misses": self.cache_misses,
             "cached_entries": len(self._result_cache),
             "max_cache_entries": self.max_cache_entries,
+            "incremental_support_updates": self.incremental_support_updates,
+            "incremental_support_cache_hits": (
+                self.incremental_support_cache_hits
+            ),
+            "incremental_support_fallbacks": (
+                self.incremental_support_fallbacks
+            ),
         }
 
     def _store_cached_result(
@@ -243,6 +257,128 @@ class TrussRigidityChecker:
         self._store_cached_result(cache_key, result)
         return result
 
+    def _check_added_support_incrementally(
+        self,
+        active_rods: set[int],
+        supported_rods: set[int],
+        added_support_rod: int,
+        current_result: RigidityResult,
+        tolerance: float = 1e-10,
+    ) -> RigidityResult:
+        """Update rank and nullspace after grounding one additional rod."""
+        active_key = frozenset(active_rods)
+        supported_key = frozenset(
+            set(supported_rods) | {added_support_rod}
+        ) & active_key
+        cache_key = (active_key, supported_key)
+
+        cached_result = self._result_cache.get(cache_key)
+        if cached_result is not None:
+            self.incremental_support_cache_hits += 1
+            self._result_cache.move_to_end(cache_key)
+            return cached_result
+
+        expected_nullity = current_result.nullity
+        if (
+            added_support_rod not in active_key
+            or added_support_rod in supported_rods
+            or expected_nullity <= 0
+            or len(current_result.failure_modes) != expected_nullity
+            or not current_result.failure_elements
+        ):
+            self.incremental_support_fallbacks += 1
+            return self.check(
+                active_key,
+                supported_rods=supported_key,
+            )
+
+        element_index = self._rod_to_index[added_support_rod]
+        support_vertices = current_result.failure_elements.get(
+            element_index
+        )
+        if support_vertices is None:
+            self.incremental_support_fallbacks += 1
+            return self.check(
+                active_key,
+                supported_rods=supported_key,
+            )
+
+        failure_modes = np.column_stack(current_result.failure_modes)
+        constrained_coordinates = [
+            3 * vertex.id + axis
+            for vertex in support_vertices
+            for axis in range(3)
+        ]
+        constrained_nullspace = failure_modes[
+            constrained_coordinates,
+            :,
+        ]
+
+        # If N spans null(K) and G contains the new grounding rows, then
+        # null([K; G]) = N @ null(GN). GN has only six rows for one rod.
+        try:
+            _, singular_values, right_vectors_t = np.linalg.svd(
+                constrained_nullspace,
+                full_matrices=True,
+            )
+        except np.linalg.LinAlgError:
+            self.incremental_support_fallbacks += 1
+            return self.check(
+                active_key,
+                supported_rods=supported_key,
+            )
+
+        rank_gain = int(
+            np.count_nonzero(singular_values > tolerance)
+        )
+        updated_rank = current_result.rank + rank_gain
+        updated_nullity = current_result.dof - updated_rank
+
+        if updated_nullity == 0:
+            updated_failure_modes = ()
+            statuses = {
+                rod_id: ElementStatus.fixed
+                for rod_id in active_key
+            }
+        else:
+            coefficient_nullspace = right_vectors_t[
+                rank_gain:,
+                :,
+            ].T
+            updated_modes = failure_modes @ coefficient_nullspace
+            updated_failure_modes = tuple(
+                updated_modes[:, column].copy()
+                for column in range(updated_modes.shape[1])
+            )
+            matrix_metadata = SimpleNamespace(
+                vertex_list=current_result.failure_vertices,
+                elements_dict=current_result.failure_elements,
+            )
+            statuses = self._statuses_from_nullspace(
+                failure_modes=updated_failure_modes,
+                matrix_result=matrix_metadata,
+                index_to_rod=self._index_to_rod,
+                active_rods=set(active_key),
+                tolerance=1e-7,
+            )
+
+        result = RigidityResult(
+            is_rigid=updated_rank == current_result.dof,
+            rank=updated_rank,
+            dof=current_result.dof,
+            rows=current_result.rows + len(constrained_coordinates),
+            statuses=statuses,
+            failure_modes=updated_failure_modes,
+            failure_vertices=current_result.failure_vertices,
+            failure_elements=current_result.failure_elements,
+            failure_orientation_vertex_ids=(
+                current_result.failure_orientation_vertex_ids
+            ),
+        )
+        self.incremental_support_updates += 1
+        self._store_cached_result(cache_key, result)
+        return result
+
     def is_rigid(
         self,
         active_rods: Iterable[int],
@@ -321,9 +457,11 @@ class TrussRigidityChecker:
             best_result = current_result
 
             for rod in candidates:
-                result = self.check(
-                    active,
-                    supported_rods=supported | {rod},
+                result = self._check_added_support_incrementally(
+                    active_rods=active,
+                    supported_rods=supported,
+                    added_support_rod=rod,
+                    current_result=current_result,
                 )
 
                 # Full rank is the best possible result. -> return if found

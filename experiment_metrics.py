@@ -231,6 +231,15 @@ def structural_summary(searcher) -> dict[str, Any]:
         "rigidity_cache_hits": cache_info["cache_hits"],
         "rigidity_cache_misses": cache_info["cache_misses"],
         "rigidity_cached_entries": cache_info["cached_entries"],
+        "rigidity_incremental_support_updates": cache_info[
+            "incremental_support_updates"
+        ],
+        "rigidity_incremental_support_cache_hits": cache_info[
+            "incremental_support_cache_hits"
+        ],
+        "rigidity_incremental_support_fallbacks": cache_info[
+            "incremental_support_fallbacks"
+        ],
     }
     summary.update(support_summary(structural_steps))
     return summary

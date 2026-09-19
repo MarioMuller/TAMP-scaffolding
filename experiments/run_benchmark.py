@@ -183,6 +183,9 @@ def run_strategy(args, strategy_name, repeat_index):
         "rigidity_check_calls": 0,
         "rigidity_cache_hits": 0,
         "rigidity_cache_misses": 0,
+        "rigidity_incremental_support_updates": 0,
+        "rigidity_incremental_support_cache_hits": 0,
+        "rigidity_incremental_support_fallbacks": 0,
     }
 
     rai_builder = None
@@ -221,6 +224,9 @@ def run_strategy(args, strategy_name, repeat_index):
             "rigidity_check_calls",
             "rigidity_cache_hits",
             "rigidity_cache_misses",
+            "rigidity_incremental_support_updates",
+            "rigidity_incremental_support_cache_hits",
+            "rigidity_incremental_support_fallbacks",
         ):
             cumulative[key] += structural[key]
 
