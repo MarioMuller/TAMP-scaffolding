@@ -261,6 +261,49 @@ class AssemblyPlanner:
 
         return projected_count
 
+    def projected_mandatory_new_support_count(
+        self,
+        node,
+        candidate_rod,
+        active_degrees=None,
+        current_count=None,
+        projected_count=None,
+    ):
+        """Count mandatory degree-one rods not held after a removal."""
+        if projected_count is None:
+            projected_count = self.projected_mandatory_support_count(
+                node,
+                candidate_rod,
+                active_degrees=active_degrees,
+                current_count=current_count,
+            )
+
+        if active_degrees is None:
+            active_degrees = {
+                rod_id: len(self.rod_neighbors[rod_id] & node.state)
+                for rod_id in node.state
+            }
+
+        continuing_supported_rods = {
+            supported_rod
+            for supported_rod in node.supported.values()
+            if supported_rod != candidate_rod
+        }
+        covered_mandatory_rods = sum(
+            supported_rod not in self.truss.grounded_rods
+            and (
+                active_degrees[supported_rod]
+                - int(
+                    candidate_rod
+                    in self.rod_neighbors[supported_rod]
+                )
+            )
+            == 1
+            for supported_rod in continuing_supported_rods
+        )
+
+        return projected_count - covered_mandatory_rods
+
     def removal_preserves_connected_supports(
         self,
         node,
@@ -789,13 +832,19 @@ class AssemblyPlanner:
                     for supported_rod in node.supported.values()
                 )
 
+                # The caller supplies a cheap lower bound based on mandatory
+                # uncovered degree-one rods. A rigidity check may later prove
+                # that at least one support is needed even when this bound is
+                # zero, so retain whichever lower bound is stronger.
+                required_new_support_count = minimum_new_support_count
+
                 return (
                     # Prefer states that have already removed more rods.
                     len(node.state),
                     # Estimated total supports after removal: assuming unavoidable continuing supports plus the known lower bound on new ones.
-                    continuing_support_count + minimum_new_support_count,
+                    continuing_support_count + required_new_support_count,
                     # Among equal totals, prefer fewer newly placed supports.
-                    minimum_new_support_count,
+                    required_new_support_count,
                     # Then prefer rods connected to fewer remaining rods.
                     connection_count,
                     # Then prefer physically higher rods.
@@ -836,7 +885,10 @@ class AssemblyPlanner:
 
         active_degrees = None
         current_mandatory_support_count = None
-        if self.strategy_name == "fewest_mandatory_supports":
+        if self.strategy_name in {
+            "fewest_mandatory_supports",
+            "fast_reduce_support",
+        }:
             active_degrees = {
                 rod_id: len(self.rod_neighbors[rod_id] & node.state)
                 for rod_id in node.state
@@ -862,8 +914,12 @@ class AssemblyPlanner:
             )
             actual_support_result = None
             projected_mandatory_support_count = None
+            mandatory_new_support_count = 0
 
-            if self.strategy_name == "fewest_mandatory_supports":
+            if self.strategy_name in {
+                "fewest_mandatory_supports",
+                "fast_reduce_support",
+            }:
                 projected_mandatory_support_count = (
                     self.projected_mandatory_support_count(
                         node,
@@ -872,6 +928,30 @@ class AssemblyPlanner:
                         current_count=current_mandatory_support_count,
                     )
                 )
+
+            if self.strategy_name == "fast_reduce_support":
+                mandatory_new_support_count = (
+                    self.projected_mandatory_new_support_count(
+                        node,
+                        rod_id,
+                        active_degrees=active_degrees,
+                        current_count=current_mandatory_support_count,
+                        projected_count=(
+                            projected_mandatory_support_count
+                        ),
+                    )
+                )
+                continuing_support_count = sum(
+                    supported_rod != rod_id
+                    for supported_rod in node.supported.values()
+                )
+                free_support_count = (
+                    len(self.helper_grippers)
+                    - continuing_support_count
+                )
+
+                if mandatory_new_support_count > free_support_count:
+                    continue
 
             if self.strategy_name in {
                 "reduced_overall_support_steps",
@@ -891,6 +971,7 @@ class AssemblyPlanner:
                 node,
                 rod_id,
                 actual_support_result=actual_support_result,
+                minimum_new_support_count=mandatory_new_support_count,
                 projected_mandatory_support_count=(
                     projected_mandatory_support_count
                 ),
@@ -1242,7 +1323,10 @@ class AssemblyPlanner:
                             refined_priority = self.removal_priority(
                                 node,
                                 candidate_rod,
-                                minimum_new_support_count=1,
+                                minimum_new_support_count=max(
+                                    1,
+                                    priority[2],
+                                ),
                                 tie_breaker=priority[-1],
                             )
                             heapq.heappush(
