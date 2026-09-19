@@ -678,7 +678,7 @@ class AssemblyPlanner:
                     # Prefer states that have already removed more rods.
                     len(node.state),
                     # Estimated total supports after removal: assuming unavoidable continuing supports plus the known lower bound on new ones.
-                    # continuing_support_count + minimum_new_support_count,
+                    continuing_support_count + minimum_new_support_count,
                     # Among equal totals, prefer fewer newly placed supports.
                     minimum_new_support_count,
                     # Then prefer rods connected to fewer remaining rods.
@@ -694,7 +694,7 @@ class AssemblyPlanner:
             # remain assigned and the actual number of newly assigned supports.
             return (
                 len(node.state),
-                # actual_support_result.support_count,
+                actual_support_result.support_count,
                 actual_support_result.new_support_count,
                 connection_count,
                 -self.rod_midpoint_height(rod_id),
