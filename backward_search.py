@@ -199,6 +199,26 @@ class AssemblyPlanner:
     def support_has_active_connection(self, rod_id, active_rods):
         """Return whether a rod is coupled to another currently active rod."""
         return not self.rod_neighbors[rod_id].isdisjoint(active_rods)
+
+    def removal_preserves_connected_supports(
+        self,
+        node,
+        candidate_rod,
+    ):
+        """Return whether all continuing supports retain an active neighbor."""
+        if not self.require_connected_supports:
+            return True
+
+        remaining_rods = node.state - {candidate_rod}
+
+        return all(
+            supported_rod == candidate_rod
+            or self.support_has_active_connection(
+                supported_rod,
+                remaining_rods,
+            )
+            for supported_rod in node.supported.values()
+        )
         
     def process_debug_hotkey(self, hotkey):
         if hotkey is None:
@@ -658,7 +678,7 @@ class AssemblyPlanner:
                     # Prefer states that have already removed more rods.
                     len(node.state),
                     # Estimated total supports after removal: assuming unavoidable continuing supports plus the known lower bound on new ones.
-                    continuing_support_count + minimum_new_support_count,
+                    # continuing_support_count + minimum_new_support_count,
                     # Among equal totals, prefer fewer newly placed supports.
                     minimum_new_support_count,
                     # Then prefer rods connected to fewer remaining rods.
@@ -674,7 +694,7 @@ class AssemblyPlanner:
             # remain assigned and the actual number of newly assigned supports.
             return (
                 len(node.state),
-                actual_support_result.support_count,
+                # actual_support_result.support_count,
                 actual_support_result.new_support_count,
                 connection_count,
                 -self.rod_midpoint_height(rod_id),
@@ -700,6 +720,14 @@ class AssemblyPlanner:
         ranked_candidates = []
 
         for rod_id in candidates:
+            # Reject an invalid continuing-support transition before it enters
+            # the heap or triggers any rigidity calculations.
+            if not self.removal_preserves_connected_supports(
+                node,
+                rod_id,
+            ):
+                continue
+
             tie_breaker = (
                 random_order[rod_id]
                 if random_order is not None
