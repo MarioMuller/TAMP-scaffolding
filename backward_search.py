@@ -883,20 +883,16 @@ class AssemblyPlanner:
 
         ranked_candidates = []
 
-        active_degrees = None
-        current_mandatory_support_count = None
-        if self.strategy_name in {
-            "fewest_mandatory_supports",
-            "fast_reduce_support",
-        }:
-            active_degrees = {
-                rod_id: len(self.rod_neighbors[rod_id] & node.state)
-                for rod_id in node.state
-            }
-            current_mandatory_support_count = sum(
-                rod_id not in self.truss.grounded_rods and degree == 1
-                for rod_id, degree in active_degrees.items()
-            )
+        # Every strategy can cheaply reject removals that would require more
+        # mandatory degree-one supports than the available support robots.
+        active_degrees = {
+            rod_id: len(self.rod_neighbors[rod_id] & node.state)
+            for rod_id in node.state
+        }
+        current_mandatory_support_count = sum(
+            rod_id not in self.truss.grounded_rods and degree == 1
+            for rod_id, degree in active_degrees.items()
+        )
 
         for rod_id in candidates:
             # Reject an invalid continuing-support transition before it enters
@@ -913,45 +909,34 @@ class AssemblyPlanner:
                 else rod_id
             )
             actual_support_result = None
-            projected_mandatory_support_count = None
-            mandatory_new_support_count = 0
+            projected_mandatory_support_count = (
+                self.projected_mandatory_support_count(
+                    node,
+                    rod_id,
+                    active_degrees=active_degrees,
+                    current_count=current_mandatory_support_count,
+                )
+            )
+            mandatory_new_support_count = (
+                self.projected_mandatory_new_support_count(
+                    node,
+                    rod_id,
+                    active_degrees=active_degrees,
+                    current_count=current_mandatory_support_count,
+                    projected_count=projected_mandatory_support_count,
+                )
+            )
+            continuing_support_count = sum(
+                supported_rod != rod_id
+                for supported_rod in node.supported.values()
+            )
+            free_support_count = (
+                len(self.helper_grippers)
+                - continuing_support_count
+            )
 
-            if self.strategy_name in {
-                "fewest_mandatory_supports",
-                "fast_reduce_support",
-            }:
-                projected_mandatory_support_count = (
-                    self.projected_mandatory_support_count(
-                        node,
-                        rod_id,
-                        active_degrees=active_degrees,
-                        current_count=current_mandatory_support_count,
-                    )
-                )
-
-            if self.strategy_name == "fast_reduce_support":
-                mandatory_new_support_count = (
-                    self.projected_mandatory_new_support_count(
-                        node,
-                        rod_id,
-                        active_degrees=active_degrees,
-                        current_count=current_mandatory_support_count,
-                        projected_count=(
-                            projected_mandatory_support_count
-                        ),
-                    )
-                )
-                continuing_support_count = sum(
-                    supported_rod != rod_id
-                    for supported_rod in node.supported.values()
-                )
-                free_support_count = (
-                    len(self.helper_grippers)
-                    - continuing_support_count
-                )
-
-                if mandatory_new_support_count > free_support_count:
-                    continue
+            if mandatory_new_support_count > free_support_count:
+                continue
 
             if self.strategy_name in {
                 "reduced_overall_support_steps",
