@@ -200,6 +200,25 @@ class AssemblyPlanner:
         """Return whether a rod is coupled to another currently active rod."""
         return not self.rod_neighbors[rod_id].isdisjoint(active_rods)
 
+    def mandatory_degree_one_supports(
+        self,
+        active_rods,
+        already_supported=None,
+    ):
+        """Return non-grounded degree-one rods that still need support."""
+        active = set(active_rods)
+        supported = set(already_supported or ()) & active
+
+        return {
+            rod_id
+            for rod_id in active
+            if (
+                rod_id not in self.truss.grounded_rods
+                and rod_id not in supported
+                and len(self.rod_neighbors[rod_id] & active) == 1
+            )
+        }
+
     def removal_preserves_connected_supports(
         self,
         node,
@@ -479,19 +498,54 @@ class AssemblyPlanner:
                 self.support_evaluations[cache_key] = result
                 return result
 
-        affected_rods = []
+        mandatory_support_rods = sorted(
+            self.mandatory_degree_one_supports(
+                support_context.new_state,
+                already_supported=(
+                    support_context.continuing_supported_rods
+                ),
+            )
+        )
+
+        if len(mandatory_support_rods) > len(
+            support_context.free_supports
+        ):
+            result = SupportEvaluation(
+                feasible=False,
+                rigidity_result=rigidity_result,
+                supports_after=dict(
+                    support_context.continuing_supports
+                ),
+                added_supports={},
+            )
+            self.support_evaluations[cache_key] = result
+            return result
+
+        affected_rods = list(mandatory_support_rods)
+        supported_rods = (
+            set(support_context.continuing_supported_rods)
+            | set(mandatory_support_rods)
+        )
+        remaining_support_count = (
+            len(support_context.free_supports)
+            - len(mandatory_support_rods)
+        )
+
+        if mandatory_support_rods:
+            rigidity_result = self.rigidity.check(
+                support_context.new_state,
+                supported_rods=supported_rods,
+            )
 
         if (
             not rigidity_result.is_rigid
-            and support_context.free_supports
+            and remaining_support_count > 0
         ):
-            affected_rods, rigidity_result = (
+            additional_rods, rigidity_result = (
                 self.rigidity.choose_support_targets(
                     active_rods=support_context.new_state,
-                    already_supported=(
-                        support_context.continuing_supported_rods
-                    ),
-                    max_targets=len(support_context.free_supports),
+                    already_supported=supported_rods,
+                    max_targets=remaining_support_count,
                     contextual_key=lambda rod_id, _supported_rods: (
                         self.support_target_priority(
                             rod_id,
@@ -511,6 +565,7 @@ class AssemblyPlanner:
                     return_result=True,
                 )
             )
+            affected_rods.extend(additional_rods)
 
         added_supports = {
             support: rod_id

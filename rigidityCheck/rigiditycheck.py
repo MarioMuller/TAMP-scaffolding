@@ -236,6 +236,7 @@ class AlgebraicChecker(object):
         element_object_list: List[ElementObject],
         orientation_offset_ratio: float = 0.10,
         use_virtual_orientation_vertices: bool = False,
+        coupler_points=None,
     ) -> RigidityMatrixResult:
         """
         Build the rigidity matrix for the assembled structure.
@@ -326,10 +327,13 @@ class AlgebraicChecker(object):
         couplers_dict = {}
 
         for coupler in couplers:
-            point_1, point_2 = closest_points_between_segments(
-                element_object_list[coupler[0]].vertices,
-                element_object_list[coupler[1]].vertices,
-            )
+            if coupler_points is None:
+                point_1, point_2 = closest_points_between_segments(
+                    element_object_list[coupler[0]].vertices,
+                    element_object_list[coupler[1]].vertices,
+                )
+            else:
+                point_1, point_2 = coupler_points[coupler]
 
             vertex_1 = AlgebraicChecker.CreateVertex(
                 vertex_list,

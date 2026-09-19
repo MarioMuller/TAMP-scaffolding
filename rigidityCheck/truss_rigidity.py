@@ -72,6 +72,55 @@ class TrussRigidityChecker:
             tuple[frozenset[int], frozenset[int]],
             RigidityResult,
         ] = OrderedDict()
+
+        # These values depend only on the loaded truss, not on which rods are
+        # active or externally supported in a particular rigidity check.
+        self._rod_ids = tuple(sorted(self.truss.elements))
+        self._rod_to_index = {
+            rod_id: index
+            for index, rod_id in enumerate(self._rod_ids)
+        }
+        self._index_to_rod = {
+            index: rod_id
+            for rod_id, index in self._rod_to_index.items()
+        }
+        self._coupled_rods_by_id = self._coupled_rods()
+        self._vertices_by_rod = {
+            rod_id: (
+                np.asarray(self.truss.nodes[node_1], dtype=float),
+                np.asarray(self.truss.nodes[node_2], dtype=float),
+            )
+            for rod_id, (node_1, node_2) in self.truss.elements.items()
+        }
+        self._coupled_indices_by_rod = {
+            rod_id: tuple(
+                self._rod_to_index[coupled_rod]
+                for coupled_rod in sorted(
+                    self._coupled_rods_by_id[rod_id]
+                )
+            )
+            for rod_id in self._rod_ids
+        }
+        self._coupler_points_by_indices = {}
+
+        for rod_1, rod_2 in self.truss.couplers:
+            index_1 = self._rod_to_index[rod_1]
+            index_2 = self._rod_to_index[rod_2]
+
+            if index_1 <= index_2:
+                coupler_key = (index_1, index_2)
+                first_rod, second_rod = rod_1, rod_2
+            else:
+                coupler_key = (index_2, index_1)
+                first_rod, second_rod = rod_2, rod_1
+
+            self._coupler_points_by_indices[coupler_key] = (
+                closest_points_between_segments(
+                    self._vertices_by_rod[first_rod],
+                    self._vertices_by_rod[second_rod],
+                )
+            )
+
         self.check_calls = 0
         self.cache_hits = 0
         self.cache_misses = 0
@@ -154,6 +203,7 @@ class TrussRigidityChecker:
         matrix_result = AlgebraicChecker.BuildRigidityMatrix(
             assembled_indices,
             element_objects,
+            coupler_points=self._coupler_points_by_indices,
         )
         
         K = matrix_result.matrix
@@ -303,41 +353,21 @@ class TrussRigidityChecker:
         active_rods: set[int],
         supported_rods: set[int],
     ):
-        rod_ids = sorted(self.truss.elements)
-        rod_to_index = {
-            rod_id: index
-            for index, rod_id in enumerate(rod_ids)
-        }
-        index_to_rod = {
-            index: rod_id
-            for rod_id, index in rod_to_index.items()
-        }
-
-        coupled_rods = self._coupled_rods()
         element_objects = []
 
-        for rod_id in rod_ids:
-            n1, n2 = self.truss.elements[rod_id]
-            vertices = [
-                np.asarray(self.truss.nodes[n1], dtype=float),
-                np.asarray(self.truss.nodes[n2], dtype=float),
-            ]
+        for rod_id in self._rod_ids:
             is_grounded = (
                 rod_id in self.truss.grounded_rods
                 or rod_id in supported_rods
             )
-            coupled_elements = [
-                rod_to_index[coupled_rod]
-                for coupled_rod in sorted(coupled_rods[rod_id])
-            ]
 
             element = ElementObject(
-                index=rod_to_index[rod_id],
+                index=self._rod_to_index[rod_id],
                 body=None,
                 init_pose=None,
                 goal_pose=None,
-                vertices=vertices,
-                coupled_elements=coupled_elements,
+                vertices=self._vertices_by_rod[rod_id],
+                coupled_elements=self._coupled_indices_by_rod[rod_id],
                 checker="algebraic",
                 is_grounded=is_grounded,
             )
@@ -345,8 +375,10 @@ class TrussRigidityChecker:
             if rod_id in active_rods:
                 element.status = ElementStatus.float
                 element.assembled_elements = [
-                    rod_to_index[coupled_rod]
-                    for coupled_rod in sorted(coupled_rods[rod_id] & active_rods)
+                    self._rod_to_index[coupled_rod]
+                    for coupled_rod in sorted(
+                        self._coupled_rods_by_id[rod_id] & active_rods
+                    )
                 ]
             else:
                 element.status = ElementStatus.unassembled
@@ -354,7 +386,11 @@ class TrussRigidityChecker:
 
             element_objects.append(element)
 
-        return element_objects, rod_to_index, index_to_rod
+        return (
+            element_objects,
+            self._rod_to_index,
+            self._index_to_rod,
+        )
 
     def _coupled_rods(self) -> dict[int, set[int]]:
         coupled_rods = {
