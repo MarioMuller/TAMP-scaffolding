@@ -152,6 +152,15 @@ def parse_args():
         type=Path,
         default=DEFAULT_OUTPUT_CSV,
     )
+    parser.add_argument(
+        "--output-replay-jsonl",
+        type=Path,
+        default=None,
+        help=(
+            "Structural replay sidecar. By default, use the output CSV "
+            "name with a .replay.jsonl suffix."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -296,6 +305,54 @@ def write_row(writer, csv_file, row):
     csv_file.flush()
 
 
+def structural_step_for_replay(step):
+    return {
+        "rod_id": int(step.rod_id),
+        "supports_before": dict(step.supports_before),
+        "supports_after": dict(step.supports_after),
+        "added_supports": dict(step.added_supports),
+        "released_supports": dict(step.released_supports),
+        "rank_after": int(step.rank_after),
+        "dof_after": int(step.dof_after),
+    }
+
+
+def write_replay_run(
+    replay_file,
+    *,
+    repetition,
+    seed,
+    run_index,
+    removed_prefix_count,
+    included_rods,
+    initial_supported,
+    searcher,
+    removal_sequence,
+):
+    if removal_sequence is None:
+        return
+
+    record = {
+        "record_type": "run",
+        "repetition": repetition,
+        "seed": seed,
+        "run_index": run_index,
+        "removed_prefix_count": removed_prefix_count,
+        "included_rods": sorted(int(rod_id) for rod_id in included_rods),
+        "initial_supports": dict(initial_supported),
+        "removal_sequence": [int(rod_id) for rod_id in removal_sequence],
+        "assembly_sequence": [
+            int(rod_id) for rod_id in reversed(removal_sequence)
+        ],
+        "structural_steps": [
+            structural_step_for_replay(step)
+            for step in searcher.final_node.structural_steps
+        ],
+    }
+    replay_file.write(json.dumps(record, sort_keys=True) + "\n")
+    replay_file.flush()
+
+
 def visualize_run(args, run_index, searcher, removal_sequence):
     if not args.visualize or removal_sequence is None:
         return
@@ -322,10 +379,38 @@ def main():
 
     all_rods = sorted(load_filtered_truss(args.truss).elements)
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
+    replay_path = (
+        args.output_replay_jsonl
+        if args.output_replay_jsonl is not None
+        else args.output_csv.with_suffix(".replay.jsonl")
+    )
+    replay_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with args.output_csv.open("w", newline="") as csv_file:
+    with (
+        args.output_csv.open("w", newline="") as csv_file,
+        replay_path.open("w", encoding="utf-8") as replay_file,
+    ):
         writer = csv.DictWriter(csv_file, fieldnames=FIELDNAMES)
         writer.writeheader()
+        replay_file.write(
+            json.dumps(
+                {
+                    "record_type": "metadata",
+                    "format": "tamp-scaffolding-structural-replay",
+                    "version": 1,
+                    "truss": str(args.truss.resolve()),
+                    "scale": args.visualization_scale,
+                    "strategy_name": args.strategy_name,
+                    "support_target_order": args.support_target_order,
+                    "require_connected_supports": (
+                        args.require_connected_supports
+                    ),
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+        replay_file.flush()
 
         for repetition_index in range(args.repetitions):
             repetition = repetition_index + 1
@@ -393,6 +478,17 @@ def main():
                 elapsed_ns=elapsed_ns,
             )
             write_row(writer, csv_file, row)
+            write_replay_run(
+                replay_file,
+                repetition=repetition,
+                seed=repetition_seed,
+                run_index=1,
+                removed_prefix_count=0,
+                included_rods=all_rods,
+                initial_supported={},
+                searcher=searcher,
+                removal_sequence=removal_sequence,
+            )
             print(
                 f"Run 1/{total_runs}: "
                 f"{len(all_rods)} rods, {elapsed_ns / 1_000_000_000:.3f}s"
@@ -441,6 +537,17 @@ def main():
                     elapsed_ns=elapsed_ns,
                 )
                 write_row(writer, csv_file, row)
+                write_replay_run(
+                    replay_file,
+                    repetition=repetition,
+                    seed=run_seed,
+                    run_index=run_index,
+                    removed_prefix_count=removed_prefix_count,
+                    included_rods=included_rods,
+                    initial_supported=initial_supported,
+                    searcher=searcher,
+                    removal_sequence=removal_sequence,
+                )
 
                 print(
                     f"Run {run_index}/{total_runs}: "
@@ -457,6 +564,7 @@ def main():
                 )
 
     print(f"\nSaved results to: {args.output_csv}")
+    print(f"Saved structural replays to: {replay_path}")
 
 
 if __name__ == "__main__":
