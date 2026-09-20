@@ -72,6 +72,7 @@ def validate_structural_plan_with_rai(
     view_last_komo_attempt=False,
     use_ssik_initialization=True,
     support_fractions=(0.25, 0.5, 0.75),
+    deadline=None,
 ):
     """Validate one complete structural removal plan sequentially in RAI.
 
@@ -89,6 +90,16 @@ def validate_structural_plan_with_rai(
     records = []
 
     for step_index, step in enumerate(structural_steps):
+        if deadline is not None and perf_counter() >= deadline:
+            return {
+                "success": False,
+                "builder": builder,
+                "records": records,
+                "failed_index": step_index,
+                "failed_step": None,
+                "stop_reason": "total_runtime_limit",
+            }
+
         expected_supports_before = dict(step.supports_before)
 
         if supported != expected_supports_before:
@@ -173,6 +184,7 @@ def validate_structural_plan_with_rai(
                     "records": records,
                     "failed_index": step_index,
                     "failed_step": step,
+                    "stop_reason": "pose_infeasible",
                 }
 
             # Only successful results are cached. A RAI failure is represented
@@ -209,6 +221,7 @@ def validate_structural_plan_with_rai(
         "records": records,
         "failed_index": None,
         "failed_step": None,
+        "stop_reason": "complete",
     }
 
 

@@ -1460,7 +1460,7 @@ class KeyframePlanner:
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e2])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [0.5])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
 
         joint_names = list(self.C.getJointNames())
 
