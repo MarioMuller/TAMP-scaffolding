@@ -798,26 +798,78 @@ class KeyframePlanner:
         q_saved = self.C.getJointState().copy()
         candidates = []
 
-        roll_offsets = np.deg2rad([
-            0.0,
-            30.0,
-            -30.0,
-            60.0,
-            -60.0,
-            180.0,
-        ])
+        has_fixed_roll_target = any(
+            target_spec.get("fixed_roll", False)
+            for target_spec in robot_ik_targets.values()
+        )
+
+        if has_fixed_roll_target:
+            # Main grippers have a hard coupler-facing orientation. Nonzero
+            # roll offsets contradict that constraint and only create KOMO
+            # initializations that must rotate back to the same target.
+            roll_offsets = np.array([0.0])
+        else:
+            roll_offsets = np.deg2rad([
+                0.0,
+                30.0,
+                -30.0,
+                60.0,
+                -60.0,
+                180.0,
+            ])
 
         circle_center = np.asarray(
             circle_center,
             dtype=float,
         )
 
-        circle_angles = np.linspace(
-            -np.pi,
-            np.pi,
-            circle_samples,
-            endpoint=False,
-        )
+        fixed_pointing_directions = [
+            np.asarray(
+                target_spec["approach_direction"],
+                dtype=float,
+            )
+            for target_spec in robot_ik_targets.values()
+            if (
+                target_spec.get("fixed_roll", False)
+                and "approach_direction" in target_spec
+            )
+        ]
+
+        horizontal_pointing_direction = np.zeros(2)
+
+        for pointing_direction in fixed_pointing_directions:
+            horizontal_direction = pointing_direction[:2]
+            horizontal_norm = np.linalg.norm(horizontal_direction)
+
+            if horizontal_norm > 1e-8:
+                horizontal_pointing_direction += (
+                    horizontal_direction / horizontal_norm
+                )
+
+        if np.linalg.norm(horizontal_pointing_direction) > 1e-8:
+            # The gripper points from the base, through the rod, toward the
+            # coupler. Therefore the base belongs in the opposite horizontal
+            # half-plane. Keep all samples strictly inside that semicircle.
+            base_side_direction = -horizontal_pointing_direction
+            base_side_angle = np.arctan2(
+                base_side_direction[1],
+                base_side_direction[0],
+            )
+            side_offsets = np.linspace(
+                -0.5 * np.pi,
+                0.5 * np.pi,
+                circle_samples + 2,
+            )[1:-1]
+            circle_angles = base_side_angle + side_offsets
+        else:
+            # A vertical pointing direction, including grounded rods pointing
+            # downward, does not select a horizontal side for a mobile base.
+            circle_angles = np.linspace(
+                -np.pi,
+                np.pi,
+                circle_samples,
+                endpoint=False,
+            )
 
         try:
             for sample_index, circle_angle in enumerate(
@@ -920,6 +972,10 @@ class KeyframePlanner:
                     for arm_name, target_spec in (
                         robot_ik_targets.items()
                     ):
+                        target_approach_direction = target_spec.get(
+                            "approach_direction",
+                            approach_direction,
+                        )
                         target_world = (
                             self._make_ssik_target_transform(
                                 position=target_spec[
@@ -932,7 +988,7 @@ class KeyframePlanner:
                                     "alignment"
                                 ],
                                 approach_direction=(
-                                    approach_direction
+                                    target_approach_direction
                                 ),
                                 roll_offset=roll_offset,
                             )
@@ -1189,6 +1245,7 @@ class KeyframePlanner:
         continuing_supports=None,
         releasable_supports=None,
         new_support_assignments=None,
+        remaining_rods=None,
         support_fraction=0.25,
         support_fractions=None,
         support_grippers=None,
@@ -1226,6 +1283,11 @@ class KeyframePlanner:
             support_gripper -> affected_rod_id that must be newly supported
             before removing rod_id.
 
+        remaining_rods:
+            Rods that remain after rod_id is removed. Couplers to these rods
+            define the side from which the main gripper places rod_id when the
+            removal plan is reversed into an assembly plan.
+
         support_home_q:
             Full robot configuration immediately after importing the robots.
             Support robots that are unused after this removal must return to
@@ -1238,7 +1300,7 @@ class KeyframePlanner:
         main_gripper = "a1_ur_gripper_center"
         second_main_gripper = "a2_ur_gripper_center"
         main_uses_two_arms = (
-            self.C.getFrame(second_main_gripper) is not None
+            second_main_gripper in self.C.getFrameNames()
         )
 
         supported = dict(supported or {})
@@ -1320,6 +1382,13 @@ class KeyframePlanner:
                 0.5,
             )
             g2 = None
+
+        main_direction_target, main_pointing_direction = (
+            self.rods.create_gripper_direction_target(
+                rod_id,
+                connected_rod_ids=remaining_rods,
+            )
+        )
 
         # Fixed target frames for already-active continuing supports.
         # These targets are created before KOMO is constructed.
@@ -1460,7 +1529,7 @@ class KeyframePlanner:
         # komo.addControlObjective([], 0, 1e-1)
         # komo.addControlObjective([], 1, 1e-1)
         komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq, [1e2])
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1e1])
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.ineq, [1])
 
         joint_names = list(self.C.getJointNames())
 
@@ -1723,6 +1792,18 @@ class KeyframePlanner:
             [1.0],
         )
 
+        # Fix the otherwise-free rotation around the rod: the gripper's local
+        # Z-axis points from the placement side toward the active coupler(s).
+        # Grounded rods therefore point downward toward the ground coupler.
+        komo.addObjective(
+            [t_grasp, last_installed_phase],
+            ry.FS.scalarProductZZ,
+            [main_gripper, main_direction_target],
+            ry.OT.eq,
+            [1e1],
+            [1.0],
+        )
+
         if main_uses_two_arms:
             komo.addObjective(
                 [t_grasp, t_pickup],
@@ -1736,6 +1817,15 @@ class KeyframePlanner:
                 [t_grasp, t_pickup],
                 ry.FS.scalarProductXZ,
                 [second_main_gripper, rod],
+                ry.OT.eq,
+                [1e1],
+                [1.0],
+            )
+
+            komo.addObjective(
+                [t_grasp, last_installed_phase],
+                ry.FS.scalarProductZZ,
+                [second_main_gripper, main_direction_target],
                 ry.OT.eq,
                 [1e1],
                 [1.0],
@@ -1917,6 +2007,8 @@ class KeyframePlanner:
                 ).copy(),
                 "rod_rotation": candidate_rotation,
                 "alignment": 1.0,
+                "approach_direction": main_pointing_direction,
+                "fixed_roll": True,
                 "roll_group": "main_candidate",
             },
         }
@@ -1929,6 +2021,8 @@ class KeyframePlanner:
                 ).copy(),
                 "rod_rotation": candidate_rotation,
                 "alignment": 1.0,
+                "approach_direction": main_pointing_direction,
+                "fixed_roll": True,
                 "roll_group": "main_candidate",
             }
 

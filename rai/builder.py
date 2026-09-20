@@ -581,6 +581,7 @@ class RaiTrussBuilder:
             continuing_supports=continuing_supports,
             releasable_supports=releasable_supports,
             new_support_assignments=new_support_assignments,
+            remaining_rods=new_state,
             support_fractions=support_fractions,
             support_grippers=self.support_grippers,
             support_home_q=support_home_q,

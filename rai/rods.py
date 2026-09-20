@@ -34,6 +34,163 @@ class RodManager:
 
         # same shortening as in create_rod()
         return np.linalg.norm(p2 - p1) - 0.03    
+
+    @staticmethod
+    def _closest_points_on_segments(p1, p2, q1, q2):
+        """Return the closest points on two finite line segments."""
+        rod_direction = p2 - p1
+        other_direction = q2 - q1
+        offset = p1 - q1
+
+        rod_length_squared = np.dot(rod_direction, rod_direction)
+        other_length_squared = np.dot(other_direction, other_direction)
+
+        if rod_length_squared < 1e-12 or other_length_squared < 1e-12:
+            raise ValueError("Cannot calculate a coupler direction for a zero-length rod")
+
+        cross_term = np.dot(rod_direction, other_direction)
+        rod_offset = np.dot(rod_direction, offset)
+        other_offset = np.dot(other_direction, offset)
+        denominator = (
+            rod_length_squared * other_length_squared
+            - cross_term * cross_term
+        )
+
+        if denominator > 1e-12:
+            rod_fraction = np.clip(
+                (
+                    cross_term * other_offset
+                    - other_length_squared * rod_offset
+                ) / denominator,
+                0.0,
+                1.0,
+            )
+        else:
+            rod_fraction = 0.5
+
+        other_fraction = np.clip(
+            (
+                cross_term * rod_fraction
+                + other_offset
+            ) / other_length_squared,
+            0.0,
+            1.0,
+        )
+        rod_fraction = np.clip(
+            (
+                cross_term * other_fraction
+                - rod_offset
+            ) / rod_length_squared,
+            0.0,
+            1.0,
+        )
+
+        return (
+            p1 + rod_fraction * rod_direction,
+            q1 + other_fraction * other_direction,
+        )
+
+    def get_coupler_pointing_direction(
+        self,
+        rod_id,
+        connected_rod_ids=None,
+    ):
+        """
+        Return the gripper pointing direction for placing a rod.
+
+        Grounded rods are approached downward. Other rods are approached from
+        the side opposite the rods to which they are already coupled. When a
+        rod has several active couplers, their normalized side directions are
+        averaged.
+        """
+        p1, p2 = self.get_rod_endpoints(rod_id)
+        rod_axis = p2 - p1
+        rod_axis /= np.linalg.norm(rod_axis)
+
+        if rod_id in self.truss.grounded_rods:
+            pointing_direction = np.array([0.0, 0.0, -1.0])
+        else:
+            connected_rod_ids = set(connected_rod_ids or ())
+            coupled_rods = sorted(
+                rod_2 if rod_1 == rod_id else rod_1
+                for rod_1, rod_2 in self.truss.couplers
+                if (
+                    rod_id in (rod_1, rod_2)
+                    and (
+                        not connected_rod_ids
+                        or (
+                            rod_2 if rod_1 == rod_id else rod_1
+                        ) in connected_rod_ids
+                    )
+                )
+            )
+
+            coupler_directions = []
+
+            for coupled_rod_id in coupled_rods:
+                q1, q2 = self.get_rod_endpoints(coupled_rod_id)
+                rod_point, coupled_point = self._closest_points_on_segments(
+                    p1,
+                    p2,
+                    q1,
+                    q2,
+                )
+                direction = coupled_point - rod_point
+
+                # The rod axis already fixes the gripper's local X-axis. Keep
+                # the pointing direction perpendicular to it so the two hard
+                # orientation constraints remain compatible.
+                direction -= np.dot(direction, rod_axis) * rod_axis
+                direction_norm = np.linalg.norm(direction)
+
+                if direction_norm > 1e-8:
+                    coupler_directions.append(direction / direction_norm)
+
+            if not coupler_directions:
+                raise ValueError(
+                    f"Rod {rod_id} has no usable coupler direction."
+                )
+
+            pointing_direction = np.sum(coupler_directions, axis=0)
+
+            if np.linalg.norm(pointing_direction) < 1e-8:
+                # Opposing couplers cannot define one common approach side.
+                # Use the first deterministic coupler direction.
+                pointing_direction = coupler_directions[0]
+
+        pointing_direction -= (
+            np.dot(pointing_direction, rod_axis) * rod_axis
+        )
+        direction_norm = np.linalg.norm(pointing_direction)
+
+        if direction_norm < 1e-8:
+            raise ValueError(
+                f"Rod {rod_id} pointing direction is parallel to its axis."
+            )
+
+        return pointing_direction / direction_norm
+
+    def create_gripper_direction_target(
+        self,
+        rod_id,
+        connected_rod_ids=None,
+    ):
+        """Create a world frame whose local Z-axis points toward the coupler."""
+        direction = self.get_coupler_pointing_direction(
+            rod_id,
+            connected_rod_ids=connected_rod_ids,
+        )
+        p1, p2 = self.get_rod_endpoints(rod_id)
+        target_name = f"rod_{rod_id}_gripper_direction_target"
+
+        if target_name not in self.C.getFrameNames():
+            self.C.addFrame(target_name, "world")
+
+        self.C.getFrame(target_name) \
+            .setPosition(0.5 * (p1 + p2)) \
+            .setQuaternion(quaternion_from_z_to_vector(direction))
+
+        return target_name, direction
     
     
     # creates the next required rod
