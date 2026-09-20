@@ -94,33 +94,40 @@ class RodManager:
         self,
         rod_id,
         connected_rod_ids=None,
+        grasp_fraction=0.5,
     ):
         """
         Return the gripper pointing direction for placing a rod.
 
         Grounded rods are approached downward. Other rods are approached from
-        the side opposite the rods to which they are already coupled. When a
-        rod has several active couplers, their normalized side directions are
-        averaged.
+        the side opposite an already coupled rod. When several active couplers
+        exist, use the one nearest the gripper's position along the candidate
+        rod. This avoids creating an artificial direction between couplers on
+        different sides of the rod.
         """
         p1, p2 = self.get_rod_endpoints(rod_id)
-        rod_axis = p2 - p1
-        rod_axis /= np.linalg.norm(rod_axis)
+        rod_vector = p2 - p1
+        rod_length = np.linalg.norm(rod_vector)
+        rod_axis = rod_vector / rod_length
 
         if rod_id in self.truss.grounded_rods:
             pointing_direction = np.array([0.0, 0.0, -1.0])
         else:
-            connected_rod_ids = set(connected_rod_ids or ())
+            active_rods = (
+                None
+                if connected_rod_ids is None
+                else set(connected_rod_ids)
+            )
             coupled_rods = sorted(
                 rod_2 if rod_1 == rod_id else rod_1
                 for rod_1, rod_2 in self.truss.couplers
                 if (
                     rod_id in (rod_1, rod_2)
                     and (
-                        not connected_rod_ids
+                        active_rods is None
                         or (
                             rod_2 if rod_1 == rod_id else rod_1
-                        ) in connected_rod_ids
+                        ) in active_rods
                     )
                 )
             )
@@ -144,19 +151,24 @@ class RodManager:
                 direction_norm = np.linalg.norm(direction)
 
                 if direction_norm > 1e-8:
-                    coupler_directions.append(direction / direction_norm)
+                    coupler_fraction = np.clip(
+                        np.dot(rod_point - p1, rod_axis) / rod_length,
+                        0.0,
+                        1.0,
+                    )
+                    coupler_directions.append((
+                        abs(coupler_fraction - grasp_fraction),
+                        coupled_rod_id,
+                        direction / direction_norm,
+                    ))
 
             if not coupler_directions:
                 raise ValueError(
-                    f"Rod {rod_id} has no usable coupler direction."
+                    f"Rod {rod_id} has no usable active coupler direction."
                 )
 
-            pointing_direction = np.sum(coupler_directions, axis=0)
-
-            if np.linalg.norm(pointing_direction) < 1e-8:
-                # Opposing couplers cannot define one common approach side.
-                # Use the first deterministic coupler direction.
-                pointing_direction = coupler_directions[0]
+            coupler_directions.sort(key=lambda item: (item[0], item[1]))
+            pointing_direction = coupler_directions[0][2]
 
         pointing_direction -= (
             np.dot(pointing_direction, rod_axis) * rod_axis
@@ -174,14 +186,18 @@ class RodManager:
         self,
         rod_id,
         connected_rod_ids=None,
+        grasp_fraction=0.5,
+        target_suffix=None,
     ):
         """Create a world frame whose local Z-axis points toward the coupler."""
         direction = self.get_coupler_pointing_direction(
             rod_id,
             connected_rod_ids=connected_rod_ids,
+            grasp_fraction=grasp_fraction,
         )
         p1, p2 = self.get_rod_endpoints(rod_id)
-        target_name = f"rod_{rod_id}_gripper_direction_target"
+        suffix = f"_{target_suffix}" if target_suffix else ""
+        target_name = f"rod_{rod_id}_gripper_direction_target{suffix}"
 
         if target_name not in self.C.getFrameNames():
             self.C.addFrame(target_name, "world")
@@ -250,6 +266,7 @@ class RodManager:
         rod_id,
         d1_from_end=0.04,
         d12_between_arms=0.12,
+        frame_suffix=None,
     ):
         """
         Creates two grasp frames fixed on the rod.
@@ -273,8 +290,9 @@ class RodManager:
         z1 = -0.5 * length + d1_from_end
         z2 = -0.5 * length + d2_from_end
 
-        g1 = f"rod_{rod_id}_grasp_a1"
-        g2 = f"rod_{rod_id}_grasp_a2"
+        suffix = f"_{frame_suffix}" if frame_suffix else ""
+        g1 = f"rod_{rod_id}_grasp_a1{suffix}"
+        g2 = f"rod_{rod_id}_grasp_a2{suffix}"
 
         if g1 not in self.C.getFrameNames():
             self.C.addFrame(g1, rod)

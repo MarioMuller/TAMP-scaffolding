@@ -26,6 +26,15 @@ class PhaseSchedule:
         
 class KeyframePlanner:
     DEFAULT_BASE_CIRCLE_RADIUS = 0.9
+    MAIN_BASE_CIRCLE_RADII = (0.65, 0.75, 0.85, 0.95)
+    MAIN_BASE_CIRCLE_SAMPLES = 12
+    MAIN_GRASP_FRACTIONS = (0.35, 0.5, 0.65)
+    DUAL_MAIN_GRASP_FRACTION_PAIRS = (
+        (0.2, 0.8),
+        (0.3, 0.7),
+        (0.35, 0.65),
+    )
+    MAIN_ROD_ALIGNMENTS = (1.0, -1.0)
     
     ARM_JOINT_SUFFIXES = [
         "shoulder_pan_joint",
@@ -818,6 +827,20 @@ class KeyframePlanner:
                 180.0,
             ])
 
+        requested_radii = {
+            float(requested_radius)
+            for target_spec in robot_ik_targets.values()
+            for requested_radius in target_spec.get(
+                "base_radii",
+                (radius,),
+            )
+        }
+        candidate_radii = tuple(sorted(requested_radii))
+        candidate_circle_samples = max(
+            int(target_spec.get("circle_samples", circle_samples))
+            for target_spec in robot_ik_targets.values()
+        )
+
         circle_center = np.asarray(
             circle_center,
             dtype=float,
@@ -858,7 +881,7 @@ class KeyframePlanner:
             side_offsets = np.linspace(
                 -0.5 * np.pi,
                 0.5 * np.pi,
-                circle_samples + 2,
+                candidate_circle_samples + 2,
             )[1:-1]
             circle_angles = base_side_angle + side_offsets
         else:
@@ -867,150 +890,155 @@ class KeyframePlanner:
             circle_angles = np.linspace(
                 -np.pi,
                 np.pi,
-                circle_samples,
+                candidate_circle_samples,
                 endpoint=False,
             )
 
         try:
-            for sample_index, circle_angle in enumerate(
-                circle_angles
+            for radius_index, candidate_radius in enumerate(
+                candidate_radii
             ):
-                self.C.setJointState(q0)
+                for sample_index, circle_angle in enumerate(
+                    circle_angles
+                ):
+                    self.C.setJointState(q0)
 
-                base_x = (
-                    circle_center[0]
-                    + radius * np.cos(circle_angle)
-                )
-
-                base_y = (
-                    circle_center[1]
-                    + radius * np.sin(circle_angle)
-                )
-
-                yaw = np.arctan2(
-                    circle_center[1] - base_y,
-                    circle_center[0] - base_x,
-                )
-
-                yaw = np.clip(
-                    yaw,
-                    -3.14,
-                    3.14,
-                )
-
-                base_q = np.array([
-                    base_x,
-                    base_y,
-                    yaw,
-                ])
-
-                self.C.setJointState(
-                    base_q,
-                    [base_joint],
-                )
-
-                q_at_sampled_base = (
-                    self.C.getJointState().copy()
-                )
-
-                if not use_ssik_initialization:
-                    candidates.append({
-                        "base_joint": base_joint,
-                        "base_q": base_q.copy(),
-                        "arm_solutions": {},
-                        "target_arms": tuple(robot_ik_targets.keys()),
-                        "branch_rank": 0,
-                        "circle_index": sample_index,
-                        "circle_angle": circle_angle,
-                        "roll_offset": None,
-                    })
-                    continue
-
-                # Centre of all grasp targets belonging to this mobile robot.
-                target_center = np.mean(
-                    [
-                        target_spec["position"]
-                        for target_spec
-                        in robot_ik_targets.values()
-                    ],
-                    axis=0,
-                )
-
-                # Centre of all arm bases belonging to this mobile robot.
-                arm_base_center = np.mean(
-                    [
-                        np.asarray(
-                            self.C.getFrame(
-                                self.ARM_SPECS[
-                                    arm_name
-                                ]["base_frame"]
-                            ).getPosition(),
-                            dtype=float,
-                        )
-                        for arm_name
-                        in robot_ik_targets
-                    ],
-                    axis=0,
-                )
-
-                approach_direction = (
-                    target_center - arm_base_center
-                )
-
-                # Try different rotations around the rod axis.
-                for roll_offset in roll_offsets:
-                    self.C.setJointState(
-                        q_at_sampled_base
+                    base_x = (
+                        circle_center[0]
+                        + candidate_radius * np.cos(circle_angle)
                     )
 
-                    solutions_by_arm = {}
-                    sample_is_valid = True
+                    base_y = (
+                        circle_center[1]
+                        + candidate_radius * np.sin(circle_angle)
+                    )
+
+                    yaw = np.arctan2(
+                        circle_center[1] - base_y,
+                        circle_center[0] - base_x,
+                    )
+
+                    yaw = np.clip(
+                        yaw,
+                        -3.14,
+                        3.14,
+                    )
+
+                    base_q = np.array([
+                        base_x,
+                        base_y,
+                        yaw,
+                    ])
+
+                    self.C.setJointState(
+                        base_q,
+                        [base_joint],
+                    )
+
+                    q_at_sampled_base = (
+                        self.C.getJointState().copy()
+                    )
+
+                    if not use_ssik_initialization:
+                        candidates.append({
+                            "base_joint": base_joint,
+                            "base_q": base_q.copy(),
+                            "arm_solutions": {},
+                            "target_arms": tuple(robot_ik_targets.keys()),
+                            "branch_rank": 0,
+                            "radius_index": radius_index,
+                            "radius": candidate_radius,
+                            "circle_index": sample_index,
+                            "circle_angle": circle_angle,
+                            "roll_offset": None,
+                        })
+                        continue
+
+                    # Centre of all grasp targets belonging to this mobile robot.
+                    target_center = np.mean(
+                        [
+                            target_spec["position"]
+                            for target_spec
+                            in robot_ik_targets.values()
+                        ],
+                        axis=0,
+                    )
+
+                # Centre of all arm bases belonging to this mobile robot.
+                    arm_base_center = np.mean(
+                        [
+                            np.asarray(
+                                self.C.getFrame(
+                                    self.ARM_SPECS[
+                                        arm_name
+                                    ]["base_frame"]
+                                ).getPosition(),
+                                dtype=float,
+                            )
+                            for arm_name
+                            in robot_ik_targets
+                        ],
+                        axis=0,
+                    )
+
+                    approach_direction = (
+                        target_center - arm_base_center
+                    )
+
+                # Try different rotations around the rod axis.
+                    for roll_offset in roll_offsets:
+                        self.C.setJointState(
+                            q_at_sampled_base
+                        )
+
+                        solutions_by_arm = {}
+                        sample_is_valid = True
 
                     # --------------------------------------------------
                     # Find ALL SSIK solutions for every arm.
                     # --------------------------------------------------
-                    for arm_name, target_spec in (
-                        robot_ik_targets.items()
-                    ):
-                        target_approach_direction = target_spec.get(
-                            "approach_direction",
-                            approach_direction,
-                        )
-                        target_world = (
-                            self._make_ssik_target_transform(
-                                position=target_spec[
-                                    "position"
-                                ],
-                                rod_rotation=target_spec[
-                                    "rod_rotation"
-                                ],
-                                alignment=target_spec[
-                                    "alignment"
-                                ],
-                                approach_direction=(
-                                    target_approach_direction
-                                ),
-                                roll_offset=roll_offset,
+                        for arm_name, target_spec in (
+                            robot_ik_targets.items()
+                        ):
+                            target_approach_direction = target_spec.get(
+                                "approach_direction",
+                                approach_direction,
                             )
-                        )
-
-                        arm_solution_list = (
-                            self._get_ssik_solutions(
-                                arm_name,
-                                target_world,
+                            target_world = (
+                                self._make_ssik_target_transform(
+                                    position=target_spec[
+                                        "position"
+                                    ],
+                                    rod_rotation=target_spec[
+                                        "rod_rotation"
+                                    ],
+                                    alignment=target_spec[
+                                        "alignment"
+                                    ],
+                                    approach_direction=(
+                                        target_approach_direction
+                                    ),
+                                    roll_offset=roll_offset,
+                                )
                             )
-                        )
 
-                        if not arm_solution_list:
-                            sample_is_valid = False
-                            break
+                            arm_solution_list = (
+                                self._get_ssik_solutions(
+                                    arm_name,
+                                    target_world,
+                                )
+                            )
 
-                        solutions_by_arm[
-                            arm_name
-                        ] = arm_solution_list
+                            if not arm_solution_list:
+                                sample_is_valid = False
+                                break
 
-                    if not sample_is_valid:
-                        continue
+                            solutions_by_arm[
+                                arm_name
+                            ] = arm_solution_list
+
+                        if not sample_is_valid:
+                            continue
 
                     # --------------------------------------------------
                     # Generate every combination of SSIK branches.
@@ -1022,43 +1050,45 @@ class KeyframePlanner:
                     # -> 4 * 6 = 24 candidates
                     # --------------------------------------------------
 
-                    arm_names = list(
-                        solutions_by_arm.keys()
-                    )
+                        arm_names = list(
+                            solutions_by_arm.keys()
+                        )
 
-                    solution_lists = [
-                        solutions_by_arm[arm_name]
-                        for arm_name in arm_names
-                    ]
+                        solution_lists = [
+                            solutions_by_arm[arm_name]
+                            for arm_name in arm_names
+                        ]
 
-                    for branch_rank, solution_combination in enumerate(product(
-                        *solution_lists
-                    )):
-                        candidate_arm_solutions = {
-                            arm_name: q_arm.copy()
-                            for arm_name, q_arm in zip(
-                                arm_names,
-                                solution_combination,
-                            )
-                        }
+                        for branch_rank, solution_combination in enumerate(product(
+                            *solution_lists
+                        )):
+                            candidate_arm_solutions = {
+                                arm_name: q_arm.copy()
+                                for arm_name, q_arm in zip(
+                                    arm_names,
+                                    solution_combination,
+                                )
+                            }
 
-                        candidates.append({
-                            "base_joint": base_joint,
-                            "base_q": base_q.copy(),
-                            "arm_solutions": (
-                                candidate_arm_solutions
-                            ),
-                            "target_arms": tuple(arm_names),
-                            "branch_rank": branch_rank,
-                            "circle_index": sample_index,
-                            "circle_angle": circle_angle,
-                            "roll_offset": roll_offset,
-                        })
+                            candidates.append({
+                                "base_joint": base_joint,
+                                "base_q": base_q.copy(),
+                                "arm_solutions": (
+                                    candidate_arm_solutions
+                                ),
+                                "target_arms": tuple(arm_names),
+                                "branch_rank": branch_rank,
+                                "radius_index": radius_index,
+                                "radius": candidate_radius,
+                                "circle_index": sample_index,
+                                "circle_angle": circle_angle,
+                                "roll_offset": roll_offset,
+                            })
 
                     # Keep the old behaviour regarding roll:
                     # use all IK branches, but only for the first roll
                     # orientation that works at this base position.
-                    break
+                        break
 
             return candidates
 
@@ -1353,42 +1383,81 @@ class KeyframePlanner:
 
         if main_uses_two_arms:
             rod_length = self.rods.get_rod_length(rod_id)
+            dual_main_grasp_frames = []
 
-            # Keep both grasps away from the rod ends.
-            end_margin = min(0.12, 0.20 * rod_length)
-
-            # Use the preferred 0.8 m separation when possible,
-            # otherwise use the largest separation that fits.
-            grasp_separation = min(
-                0.8,
-                rod_length - 2.0 * end_margin,
-            )
-
-            if grasp_separation <= 0.0:
-                raise ValueError(
-                    f"Rod {rod_id} is too short for a dual-arm grasp: "
-                    f"length={rod_length}"
+            for first_fraction, second_fraction in (
+                self.DUAL_MAIN_GRASP_FRACTION_PAIRS
+            ):
+                g1_option, g2_option = (
+                    self.rods.create_dual_arm_grasp_frames(
+                        rod_id,
+                        d1_from_end=first_fraction * rod_length,
+                        d12_between_arms=(
+                            (second_fraction - first_fraction)
+                            * rod_length
+                        ),
+                        frame_suffix=(
+                            f"{first_fraction:.2f}_{second_fraction:.2f}"
+                        ),
+                    )
                 )
+                dual_main_grasp_frames.append((
+                    (first_fraction, second_fraction),
+                    g1_option,
+                    g2_option,
+                ))
 
-            g1, g2 = self.rods.create_dual_arm_grasp_frames(
-                rod_id,
-                d1_from_end=end_margin,
-                d12_between_arms=grasp_separation,
-            )
+            _, g1, g2 = dual_main_grasp_frames[0]
 
         else:
-            g1 = self.rods.create_support_grasp_frame_at_fraction(
-                rod_id,
-                0.5,
-            )
+            main_grasp_frames_by_fraction = {
+                fraction: self.rods.create_support_grasp_frame_at_fraction(
+                    rod_id,
+                    fraction,
+                )
+                for fraction in self.MAIN_GRASP_FRACTIONS
+            }
+            g1 = main_grasp_frames_by_fraction[0.5]
             g2 = None
 
-        main_direction_target, main_pointing_direction = (
-            self.rods.create_gripper_direction_target(
+        if main_uses_two_arms:
+            first_grasp_fraction = np.mean([
+                fraction_pair[0]
+                for fraction_pair in self.DUAL_MAIN_GRASP_FRACTION_PAIRS
+            ])
+            second_grasp_fraction = np.mean([
+                fraction_pair[1]
+                for fraction_pair in self.DUAL_MAIN_GRASP_FRACTION_PAIRS
+            ])
+
+            main_direction_target, main_pointing_direction = (
+                self.rods.create_gripper_direction_target(
+                    rod_id,
+                    connected_rod_ids=remaining_rods,
+                    grasp_fraction=first_grasp_fraction,
+                    target_suffix="a1",
+                )
+            )
+            (
+                second_main_direction_target,
+                second_main_pointing_direction,
+            ) = self.rods.create_gripper_direction_target(
                 rod_id,
                 connected_rod_ids=remaining_rods,
+                grasp_fraction=second_grasp_fraction,
+                target_suffix="a2",
             )
-        )
+        else:
+            main_direction_target, main_pointing_direction = (
+                self.rods.create_gripper_direction_target(
+                    rod_id,
+                    connected_rod_ids=remaining_rods,
+                    grasp_fraction=0.5,
+                    target_suffix="a1",
+                )
+            )
+            second_main_direction_target = None
+            second_main_pointing_direction = None
 
         # Fixed target frames for already-active continuing supports.
         # These targets are created before KOMO is constructed.
@@ -1775,21 +1844,94 @@ class KeyframePlanner:
         # ------------------------------------------------------------
         # Main grasps candidate rod and keeps it until pickup.
         # ------------------------------------------------------------
-        komo.addObjective(
-            [t_grasp, t_pickup],
-            ry.FS.positionDiff,
-            [main_gripper, g1],
-            ry.OT.eq,
-            [1e1],
-        )
+        main_rod_length = self.rods.get_rod_length(rod_id)
 
+        def add_main_grasp_position_band(
+            gripper,
+            minimum_fraction,
+            maximum_fraction,
+        ):
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.positionRel,
+                [gripper, rod],
+                ry.OT.eq,
+                1e1 * np.array([
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                ]),
+            )
+
+            minimum_grasp_z = (
+                -0.5 * main_rod_length
+                + minimum_fraction * main_rod_length
+            )
+            maximum_grasp_z = (
+                -0.5 * main_rod_length
+                + maximum_fraction * main_rod_length
+            )
+
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.positionRel,
+                [gripper, rod],
+                ry.OT.ineq,
+                1e1 * np.array([[0.0, 0.0, 1.0]]),
+                [0.0, 0.0, maximum_grasp_z],
+            )
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.positionRel,
+                [gripper, rod],
+                ry.OT.ineq,
+                -1e1 * np.array([[0.0, 0.0, 1.0]]),
+                [0.0, 0.0, minimum_grasp_z],
+            )
+
+        if main_uses_two_arms:
+            first_fractions = [
+                pair[0]
+                for pair in self.DUAL_MAIN_GRASP_FRACTION_PAIRS
+            ]
+            second_fractions = [
+                pair[1]
+                for pair in self.DUAL_MAIN_GRASP_FRACTION_PAIRS
+            ]
+            add_main_grasp_position_band(
+                main_gripper,
+                min(first_fractions),
+                max(first_fractions),
+            )
+            add_main_grasp_position_band(
+                second_main_gripper,
+                min(second_fractions),
+                max(second_fractions),
+            )
+        else:
+            add_main_grasp_position_band(
+                main_gripper,
+                min(self.MAIN_GRASP_FRACTIONS),
+                max(self.MAIN_GRASP_FRACTIONS),
+            )
+
+        # Keep the gripper X-axis parallel to the rod without assigning a
+        # direction to that physically symmetric axis. Together these two
+        # constraints allow both +rod and -rod SSIK orientations.
         komo.addObjective(
             [t_grasp, t_pickup],
-            ry.FS.scalarProductXZ,
+            ry.FS.scalarProductYZ,
             [main_gripper, rod],
             ry.OT.eq,
             [1e1],
-            [1.0],
+            [0.0],
+        )
+        komo.addObjective(
+            [t_grasp, t_pickup],
+            ry.FS.scalarProductZZ,
+            [main_gripper, rod],
+            ry.OT.eq,
+            [1e1],
+            [0.0],
         )
 
         # Fix the otherwise-free rotation around the rod: the gripper's local
@@ -1807,34 +1949,25 @@ class KeyframePlanner:
         if main_uses_two_arms:
             komo.addObjective(
                 [t_grasp, t_pickup],
-                ry.FS.positionDiff,
-                [second_main_gripper, g2],
-                ry.OT.eq,
-                [1e1],
-            )
-
-            komo.addObjective(
-                [t_grasp, t_pickup],
-                ry.FS.scalarProductXZ,
+                ry.FS.scalarProductYZ,
                 [second_main_gripper, rod],
                 ry.OT.eq,
                 [1e1],
-                [1.0],
+                [0.0],
+            )
+            komo.addObjective(
+                [t_grasp, t_pickup],
+                ry.FS.scalarProductZZ,
+                [second_main_gripper, rod],
+                ry.OT.eq,
+                [1e1],
+                [0.0],
             )
 
             komo.addObjective(
                 [t_grasp, last_installed_phase],
                 ry.FS.scalarProductZZ,
-                [second_main_gripper, main_direction_target],
-                ry.OT.eq,
-                [1e1],
-                [1.0],
-            )
-
-            komo.addObjective(
-                [t_grasp, t_pickup],
-                ry.FS.scalarProductYY,
-                [main_gripper, second_main_gripper],
+                [second_main_gripper, second_main_direction_target],
                 ry.OT.eq,
                 [1e1],
                 [1.0],
@@ -1977,54 +2110,109 @@ class KeyframePlanner:
             [1.0],
         )
         
-        main_base_target = np.asarray(
-            self.C.getFrame(g1).getPosition(),
-            dtype=float,
-        )
-
-        if main_uses_two_arms:
-            main_base_target = 0.5 * (
-                main_base_target
-                + np.asarray(
-                    self.C.getFrame(g2).getPosition(),
-                    dtype=float,
-                )
-            )
-
-        base_target_positions = {
-            "husky_base_XYPhi_joint": main_base_target,
-        }
-    
         candidate_rotation = (
             self._frame_transform(rod)[:3, :3].copy()
         )
-
-        ik_targets = {
-            "a1": {
-                "position": np.asarray(
-                    self.C.getFrame(g1).getPosition(),
-                    dtype=float,
-                ).copy(),
-                "rod_rotation": candidate_rotation,
-                "alignment": 1.0,
-                "approach_direction": main_pointing_direction,
-                "fixed_roll": True,
-                "roll_group": "main_candidate",
-            },
-        }
+        main_initialization_variants = []
 
         if main_uses_two_arms:
-            ik_targets["a2"] = {
-                "position": np.asarray(
-                    self.C.getFrame(g2).getPosition(),
+            main_grasp_options = [
+                (
+                    (
+                        f"main fractions "
+                        f"{fraction_pair[0]:.2f}/{fraction_pair[1]:.2f}"
+                    ),
+                    g1_option,
+                    g2_option,
+                )
+                for fraction_pair, g1_option, g2_option
+                in dual_main_grasp_frames
+            ]
+        else:
+            main_grasp_options = [
+                (
+                    f"main fraction {fraction:.2f}",
+                    main_grasp_frames_by_fraction[fraction],
+                    None,
+                )
+                for fraction in self.MAIN_GRASP_FRACTIONS
+            ]
+
+        for main_grasp_label, main_g1, main_g2 in main_grasp_options:
+            main_g1_position = np.asarray(
+                self.C.getFrame(main_g1).getPosition(),
+                dtype=float,
+            ).copy()
+            main_base_target = main_g1_position.copy()
+
+            if main_g2 is not None:
+                main_g2_position = np.asarray(
+                    self.C.getFrame(main_g2).getPosition(),
                     dtype=float,
-                ).copy(),
-                "rod_rotation": candidate_rotation,
-                "alignment": 1.0,
-                "approach_direction": main_pointing_direction,
-                "fixed_roll": True,
-                "roll_group": "main_candidate",
-            }
+                ).copy()
+                main_base_target = 0.5 * (
+                    main_g1_position + main_g2_position
+                )
+            else:
+                main_g2_position = None
+
+            if main_g2_position is not None:
+                alignment_options = product(
+                    self.MAIN_ROD_ALIGNMENTS,
+                    repeat=2,
+                )
+            else:
+                alignment_options = (
+                    (alignment,)
+                    for alignment in self.MAIN_ROD_ALIGNMENTS
+                )
+
+            for alignments in alignment_options:
+                first_alignment = alignments[0]
+                main_ik_targets = {
+                    "a1": {
+                        "position": main_g1_position.copy(),
+                        "rod_rotation": candidate_rotation,
+                        "alignment": first_alignment,
+                        "approach_direction": main_pointing_direction,
+                        "fixed_roll": True,
+                        "base_radii": self.MAIN_BASE_CIRCLE_RADII,
+                        "circle_samples": self.MAIN_BASE_CIRCLE_SAMPLES,
+                        "roll_group": "main_candidate",
+                    },
+                }
+
+                if main_g2_position is not None:
+                    second_alignment = alignments[1]
+                    main_ik_targets["a2"] = {
+                        "position": main_g2_position.copy(),
+                        "rod_rotation": candidate_rotation,
+                        "alignment": second_alignment,
+                        "approach_direction": (
+                            second_main_pointing_direction
+                        ),
+                        "fixed_roll": True,
+                        "base_radii": self.MAIN_BASE_CIRCLE_RADII,
+                        "circle_samples": self.MAIN_BASE_CIRCLE_SAMPLES,
+                        "roll_group": "main_candidate",
+                    }
+
+                main_label_parts = [main_grasp_label]
+                axis_labels = [
+                    "+rod" if alignment > 0.0 else "-rod"
+                    for alignment in alignments
+                ]
+                main_label_parts.append(
+                    "main axes " + "/".join(axis_labels)
+                )
+
+                main_initialization_variants.append({
+                    "base_target_positions": {
+                        "husky_base_XYPhi_joint": main_base_target.copy(),
+                    },
+                    "ik_targets": main_ik_targets,
+                    "label_parts": main_label_parts,
+                })
 
         if support_fractions is None:
             support_fractions = (support_fraction,)
@@ -2038,84 +2226,86 @@ class KeyframePlanner:
         initialization_variants = []
 
         if support_items:
-            fraction_combinations = product(
+            fraction_combinations = list(product(
                 support_fractions,
                 repeat=len(support_items),
-            )
+            ))
 
         else:
-            fraction_combinations = ((),)
+            fraction_combinations = [()]
 
-        for fraction_combination in fraction_combinations:
-            variant_base_target_positions = dict(
-                base_target_positions
-            )
-            variant_ik_targets = {
-                arm_name: dict(target_spec)
-                for arm_name, target_spec in ik_targets.items()
-            }
-            label_parts = []
+        for main_variant in main_initialization_variants:
+            for fraction_combination in fraction_combinations:
+                variant_base_target_positions = dict(
+                    main_variant["base_target_positions"]
+                )
+                variant_ik_targets = {
+                    arm_name: dict(target_spec)
+                    for arm_name, target_spec
+                    in main_variant["ik_targets"].items()
+                }
+                label_parts = list(main_variant["label_parts"])
 
-            for (
-                support_gripper,
-                support_rod_id,
-            ), fraction in zip(
-                support_items,
-                fraction_combination,
-            ):
-                support_grasp = (
-                    self.rods.create_support_grasp_frame_at_fraction(
-                        support_rod_id,
-                        fraction,
+                for (
+                    support_gripper,
+                    support_rod_id,
+                ), fraction in zip(
+                    support_items,
+                    fraction_combination,
+                ):
+                    support_grasp = (
+                        self.rods.create_support_grasp_frame_at_fraction(
+                            support_rod_id,
+                            fraction,
+                        )
                     )
-                )
 
-                base_joint = self._base_joint_for_gripper(
-                    support_gripper
-                )
-
-                variant_base_target_positions[base_joint] = np.asarray(
-                    self.C.getFrame(
-                        support_grasp
-                    ).getPosition(),
-                    dtype=float,
-                )
-
-                arm_name = support_gripper.removesuffix(
-                    "_ur_gripper_center"
-                )
-
-                support_rod = (
-                    support_rod_frame_by_gripper[
+                    base_joint = self._base_joint_for_gripper(
                         support_gripper
-                    ]
-                )
+                    )
 
-                variant_ik_targets[arm_name] = {
-                    "position": np.asarray(
+                    variant_base_target_positions[base_joint] = np.asarray(
                         self.C.getFrame(
                             support_grasp
                         ).getPosition(),
                         dtype=float,
-                    ).copy(),
-                    "rod_rotation": (
-                        self._frame_transform(
-                            support_rod
-                        )[:3, :3].copy()
-                    ),
-                    "alignment": -1.0,
-                    "roll_group": arm_name,
-                }
+                    )
 
-                label_parts.append(
-                    f"{support_gripper} fraction {fraction:.2f}"
-                )
+                    arm_name = support_gripper.removesuffix(
+                        "_ur_gripper_center"
+                    )
 
-            initialization_variants.append({
-                "base_target_positions": variant_base_target_positions,
-                "ik_targets": variant_ik_targets,
-                "label": ", ".join(label_parts) or None,
-            })
+                    support_rod = (
+                        support_rod_frame_by_gripper[
+                            support_gripper
+                        ]
+                    )
+
+                    variant_ik_targets[arm_name] = {
+                        "position": np.asarray(
+                            self.C.getFrame(
+                                support_grasp
+                            ).getPosition(),
+                            dtype=float,
+                        ).copy(),
+                        "rod_rotation": (
+                            self._frame_transform(
+                                support_rod
+                            )[:3, :3].copy()
+                        ),
+                        "alignment": -1.0,
+                        "roll_group": arm_name,
+                    }
+
+                    label_parts.append(
+                        f"{support_gripper} fraction {fraction:.2f}"
+                    )
+
+                initialization_variants.append({
+                    "base_target_positions": variant_base_target_positions,
+                    "ik_targets": variant_ik_targets,
+                    "label": ", ".join(label_parts) or None,
+                })
 
         def freeze_supported_robot_keyframes(keyframes):
             frozen_keyframes = np.asarray(
@@ -2180,8 +2370,8 @@ class KeyframePlanner:
         keyframes = self.solve_komo(
             komo,
             view=False,
-            base_target_positions=base_target_positions,
-            ik_targets=ik_targets,
+            base_target_positions=None,
+            ik_targets=None,
             circle_samples=8,
             base_circle_radius=0.9,
             n_phases=phases.n_phases,
@@ -2190,6 +2380,7 @@ class KeyframePlanner:
             view_last_attempt=view_last_komo_attempt,
             use_ssik_initialization=use_ssik_initialization,
             initialization_variants=initialization_variants,
+            max_combinations=(200 if main_uses_two_arms else 100),
         )
 
         if keyframes is None:
