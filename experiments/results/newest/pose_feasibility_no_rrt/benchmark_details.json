@@ -11565,5 +11565,4350 @@
     "total_time_s": 694.6758874619991,
     "use_rai": true,
     "use_rrt": false
+  },
+  {
+    "assembly_sequence": [],
+    "benchmark_stop_reason": "max_replans",
+    "do_shortcut": false,
+    "first_plan_pose_feasible": false,
+    "forbidden_rai_transitions": 50,
+    "h1_base_XYPhi_joint_travel": 0.0,
+    "h2_base_XYPhi_joint_travel": 0.0,
+    "husky_base_XYPhi_joint_travel": 0.0,
+    "komo_calls": 5165,
+    "komo_errors": 0,
+    "komo_feasible": 27,
+    "komo_infeasible": 5138,
+    "komo_ssik_attempts_until_success": [
+      1,
+      1,
+      12,
+      1,
+      10,
+      2,
+      7,
+      4,
+      2,
+      8,
+      3,
+      5,
+      4,
+      3,
+      4,
+      3,
+      1,
+      5,
+      5,
+      3,
+      4
+    ],
+    "komo_ssik_available_combinations": [
+      38,
+      1692,
+      1656,
+      39,
+      20,
+      14,
+      14,
+      16,
+      14,
+      14,
+      14,
+      14,
+      14,
+      20,
+      14,
+      14,
+      16,
+      14,
+      14,
+      14,
+      14
+    ],
+    "komo_ssik_success": 21,
+    "komo_time_s": 1360.9689539400424,
+    "locked_support_drift_max": 0.0,
+    "locked_support_drift_total": 0.0,
+    "main_attach_events": 0,
+    "main_detach_events": 0,
+    "max_total_runtime_s": 3600.0,
+    "motion_segments": 0,
+    "path_cost": 0.0,
+    "path_points": 0,
+    "peak_supports": 0,
+    "pose_validation_time_s": 1368.1948167479786,
+    "rai_cache_hits": 274,
+    "rai_cache_misses": 77,
+    "rai_pose_failures": 50,
+    "rai_replans": 49,
+    "rai_robot_import_time_s": 0.0,
+    "rai_robot_model_imports": 0,
+    "rai_robot_template_cache_hits": 1,
+    "rai_robot_template_restore_time_s": 0.0002549740020185709,
+    "rai_scene_reset_time_s": 0.10158912002225406,
+    "rai_scene_template_restores": 77,
+    "rai_transition_attempts": 77,
+    "rai_transition_failures": 50,
+    "rai_transition_successes": 27,
+    "record_count": 0,
+    "removal_sequence": [],
+    "repeat": 3,
+    "replan_trace": [
+      {
+        "failed_rod": 2,
+        "failed_step_index": 2,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 1,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.188138518002233,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.06243732300208649,
+        "validated_transition_count": 2
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 4,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 2,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.927375499995833,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08129280399589334,
+        "validated_transition_count": 4
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 4,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 3,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 29.858134583999345,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.07748896200064337,
+        "validated_transition_count": 4
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 4,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.71806681399903,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.0762699680053629,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 5,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.13834847600083,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.07859376099804649,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 6,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.82320296800026,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.07640189999801805,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 7,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.8715996969986,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.07328468899504514,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 8,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.03993202499987,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08636861200648127,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 9,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 22.216417850002472,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08543440500216093,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 10,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 21.971907230996294,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09326793999935035,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 11,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.5358128470034,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09031374200276332,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 12,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.52284688200598,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1243394119956065,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 13,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.264926607000234,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.11322871399897849,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 14,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.86720216699905,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.146623136002745,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 15,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.34091066599649,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1434741299963207,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 16,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.280046482002945,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14361807699606288,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 17,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 22.72478267599945,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14229895199969178,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 18,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.304141868000443,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14686012499441858,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 19,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.10331319400575,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.15019668299646582,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 20,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.541274797004007,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1675570980005432,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 21,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.839569370997197,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.16808689999743365,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 22,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.799367829000403,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.18757686300523346,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 23,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 31.674463472998468,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.19354489499528427,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 24,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.728095191996545,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.19015607799519785,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 25,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 32.53521028700197,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1972624980044202,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 26,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.971302877995186,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.21913562400004594,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 27,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 39.28816755900334,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.22859312599757686,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 28,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.01554082000075,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2603148449998116,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 29,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.92560784100351,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.25513229600619525,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 30,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.455475187001866,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2826894280005945,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 31,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 29.27117084699421,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2742441750015132,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 32,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.924926359999517,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3246973750065081,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 33,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.07489813099528,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2539915300003486,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 34,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.367170710997016,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2618757550008013,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 35,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 22.610065742999723,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.25751286200102186,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 36,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.58157119599491,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2793367109989049,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 37,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.90295594000054,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2977646539948182,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 38,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.040218222995463,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.29102704300021287,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 39,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.843698491000396,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2940939889958827,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 40,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.961287377998815,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2940176429983694,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 41,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.518739282997558,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.28871618599805515,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 42,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 31.106732610998733,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.42444746699766256,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 43,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.67539538299752,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3664074440021068,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 44,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.86415512899839,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.32403227100439835,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 45,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.2932029529984,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.34999516200332437,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 46,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.104035697004292,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3784830630029319,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 47,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 35.43621960299788,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.46630080699833343,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 48,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 31.596361550000438,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3943342519996804,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 49,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.56780285999412,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.6055496199987829,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 2,
+        "failed_step_index": 3,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 7,
+          "h2_a1_ur_gripper_center": 23
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 23
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 50,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 38.98302637300367,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.5120485590014141,
+        "validated_transition_count": 3
+      }
+    ],
+    "require_connected_supports": true,
+    "rigidity_cache_hits": 569,
+    "rigidity_cache_misses": 3964,
+    "rigidity_check_calls": 4533,
+    "rigidity_incremental_support_cache_hits": 0,
+    "rigidity_incremental_support_fallbacks": 0,
+    "rigidity_incremental_support_updates": 1048,
+    "rrt_accepted_candidates": 0,
+    "rrt_calls": 0,
+    "rrt_candidate_rejections": 0,
+    "rrt_failures": 0,
+    "rrt_successes": 0,
+    "rrt_time_s": 0.0,
+    "search_attempted_transitions": 4202,
+    "search_enqueued_candidates": 10208,
+    "search_expansions": 4202,
+    "search_stop_reason": "complete",
+    "seed": 200455,
+    "sequence_length": 0,
+    "shuffle_ties": true,
+    "strategy": "default",
+    "structural_plans_generated": 50,
+    "structural_replans": 50,
+    "structural_time_s": 11.28071955399355,
+    "success": false,
+    "support_add_events": 0,
+    "support_additions": 0,
+    "support_assignment_episodes": 0,
+    "support_moves": 0,
+    "support_release_events": 0,
+    "support_releases": 0,
+    "support_steps": 0,
+    "support_target_order": "lowest_first",
+    "supported_rod_episodes": 0,
+    "supported_rod_steps": 0,
+    "total_time_s": 1379.5461608050027,
+    "use_rai": true,
+    "use_rrt": false
+  },
+  {
+    "assembly_sequence": [
+      0,
+      5,
+      15,
+      13,
+      6,
+      9,
+      2,
+      7,
+      1,
+      23,
+      21,
+      4,
+      14,
+      11,
+      12,
+      10,
+      22,
+      16,
+      3,
+      8
+    ],
+    "benchmark_stop_reason": "complete",
+    "do_shortcut": false,
+    "first_plan_pose_feasible": false,
+    "forbidden_rai_transitions": 2,
+    "h1_base_XYPhi_joint_travel": 52.591621250350215,
+    "h2_base_XYPhi_joint_travel": 30.708556021199772,
+    "husky_base_XYPhi_joint_travel": 151.68046541256177,
+    "komo_calls": 331,
+    "komo_errors": 0,
+    "komo_feasible": 20,
+    "komo_infeasible": 311,
+    "komo_ssik_attempts_until_success": [
+      1,
+      20,
+      2,
+      2,
+      49,
+      16,
+      2,
+      1,
+      1,
+      11,
+      1,
+      1,
+      1,
+      1
+    ],
+    "komo_ssik_available_combinations": [
+      38,
+      644,
+      1440,
+      1920,
+      2140,
+      4104,
+      1833,
+      15,
+      2016,
+      16,
+      16,
+      32,
+      14,
+      14
+    ],
+    "komo_ssik_success": 14,
+    "komo_time_s": 110.18956723394513,
+    "locked_support_drift_max": 0.0,
+    "locked_support_drift_total": 0.0,
+    "main_attach_events": 20,
+    "main_detach_events": 0,
+    "max_total_runtime_s": 3600.0,
+    "motion_segments": 54,
+    "path_cost": 290.6840880047754,
+    "path_points": 108,
+    "peak_supports": 2,
+    "pose_validation_time_s": 111.37754934200348,
+    "rai_cache_hits": 25,
+    "rai_cache_misses": 22,
+    "rai_pose_failures": 2,
+    "rai_replans": 2,
+    "rai_robot_import_time_s": 0.0,
+    "rai_robot_model_imports": 0,
+    "rai_robot_template_cache_hits": 1,
+    "rai_robot_template_restore_time_s": 0.0004414139984874055,
+    "rai_scene_reset_time_s": 0.03160237900738139,
+    "rai_scene_template_restores": 22,
+    "rai_transition_attempts": 22,
+    "rai_transition_failures": 2,
+    "rai_transition_successes": 20,
+    "record_count": 20,
+    "removal_sequence": [
+      8,
+      3,
+      16,
+      22,
+      10,
+      12,
+      11,
+      14,
+      4,
+      21,
+      23,
+      1,
+      7,
+      2,
+      9,
+      6,
+      13,
+      15,
+      5,
+      0
+    ],
+    "repeat": 3,
+    "replan_trace": [
+      {
+        "failed_rod": 9,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 7
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 1,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 75.49604735700268,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.18115874600334791,
+        "validated_transition_count": 12
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 2,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 34.86255697700108,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14975170999969123,
+        "validated_transition_count": 13
+      },
+      {
+        "outcome": "pose_feasible",
+        "plan_number": 3,
+        "pose_stop_reason": "complete",
+        "pose_success": true,
+        "pose_validation_time_s": 1.0189450079997187,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.13125696399947628,
+        "validated_transition_count": 20
+      }
+    ],
+    "require_connected_supports": true,
+    "rigidity_cache_hits": 0,
+    "rigidity_cache_misses": 116,
+    "rigidity_check_calls": 116,
+    "rigidity_incremental_support_cache_hits": 0,
+    "rigidity_incremental_support_fallbacks": 0,
+    "rigidity_incremental_support_updates": 28,
+    "rrt_accepted_candidates": 0,
+    "rrt_calls": 0,
+    "rrt_candidate_rejections": 0,
+    "rrt_failures": 0,
+    "rrt_successes": 0,
+    "rrt_time_s": 0.0,
+    "search_attempted_transitions": 102,
+    "search_enqueued_candidates": 423,
+    "search_expansions": 102,
+    "search_stop_reason": "complete",
+    "seed": 200455,
+    "sequence_length": 20,
+    "shuffle_ties": true,
+    "strategy": "highest_first",
+    "structural_plans_generated": 3,
+    "structural_replans": 3,
+    "structural_time_s": 0.46216742000251543,
+    "success": true,
+    "support_add_events": 10,
+    "support_additions": 10,
+    "support_assignment_episodes": 10,
+    "support_moves": 10,
+    "support_release_events": 10,
+    "support_releases": 10,
+    "support_steps": 25,
+    "support_target_order": "lowest_first",
+    "supported_rod_episodes": 10,
+    "supported_rod_steps": 25,
+    "total_time_s": 111.84356960800505,
+    "use_rai": true,
+    "use_rrt": false
+  },
+  {
+    "assembly_sequence": [],
+    "benchmark_stop_reason": "max_replans",
+    "do_shortcut": false,
+    "first_plan_pose_feasible": false,
+    "forbidden_rai_transitions": 50,
+    "h1_base_XYPhi_joint_travel": 0.0,
+    "h2_base_XYPhi_joint_travel": 0.0,
+    "husky_base_XYPhi_joint_travel": 0.0,
+    "komo_calls": 4335,
+    "komo_errors": 0,
+    "komo_feasible": 67,
+    "komo_infeasible": 4268,
+    "komo_ssik_attempts_until_success": [
+      1,
+      1,
+      6,
+      6,
+      4,
+      1,
+      2,
+      4,
+      3,
+      8,
+      4,
+      9,
+      1,
+      1,
+      1,
+      4,
+      2,
+      1,
+      1,
+      1,
+      1,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      6,
+      1,
+      5,
+      2,
+      5,
+      8,
+      15,
+      1,
+      1,
+      1,
+      5
+    ],
+    "komo_ssik_available_combinations": [
+      38,
+      1692,
+      1656,
+      38,
+      15,
+      630,
+      16,
+      672,
+      14,
+      14,
+      20,
+      1344,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      1568,
+      48,
+      14,
+      1920,
+      1920,
+      14,
+      1344,
+      1344,
+      20,
+      1344,
+      20,
+      32,
+      32,
+      588,
+      32,
+      14,
+      14,
+      20,
+      32,
+      48,
+      588,
+      32
+    ],
+    "komo_ssik_success": 40,
+    "komo_time_s": 1077.4670301499864,
+    "locked_support_drift_max": 0.0,
+    "locked_support_drift_total": 0.0,
+    "main_attach_events": 0,
+    "main_detach_events": 0,
+    "max_total_runtime_s": 3600.0,
+    "motion_segments": 0,
+    "path_cost": 0.0,
+    "path_points": 0,
+    "peak_supports": 0,
+    "pose_validation_time_s": 1086.7329717439934,
+    "rai_cache_hits": 621,
+    "rai_cache_misses": 117,
+    "rai_pose_failures": 50,
+    "rai_replans": 49,
+    "rai_robot_import_time_s": 0.0,
+    "rai_robot_model_imports": 0,
+    "rai_robot_template_cache_hits": 1,
+    "rai_robot_template_restore_time_s": 0.0003321980038890615,
+    "rai_scene_reset_time_s": 0.12806988901866134,
+    "rai_scene_template_restores": 117,
+    "rai_transition_attempts": 117,
+    "rai_transition_failures": 50,
+    "rai_transition_successes": 67,
+    "record_count": 0,
+    "removal_sequence": [],
+    "repeat": 3,
+    "replan_trace": [
+      {
+        "failed_rod": 11,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 23
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 23
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 1,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 7.6246870850009145,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08953703999577556,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 2,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 2,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 5.734397984997486,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09362312399753137,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 9,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 3,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 7.0796105330009595,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09619519599800697,
+        "validated_transition_count": 9
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 10,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 4,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.706899352997425,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09547937499883119,
+        "validated_transition_count": 10
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 17,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 5,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.46340079500078,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09728681600245181,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 17,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 6,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.181322723998164,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.10651478300133022,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 7,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 20.99404747299559,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.11281384599715238,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 8,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 20.413535221996426,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.11885827899823198,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 9,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 38.95168746700074,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1186086730012903,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 10,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.80165037099505,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.11521754100249382,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 11,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.741570557998784,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.11929845700069563,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 12,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.114674955002556,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.12058278599579353,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 13,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.333205577997433,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.13802602799842134,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 14,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.905123468000966,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1260130320006283,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 15,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.084259959003248,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.13851654299651273,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 16,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.285129415002302,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14038496600551298,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 17,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.246780041998136,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.13073813999653794,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 18,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.182337776997883,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14182609799900092,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 19,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.51038298899948,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14516773400100647,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 5,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 20,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 2.8174286520006717,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14530579900019802,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 21,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.972778789000586,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14073422900401056,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 22,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 21.457918232001248,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14731230499455705,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 23,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.239849682002387,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14057107600092422,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 24,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.058365108001453,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1686207570019178,
+        "validated_transition_count": 12
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 25,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.156738739999128,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.16297374800342368,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 26,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.78433150699857,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1653062580007827,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 11
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 27,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.192863225995097,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.17001967600663193,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 11
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 28,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.222530833001656,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.17219297499832464,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 29,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 25.84940229500353,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.179057768000348,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 30,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.08421725700464,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.18769929799600504,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 10,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 31,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.761474371000077,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.21553959899756592,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 11,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 32,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.418268289999105,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2271771619998617,
+        "validated_transition_count": 11
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 11,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 33,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.0327088339981856,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2523016720006126,
+        "validated_transition_count": 11
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 34,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.02648839900212,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.23268784199899528,
+        "validated_transition_count": 12
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 35,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.770600370997272,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2315050120014348,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 36,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 21.937528177004424,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2336434980024933,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 37,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.44340233699768,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.22808061700197868,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 38,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.239941669999098,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.22601001200382598,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 11
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 39,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 5.022304609999992,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.24164467400260037,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 40,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 5.036333453004772,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.24527108400070574,
+        "validated_transition_count": 12
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 41,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.828996937998454,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2594911440028227,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 42,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 32.15192099900014,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.25006052399839973,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 43,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 40.17081827799848,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.27275152599759167,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 44,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.314183360002062,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2706847029985511,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 45,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.306702828995185,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.291892845001712,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 11
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 46,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.666404386000067,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2823562910052715,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 11,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 47,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.37067351800215,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26815155100484844,
+        "validated_transition_count": 11
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 48,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.72020577100193,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3211377609986812,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 15
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 15
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 49,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 24.74637403700035,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.29866009600664256,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 9,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 50,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 22.57651304599858,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3228666909999447,
+        "validated_transition_count": 15
+      }
+    ],
+    "require_connected_supports": true,
+    "rigidity_cache_hits": 1434,
+    "rigidity_cache_misses": 4119,
+    "rigidity_check_calls": 5553,
+    "rigidity_incremental_support_cache_hits": 21,
+    "rigidity_incremental_support_fallbacks": 0,
+    "rigidity_incremental_support_updates": 288,
+    "rrt_accepted_candidates": 0,
+    "rrt_calls": 0,
+    "rrt_candidate_rejections": 0,
+    "rrt_failures": 0,
+    "rrt_successes": 0,
+    "rrt_time_s": 0.0,
+    "search_attempted_transitions": 4605,
+    "search_enqueued_candidates": 10711,
+    "search_expansions": 4605,
+    "search_stop_reason": "complete",
+    "seed": 200455,
+    "sequence_length": 0,
+    "shuffle_ties": true,
+    "strategy": "fewest_mandatory_supports",
+    "structural_plans_generated": 50,
+    "structural_replans": 50,
+    "structural_time_s": 9.196396650018869,
+    "success": false,
+    "support_add_events": 0,
+    "support_additions": 0,
+    "support_assignment_episodes": 0,
+    "support_moves": 0,
+    "support_release_events": 0,
+    "support_releases": 0,
+    "support_steps": 0,
+    "support_target_order": "lowest_first",
+    "supported_rod_episodes": 0,
+    "supported_rod_steps": 0,
+    "total_time_s": 1095.9973361629964,
+    "use_rai": true,
+    "use_rrt": false
+  },
+  {
+    "assembly_sequence": [
+      5,
+      10,
+      16,
+      6,
+      9,
+      11,
+      0,
+      3,
+      1,
+      4,
+      14,
+      7,
+      2,
+      12,
+      15,
+      13,
+      23,
+      22,
+      21,
+      8
+    ],
+    "benchmark_stop_reason": "complete",
+    "do_shortcut": false,
+    "first_plan_pose_feasible": false,
+    "forbidden_rai_transitions": 3,
+    "h1_base_XYPhi_joint_travel": 39.331580867958564,
+    "h2_base_XYPhi_joint_travel": 15.255962400909103,
+    "husky_base_XYPhi_joint_travel": 156.790858527115,
+    "komo_calls": 145,
+    "komo_errors": 0,
+    "komo_feasible": 23,
+    "komo_infeasible": 122,
+    "komo_ssik_attempts_until_success": [
+      1,
+      1,
+      4,
+      2,
+      6,
+      1,
+      3,
+      3,
+      2
+    ],
+    "komo_ssik_available_combinations": [
+      38,
+      15,
+      14,
+      14,
+      1692,
+      48,
+      20,
+      1344,
+      1344
+    ],
+    "komo_ssik_success": 9,
+    "komo_time_s": 23.578308593991096,
+    "locked_support_drift_max": 0.0,
+    "locked_support_drift_total": 0.0,
+    "main_attach_events": 20,
+    "main_detach_events": 0,
+    "max_total_runtime_s": 3600.0,
+    "motion_segments": 48,
+    "path_cost": 229.43000069386378,
+    "path_points": 96,
+    "peak_supports": 2,
+    "pose_validation_time_s": 24.07530786999996,
+    "rai_cache_hits": 48,
+    "rai_cache_misses": 26,
+    "rai_pose_failures": 3,
+    "rai_replans": 3,
+    "rai_robot_import_time_s": 0.0,
+    "rai_robot_model_imports": 0,
+    "rai_robot_template_cache_hits": 1,
+    "rai_robot_template_restore_time_s": 0.0003677159984363243,
+    "rai_scene_reset_time_s": 0.03193332099181134,
+    "rai_scene_template_restores": 26,
+    "rai_transition_attempts": 26,
+    "rai_transition_failures": 3,
+    "rai_transition_successes": 23,
+    "record_count": 20,
+    "removal_sequence": [
+      8,
+      21,
+      22,
+      23,
+      13,
+      15,
+      12,
+      2,
+      7,
+      14,
+      4,
+      1,
+      3,
+      0,
+      11,
+      9,
+      6,
+      16,
+      10,
+      5
+    ],
+    "repeat": 3,
+    "replan_trace": [
+      {
+        "failed_rod": 10,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 9,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 1,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 11.667531188002613,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.24701161999837495,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 10,
+        "failed_step_index": 17,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 2,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 6.546100378000119,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.22945501399954082,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 10,
+        "failed_step_index": 18,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h2_a1_ur_gripper_center": 10
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 3,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.628909958999429,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.24318444600066869,
+        "validated_transition_count": 18
+      },
+      {
+        "outcome": "pose_feasible",
+        "plan_number": 4,
+        "pose_stop_reason": "complete",
+        "pose_success": true,
+        "pose_validation_time_s": 1.232766344997799,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.25145028800034197,
+        "validated_transition_count": 20
+      }
+    ],
+    "require_connected_supports": true,
+    "rigidity_cache_hits": 1,
+    "rigidity_cache_misses": 288,
+    "rigidity_check_calls": 289,
+    "rigidity_incremental_support_cache_hits": 0,
+    "rigidity_incremental_support_fallbacks": 0,
+    "rigidity_incremental_support_updates": 52,
+    "rrt_accepted_candidates": 0,
+    "rrt_calls": 0,
+    "rrt_candidate_rejections": 0,
+    "rrt_failures": 0,
+    "rrt_successes": 0,
+    "rrt_time_s": 0.0,
+    "search_attempted_transitions": 83,
+    "search_enqueued_candidates": 697,
+    "search_expansions": 83,
+    "search_stop_reason": "complete",
+    "seed": 200455,
+    "sequence_length": 20,
+    "shuffle_ties": true,
+    "strategy": "fast_reduce_support",
+    "structural_plans_generated": 4,
+    "structural_replans": 4,
+    "structural_time_s": 0.9711013679989264,
+    "success": true,
+    "support_add_events": 5,
+    "support_additions": 5,
+    "support_assignment_episodes": 5,
+    "support_moves": 5,
+    "support_release_events": 5,
+    "support_releases": 5,
+    "support_steps": 19,
+    "support_target_order": "lowest_first",
+    "supported_rod_episodes": 5,
+    "supported_rod_steps": 19,
+    "total_time_s": 25.051738130998274,
+    "use_rai": true,
+    "use_rrt": false
+  },
+  {
+    "assembly_sequence": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      11,
+      14,
+      3,
+      10,
+      9,
+      23,
+      7,
+      2,
+      13,
+      21,
+      12,
+      15,
+      8,
+      22,
+      16
+    ],
+    "benchmark_stop_reason": "complete",
+    "do_shortcut": false,
+    "first_plan_pose_feasible": false,
+    "forbidden_rai_transitions": 3,
+    "h1_base_XYPhi_joint_travel": 43.42351394692817,
+    "h2_base_XYPhi_joint_travel": 24.096127902811542,
+    "husky_base_XYPhi_joint_travel": 146.81610057488302,
+    "komo_calls": 165,
+    "komo_errors": 0,
+    "komo_feasible": 25,
+    "komo_infeasible": 140,
+    "komo_ssik_attempts_until_success": [
+      6,
+      2,
+      1,
+      3,
+      5,
+      2,
+      2,
+      1,
+      6,
+      4,
+      1,
+      1,
+      1,
+      2,
+      4
+    ],
+    "komo_ssik_available_combinations": [
+      644,
+      15,
+      38,
+      14,
+      1692,
+      14,
+      672,
+      1440,
+      1596,
+      4256,
+      1920,
+      1920,
+      32,
+      14,
+      4256
+    ],
+    "komo_ssik_success": 15,
+    "komo_time_s": 30.05423762997816,
+    "locked_support_drift_max": 0.0,
+    "locked_support_drift_total": 0.0,
+    "main_attach_events": 20,
+    "main_detach_events": 0,
+    "max_total_runtime_s": 3600.0,
+    "motion_segments": 52,
+    "path_cost": 250.00773075509002,
+    "path_points": 104,
+    "peak_supports": 2,
+    "pose_validation_time_s": 31.047112173007918,
+    "rai_cache_hits": 46,
+    "rai_cache_misses": 28,
+    "rai_pose_failures": 3,
+    "rai_replans": 3,
+    "rai_robot_import_time_s": 0.0,
+    "rai_robot_model_imports": 0,
+    "rai_robot_template_cache_hits": 1,
+    "rai_robot_template_restore_time_s": 0.0003716179999173619,
+    "rai_scene_reset_time_s": 0.03243190700595733,
+    "rai_scene_template_restores": 28,
+    "rai_transition_attempts": 28,
+    "rai_transition_failures": 3,
+    "rai_transition_successes": 25,
+    "record_count": 20,
+    "removal_sequence": [
+      16,
+      22,
+      8,
+      15,
+      12,
+      21,
+      13,
+      2,
+      7,
+      23,
+      9,
+      10,
+      3,
+      14,
+      11,
+      6,
+      5,
+      4,
+      1,
+      0
+    ],
+    "repeat": 3,
+    "replan_trace": [
+      {
+        "failed_rod": 6,
+        "failed_step_index": 18,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 1,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 17.00360842000373,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08963801600475563,
+        "validated_transition_count": 18
+      },
+      {
+        "failed_rod": 6,
+        "failed_step_index": 17,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 6
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 2,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 5.299490543002321,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08644197299872758,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 6,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 6,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 3,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 6.504510696999205,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.10194210900226608,
+        "validated_transition_count": 16
+      },
+      {
+        "outcome": "pose_feasible",
+        "plan_number": 4,
+        "pose_stop_reason": "complete",
+        "pose_success": true,
+        "pose_validation_time_s": 2.2395025130026625,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1182137759969919,
+        "validated_transition_count": 20
+      }
+    ],
+    "require_connected_supports": true,
+    "rigidity_cache_hits": 5,
+    "rigidity_cache_misses": 144,
+    "rigidity_check_calls": 149,
+    "rigidity_incremental_support_cache_hits": 0,
+    "rigidity_incremental_support_fallbacks": 0,
+    "rigidity_incremental_support_updates": 52,
+    "rrt_accepted_candidates": 0,
+    "rrt_calls": 0,
+    "rrt_candidate_rejections": 0,
+    "rrt_failures": 0,
+    "rrt_successes": 0,
+    "rrt_time_s": 0.0,
+    "search_attempted_transitions": 126,
+    "search_enqueued_candidates": 549,
+    "search_expansions": 126,
+    "search_stop_reason": "complete",
+    "seed": 200455,
+    "sequence_length": 20,
+    "shuffle_ties": true,
+    "strategy": "baseline",
+    "structural_plans_generated": 4,
+    "structural_replans": 4,
+    "structural_time_s": 0.3962358740027412,
+    "success": true,
+    "support_add_events": 9,
+    "support_additions": 9,
+    "support_assignment_episodes": 9,
+    "support_moves": 9,
+    "support_release_events": 9,
+    "support_releases": 9,
+    "support_steps": 29,
+    "support_target_order": "lowest_first",
+    "supported_rod_episodes": 9,
+    "supported_rod_steps": 29,
+    "total_time_s": 31.447839218002628,
+    "use_rai": true,
+    "use_rrt": false
+  },
+  {
+    "assembly_sequence": [],
+    "benchmark_stop_reason": "max_replans",
+    "do_shortcut": false,
+    "first_plan_pose_feasible": false,
+    "forbidden_rai_transitions": 50,
+    "h1_base_XYPhi_joint_travel": 0.0,
+    "h2_base_XYPhi_joint_travel": 0.0,
+    "husky_base_XYPhi_joint_travel": 0.0,
+    "komo_calls": 3647,
+    "komo_errors": 0,
+    "komo_feasible": 48,
+    "komo_infeasible": 3599,
+    "komo_ssik_attempts_until_success": [
+      2,
+      1,
+      8,
+      1,
+      1,
+      21,
+      2,
+      1,
+      15,
+      2,
+      11,
+      1,
+      1,
+      1,
+      1,
+      1,
+      5,
+      2,
+      2,
+      16,
+      9,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      4,
+      2,
+      3,
+      3,
+      2
+    ],
+    "komo_ssik_available_combinations": [
+      38,
+      1692,
+      752,
+      736,
+      690,
+      1512,
+      14,
+      14,
+      20,
+      32,
+      1568,
+      14,
+      14,
+      14,
+      14,
+      14,
+      1638,
+      1498,
+      20,
+      4104,
+      1596,
+      1568,
+      48,
+      588,
+      14,
+      14,
+      588,
+      14,
+      588,
+      14,
+      32,
+      14,
+      14,
+      14,
+      14
+    ],
+    "komo_ssik_success": 35,
+    "komo_time_s": 990.5934514313121,
+    "locked_support_drift_max": 0.0,
+    "locked_support_drift_total": 0.0,
+    "main_attach_events": 0,
+    "main_detach_events": 0,
+    "max_total_runtime_s": 3600.0,
+    "motion_segments": 0,
+    "path_cost": 0.0,
+    "path_points": 0,
+    "peak_supports": 0,
+    "pose_validation_time_s": 997.8873682140256,
+    "rai_cache_hits": 532,
+    "rai_cache_misses": 98,
+    "rai_pose_failures": 50,
+    "rai_replans": 49,
+    "rai_robot_import_time_s": 0.0,
+    "rai_robot_model_imports": 0,
+    "rai_robot_template_cache_hits": 1,
+    "rai_robot_template_restore_time_s": 0.0003567449966794811,
+    "rai_scene_reset_time_s": 0.1214313899690751,
+    "rai_scene_template_restores": 98,
+    "rai_transition_attempts": 98,
+    "rai_transition_failures": 50,
+    "rai_transition_successes": 48,
+    "record_count": 0,
+    "removal_sequence": [],
+    "repeat": 4,
+    "replan_trace": [
+      {
+        "failed_rod": 22,
+        "failed_step_index": 5,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 1,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 37.652096218000224,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.08447845100454288,
+        "validated_transition_count": 5
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 2,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 45.900309035001555,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.0997940320012276,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 3,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 38.13826049400086,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.09977655800321372,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 4,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.9965416490013013,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.10243859699403401,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 5,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.95885945800546,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.10517485099990154,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 6,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.665013908001129,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.10502879499836126,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 9,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 7,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 31.310018787000445,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.10811576199921547,
+        "validated_transition_count": 9
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 9,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 8,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.5610485729994252,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.11849443300161511,
+        "validated_transition_count": 9
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 9,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 35.516674782993505,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.15125408399762819,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 9,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 10,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.316667915001744,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1441221150016645,
+        "validated_transition_count": 9
+      },
+      {
+        "failed_rod": 1,
+        "failed_step_index": 11,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 4
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 11,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.247684512003616,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.1411096820011153,
+        "validated_transition_count": 11
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 11,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 12,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.71962007300317,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.12897241100290557,
+        "validated_transition_count": 11
+      },
+      {
+        "failed_rod": 1,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 4
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 13,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.603319269001076,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.14044854399980977,
+        "validated_transition_count": 12
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 1
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 14,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.67385843199736,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.13845968899840955,
+        "validated_transition_count": 12
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 10,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 15,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.918510046998563,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.15709274899563752,
+        "validated_transition_count": 10
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 11,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 16,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 29.398321833003138,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.17350887900101952,
+        "validated_transition_count": 11
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 10,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 17,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.00029248699866,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.19418075599969598,
+        "validated_transition_count": 10
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 6,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 18,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.8654612509999424,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.24745419700047933,
+        "validated_transition_count": 6
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 19,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 37.00818606699613,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.245809462001489,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 20,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.415543612994952,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2542574719991535,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 21,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.0694481419996,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.25947956599702593,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 22,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 5.374483834995772,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2597089219998452,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 23,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 33.23266510100075,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.27539417699881596,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 11,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 9
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 24,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.507514930002799,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26827609699830646,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 7,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 12
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 12
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 25,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 30.445530698001676,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.27006662100029644,
+        "validated_transition_count": 7
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 8,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 12
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 12
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 26,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 32.278611326997634,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2684176690017921,
+        "validated_transition_count": 8
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 9,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 16,
+          "h2_a1_ur_gripper_center": 12
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 12
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 27,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.615223731001606,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3000444429999334,
+        "validated_transition_count": 9
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 28,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 27.705666824003856,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2893755949990009,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 15,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 29,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.367912094006897,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26210651300061727,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 16,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 30,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 2.491107871996064,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26094929999817396,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 17,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 13
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 31,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.567488130996935,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26842811000096845,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 18,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 32,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.565356833001715,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26330303099530283,
+        "validated_transition_count": 18
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 17,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 33,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 2.5643821750054485,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.26847391999763204,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 16,
+        "failed_supports_after": {},
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 34,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.3421524330042303,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.27776061600161484,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 17,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 15
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 15
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 35,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.309433779999381,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2997256759990705,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 36,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 20.52327281900216,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3012623030008399,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 17,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 37,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 21.029277474000992,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2731187589961337,
+        "validated_transition_count": 17
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10,
+          "h2_a1_ur_gripper_center": 15
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 15
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 38,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 22.931419535001623,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3110921400002553,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 39,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.17611824600317,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3487493530046777,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 40,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 21.315893339000468,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3463900240021758,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 13
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 41,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.76735164499405,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.2990907519997563,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 13,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 42,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 23.7402543079952,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.32835812200210057,
+        "validated_transition_count": 13
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 43,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.685952464002185,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3150094619995798,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 44,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.137653224002861,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3127420529999654,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 16,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 45,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 3.5931279779979377,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.29206176499428693,
+        "validated_transition_count": 16
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 46,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.171311396996316,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3018547989995568,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 47,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.49723364500096,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.36034880099759903,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 15,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 48,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 28.772522253006173,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.41663376599899493,
+        "validated_transition_count": 15
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 14,
+        "failed_supports_after": {
+          "h1_a1_ur_gripper_center": 10,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 3
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 49,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 26.42824162800389,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.3054067929988378,
+        "validated_transition_count": 14
+      },
+      {
+        "failed_rod": 22,
+        "failed_step_index": 12,
+        "failed_supports_after": {
+          "h2_a1_ur_gripper_center": 16
+        },
+        "failed_supports_before": {
+          "h1_a1_ur_gripper_center": 22,
+          "h2_a1_ur_gripper_center": 16
+        },
+        "outcome": "pose_infeasible",
+        "plan_number": 50,
+        "pose_stop_reason": "pose_infeasible",
+        "pose_success": false,
+        "pose_validation_time_s": 4.8144719490010175,
+        "sequence_length": 20,
+        "structural_stop_reason": "complete",
+        "structural_success": true,
+        "structural_time_s": 0.33113551499991445,
+        "validated_transition_count": 12
+      }
+    ],
+    "require_connected_supports": true,
+    "rigidity_cache_hits": 405,
+    "rigidity_cache_misses": 3912,
+    "rigidity_check_calls": 4317,
+    "rigidity_incremental_support_cache_hits": 191,
+    "rigidity_incremental_support_fallbacks": 0,
+    "rigidity_incremental_support_updates": 2467,
+    "rrt_accepted_candidates": 0,
+    "rrt_calls": 0,
+    "rrt_candidate_rejections": 0,
+    "rrt_failures": 0,
+    "rrt_successes": 0,
+    "rrt_time_s": 0.0,
+    "search_attempted_transitions": 3884,
+    "search_enqueued_candidates": 10326,
+    "search_expansions": 3884,
+    "search_stop_reason": "complete",
+    "seed": 200456,
+    "sequence_length": 0,
+    "shuffle_ties": true,
+    "strategy": "default",
+    "structural_plans_generated": 50,
+    "structural_replans": 50,
+    "structural_time_s": 11.87473618198419,
+    "success": false,
+    "support_add_events": 0,
+    "support_additions": 0,
+    "support_assignment_episodes": 0,
+    "support_moves": 0,
+    "support_release_events": 0,
+    "support_releases": 0,
+    "support_steps": 0,
+    "support_target_order": "lowest_first",
+    "supported_rod_episodes": 0,
+    "supported_rod_steps": 0,
+    "total_time_s": 1009.840237481003,
+    "use_rai": true,
+    "use_rrt": false
   }
 ]

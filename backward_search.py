@@ -105,6 +105,7 @@ class AssemblyPlanner:
         "highest_first",
         "fewest_mandatory_supports",
         "fast_reduce_support",
+        "fast_reduce_support_moves",
         "reduced_overall_support_steps",
         "reduced_overall_supports",
     )
@@ -865,6 +866,43 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
+        if self.strategy_name == "fast_reduce_support_moves":
+            if actual_support_result is None:
+                # Lazily rank this transition using an optimistic lower bound
+                # on the total support placements accumulated along the path.
+                continuing_support_count = sum(
+                    supported_rod != rod_id
+                    for supported_rod in node.supported.values()
+                )
+
+                return (
+                    len(node.state),
+                    (
+                        node.support_additions_so_far
+                        + minimum_new_support_count
+                    ),
+                    minimum_new_support_count,
+                    (
+                        continuing_support_count
+                        + minimum_new_support_count
+                    ),
+                    connection_count,
+                    -self.rod_midpoint_height(rod_id),
+                    tie_breaker,
+                )
+
+            return (
+                len(node.state),
+                (
+                    node.support_additions_so_far
+                    + actual_support_result.new_support_count
+                ),
+                actual_support_result.new_support_count,
+                actual_support_result.support_count,
+                connection_count,
+                -self.rod_midpoint_height(rod_id),
+                tie_breaker,
+            )
 
         raise ValueError(
             f"Unknown search strategy: {self.strategy_name}"
@@ -1238,7 +1276,10 @@ class AssemblyPlanner:
                     initial_rigidity_result,
                 ) = heapq.heappop(open_list)
 
-                if self.strategy_name == "reduced_overall_supports":
+                if self.strategy_name in {
+                    "reduced_overall_supports",
+                    "fast_reduce_support_moves",
+                }:
                     node_state_key = self.search_state_key(node)
 
                     if (
@@ -1277,7 +1318,10 @@ class AssemblyPlanner:
                     continue
 
                 if (
-                    self.strategy_name == "fast_reduce_support"
+                    self.strategy_name in {
+                        "fast_reduce_support",
+                        "fast_reduce_support_moves",
+                    }
                     and support_evaluation is None
                 ):
                     # Tighten the optimistic priority in two stages: first
@@ -1440,7 +1484,10 @@ class AssemblyPlanner:
                     new_node
                 )
 
-                if self.strategy_name == "reduced_overall_supports":
+                if self.strategy_name in {
+                    "reduced_overall_supports",
+                    "fast_reduce_support_moves",
+                }:
                     previous_cost = best_state_support_additions.get(
                         state_key
                     )

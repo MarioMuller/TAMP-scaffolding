@@ -186,6 +186,65 @@ def remaining_runtime(deadline):
     return max(0.0, deadline - perf_counter())
 
 
+def compare_removal_sequences(first_sequence, final_sequence):
+    """Summarize how much RAI-driven replanning changed a rod order."""
+    if first_sequence is None or final_sequence is None:
+        return {
+            "first_to_final_exact_match": None,
+            "first_to_final_common_prefix_length": None,
+            "first_to_final_first_difference_step": None,
+            "first_to_final_changed_positions": None,
+            "first_to_final_inverted_pairs": None,
+            "first_to_final_kendall_tau": None,
+        }
+
+    first = list(first_sequence)
+    final = list(final_sequence)
+    common_prefix_length = 0
+
+    for first_rod, final_rod in zip(first, final):
+        if first_rod != final_rod:
+            break
+        common_prefix_length += 1
+
+    exact_match = first == final
+    changed_positions = sum(
+        first_rod != final_rod
+        for first_rod, final_rod in zip(first, final)
+    ) + abs(len(first) - len(final))
+
+    inverted_pairs = None
+    kendall_tau = None
+
+    if len(first) == len(final) and set(first) == set(final):
+        final_positions = {
+            rod_id: index
+            for index, rod_id in enumerate(final)
+        }
+        inverted_pairs = sum(
+            final_positions[first[left]] > final_positions[first[right]]
+            for left in range(len(first))
+            for right in range(left + 1, len(first))
+        )
+        pair_count = len(first) * (len(first) - 1) // 2
+        kendall_tau = (
+            1.0 - 2.0 * inverted_pairs / pair_count
+            if pair_count
+            else 1.0
+        )
+
+    return {
+        "first_to_final_exact_match": exact_match,
+        "first_to_final_common_prefix_length": common_prefix_length,
+        "first_to_final_first_difference_step": (
+            None if exact_match else common_prefix_length + 1
+        ),
+        "first_to_final_changed_positions": changed_positions,
+        "first_to_final_inverted_pairs": inverted_pairs,
+        "first_to_final_kendall_tau": kendall_tau,
+    }
+
+
 def run_structural_round(
     truss,
     strategy_name,
@@ -252,6 +311,8 @@ def run_strategy(args, strategy_name, repeat_index):
     pose_failure_count = 0
     pose_validation_time_s = 0.0
     benchmark_stop_reason = "max_replans"
+    first_structural_sequence = None
+    first_structural_support_summary = None
 
     cumulative = {
         "structural_time_s": 0.0,
@@ -309,6 +370,17 @@ def run_strategy(args, strategy_name, repeat_index):
             "structural_success": sequence is not None,
             "structural_stop_reason": searcher.search_stop_reason,
             "sequence_length": len(sequence or []),
+            "removal_sequence": [
+                int(rod_id) for rod_id in (sequence or [])
+            ],
+            "best_partial_removal_sequence": [
+                int(rod_id)
+                for rod_id in getattr(
+                    searcher.final_node,
+                    "sequence",
+                    [],
+                )
+            ],
         }
 
         structural = structural_summary(searcher)
@@ -332,6 +404,19 @@ def run_strategy(args, strategy_name, repeat_index):
                 f"structural_{searcher.search_stop_reason}"
             )
             break
+
+        plan_support_summary = support_summary(
+            searcher.final_node.structural_steps
+        )
+        plan_trace.update(plan_support_summary)
+
+        if first_structural_sequence is None:
+            first_structural_sequence = list(
+                plan_trace["removal_sequence"]
+            )
+            first_structural_support_summary = dict(
+                plan_support_summary
+            )
 
         if not args.rai:
             accepted_sequence = list(sequence)
@@ -418,6 +503,39 @@ def run_strategy(args, strategy_name, repeat_index):
 
     total_time = perf_counter() - total_start
     success = accepted_sequence is not None
+    path_comparison = compare_removal_sequences(
+        first_structural_sequence,
+        accepted_sequence,
+    )
+    rai_failure_step_indices = [
+        trace["failed_step_index"]
+        for trace in replan_trace
+        if trace.get("outcome") == "pose_infeasible"
+    ]
+    rai_failed_rods = [
+        trace["failed_rod"]
+        for trace in replan_trace
+        if trace.get("outcome") == "pose_infeasible"
+    ]
+
+    first_plan_support_moves = (
+        first_structural_support_summary["support_moves"]
+        if first_structural_support_summary is not None
+        else None
+    )
+    first_plan_support_steps = (
+        first_structural_support_summary["support_steps"]
+        if first_structural_support_summary is not None
+        else None
+    )
+    first_plan_peak_supports = (
+        first_structural_support_summary["peak_supports"]
+        if first_structural_support_summary is not None
+        else None
+    )
+    accepted_support_summary = support_summary(
+        accepted_structural_steps
+    )
 
     row = {
         "strategy": strategy_name,
@@ -431,13 +549,32 @@ def run_strategy(args, strategy_name, repeat_index):
         "total_time_s": total_time,
         "pose_validation_time_s": pose_validation_time_s,
         "structural_plans_generated": plans_generated,
-        "structural_replans": plans_generated,
+        "structural_replans": max(0, plans_generated - 1),
         "rai_pose_failures": pose_failure_count,
         "rai_replans": max(0, plans_generated - 1),
         "forbidden_rai_transitions": len(forbidden_transitions),
         "first_plan_pose_feasible": (
             bool(args.rai and success and plans_generated == 1)
         ),
+        "first_removal_sequence": first_structural_sequence or [],
+        "first_plan_support_moves": first_plan_support_moves,
+        "first_plan_support_steps": first_plan_support_steps,
+        "first_plan_peak_supports": first_plan_peak_supports,
+        "final_minus_first_support_moves": (
+            accepted_support_summary["support_moves"]
+            - first_plan_support_moves
+            if success and first_plan_support_moves is not None
+            else None
+        ),
+        "final_minus_first_support_steps": (
+            accepted_support_summary["support_steps"]
+            - first_plan_support_steps
+            if success and first_plan_support_steps is not None
+            else None
+        ),
+        "rai_failure_step_indices": rai_failure_step_indices,
+        "rai_failed_rods": rai_failed_rods,
+        "unique_rai_failed_rods": len(set(rai_failed_rods)),
         "benchmark_stop_reason": benchmark_stop_reason,
         "max_total_runtime_s": args.max_total_runtime,
         "replan_trace": replan_trace,
@@ -457,8 +594,9 @@ def run_strategy(args, strategy_name, repeat_index):
         "require_connected_supports": args.require_connected_supports,
     }
 
+    row.update(path_comparison)
     row.update(cumulative)
-    row.update(support_summary(accepted_structural_steps))
+    row.update(accepted_support_summary)
     row.update(metrics.snapshot())
     for metric_name in (
         "komo_calls",
@@ -561,7 +699,7 @@ def write_results(rows, output_dir):
 
 def benchmark_config(args):
     return {
-        "format_version": 1,
+        "format_version": 2,
         "truss": str(Path(args.truss).resolve()),
         "seed": args.seed,
         "shuffle_ties": args.shuffle_ties,
