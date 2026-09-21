@@ -105,7 +105,6 @@ class AssemblyPlanner:
         "highest_first",
         "fewest_mandatory_supports",
         "fast_reduce_support",
-        "fast_reduce_support_moves",
         "reduced_overall_support_steps",
         "reduced_overall_supports",
     )
@@ -228,7 +227,7 @@ class AssemblyPlanner:
         active_degrees=None,
         current_count=None,
     ):
-        """Count non-grounded degree-one rods after a candidate removal."""
+        """Count non-grounded degree-one rods after a candidate removal. --> they will require support if they are not already supported."""
         active = node.state
 
         if active_degrees is None:
@@ -270,7 +269,9 @@ class AssemblyPlanner:
         current_count=None,
         projected_count=None,
     ):
-        """Count mandatory degree-one rods not held after a removal."""
+        """ Estimate minimum number of new support assignments required after removing rod
+            rods already supported are not counted
+        """
         if projected_count is None:
             projected_count = self.projected_mandatory_support_count(
                 node,
@@ -310,7 +311,14 @@ class AssemblyPlanner:
         node,
         candidate_rod,
     ):
-        """Return whether all continuing supports retain an active neighbor."""
+        """ Check whether removing ``candidate_rod`` leaves every continuing
+            supported rod connected to the remaining scaffold.
+
+            A support holding ``candidate_rod`` does not need to remain connected,
+            because it is released during that rod's removal. Every support holding
+            another rod continues to be active, so its rod must retain at least one
+            connection to another rod in the remaining scaffold."""
+            
         if not self.require_connected_supports:
             return True
 
@@ -866,44 +874,6 @@ class AssemblyPlanner:
                 tie_breaker,
             )
 
-        if self.strategy_name == "fast_reduce_support_moves":
-            if actual_support_result is None:
-                # Lazily rank this transition using an optimistic lower bound
-                # on the total support placements accumulated along the path.
-                continuing_support_count = sum(
-                    supported_rod != rod_id
-                    for supported_rod in node.supported.values()
-                )
-
-                return (
-                    len(node.state),
-                    (
-                        node.support_additions_so_far
-                        + minimum_new_support_count
-                    ),
-                    minimum_new_support_count,
-                    (
-                        continuing_support_count
-                        + minimum_new_support_count
-                    ),
-                    connection_count,
-                    -self.rod_midpoint_height(rod_id),
-                    tie_breaker,
-                )
-
-            return (
-                len(node.state),
-                (
-                    node.support_additions_so_far
-                    + actual_support_result.new_support_count
-                ),
-                actual_support_result.new_support_count,
-                actual_support_result.support_count,
-                connection_count,
-                -self.rod_midpoint_height(rod_id),
-                tie_breaker,
-            )
-
         raise ValueError(
             f"Unknown search strategy: {self.strategy_name}"
         )
@@ -968,6 +938,7 @@ class AssemblyPlanner:
                 supported_rod != rod_id
                 for supported_rod in node.supported.values()
             )
+            
             free_support_count = (
                 len(self.helper_grippers)
                 - continuing_support_count
@@ -1276,10 +1247,9 @@ class AssemblyPlanner:
                     initial_rigidity_result,
                 ) = heapq.heappop(open_list)
 
-                if self.strategy_name in {
-                    "reduced_overall_supports",
-                    "fast_reduce_support_moves",
-                }:
+
+                # skip if state has been visited with a better support cost
+                if self.strategy_name == "reduced_overall_supports":
                     node_state_key = self.search_state_key(node)
 
                     if (
@@ -1318,10 +1288,7 @@ class AssemblyPlanner:
                     continue
 
                 if (
-                    self.strategy_name in {
-                        "fast_reduce_support",
-                        "fast_reduce_support_moves",
-                    }
+                    self.strategy_name == "fast_reduce_support"
                     and support_evaluation is None
                 ):
                     # Tighten the optimistic priority in two stages: first
@@ -1330,6 +1297,8 @@ class AssemblyPlanner:
                         node,
                         candidate_rod,
                     )
+                    
+                    # check if this transition was already visited
                     support_evaluation = self.support_evaluations.get(
                         structural_transition_key
                     )
@@ -1338,6 +1307,7 @@ class AssemblyPlanner:
                         support_evaluation is None
                         and initial_rigidity_result is None
                     ):
+                        # is it rigid without any new supports?
                         initial_rigidity_result = self.rigidity.check(
                             support_context.new_state,
                             supported_rods=(
@@ -1345,6 +1315,7 @@ class AssemblyPlanner:
                             ),
                         )
 
+                        #at least one support is needed, so refine the priority and re-enqueue
                         if (
                             not initial_rigidity_result.is_rigid
                             and support_context.free_supports
@@ -1371,6 +1342,7 @@ class AssemblyPlanner:
                             )
                             continue
 
+                    # if it has been refined already full support evaluation is done, giving full support state
                     if support_evaluation is None:
                         support_evaluation = (
                             self.evaluate_supports_after_removal(
@@ -1384,6 +1356,7 @@ class AssemblyPlanner:
                     if not support_evaluation.feasible:
                         continue
 
+                    #refined with now actual results, so re-enqueue with new priority
                     refined_priority = self.removal_priority(
                         node,
                         candidate_rod,
@@ -1430,6 +1403,8 @@ class AssemblyPlanner:
 
                 self.search_expansions += 1
 
+                # check if the removal of the candidate rod is feasible, and get the result of the removal
+                # if support_evaluation is already computed, pass it to avoid recomputation
                 feasible, result = self.is_removal_feasible(
                     node,
                     candidate_rod,
@@ -1484,10 +1459,7 @@ class AssemblyPlanner:
                     new_node
                 )
 
-                if self.strategy_name in {
-                    "reduced_overall_supports",
-                    "fast_reduce_support_moves",
-                }:
+                if self.strategy_name == "reduced_overall_supports":
                     previous_cost = best_state_support_additions.get(
                         state_key
                     )
