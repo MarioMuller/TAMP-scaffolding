@@ -19,7 +19,7 @@ from experiments.run_benchmark import (
     POSE_REPLAY_VERSION,
     create_rai_builder,
 )
-from truss import Truss
+from experiments.structural_experiment_utils import load_filtered_truss
 
 
 def parse_args():
@@ -163,7 +163,10 @@ def deserialize_motion_record(data):
 
 
 def display_replay(metadata, replay, args):
-    truss = Truss.from_json(metadata["truss"])
+    truss = load_filtered_truss(
+        metadata["truss"],
+        replay.get("included_rods"),
+    )
     builder = create_rai_builder(
         truss=truss,
         main_robot_arm_count=metadata["main_robot_arm_count"],

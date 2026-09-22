@@ -73,6 +73,8 @@ def validate_structural_plan_with_rai(
     use_ssik_initialization=True,
     support_fractions=(0.4, 0.5, 0.6),
     deadline=None,
+    initial_supported=None,
+    initial_support_q=None,
 ):
     """Validate one complete structural removal plan sequentially in RAI.
 
@@ -85,9 +87,22 @@ def validate_structural_plan_with_rai(
         dtype=float,
     ).copy()
 
-    supported = {}
-    support_q = {}
+    supported = dict(initial_supported or {})
+    support_q = {
+        gripper: np.asarray(q, dtype=float).copy()
+        for gripper, q in (initial_support_q or {}).items()
+    }
     records = []
+    state_trace = [
+        {
+            "q": q_current.copy(),
+            "supported": dict(supported),
+            "support_q": {
+                gripper: q.copy()
+                for gripper, q in support_q.items()
+            },
+        }
+    ]
 
     for step_index, step in enumerate(structural_steps):
         if deadline is not None and perf_counter() >= deadline:
@@ -98,6 +113,10 @@ def validate_structural_plan_with_rai(
                 "failed_index": step_index,
                 "failed_step": None,
                 "stop_reason": "total_runtime_limit",
+                "q_final": q_current.copy(),
+                "supported": dict(supported),
+                "support_q": support_q,
+                "state_trace": state_trace,
             }
 
         expected_supports_before = dict(step.supports_before)
@@ -185,6 +204,10 @@ def validate_structural_plan_with_rai(
                     "failed_index": step_index,
                     "failed_step": step,
                     "stop_reason": "pose_infeasible",
+                    "q_final": q_current.copy(),
+                    "supported": dict(supported),
+                    "support_q": support_q,
+                    "state_trace": state_trace,
                 }
 
             # Only successful results are cached. A RAI failure is represented
@@ -204,6 +227,16 @@ def validate_structural_plan_with_rai(
         }
 
         records.append(copy.deepcopy(motion_result["record"]))
+        state_trace.append(
+            {
+                "q": q_current.copy(),
+                "supported": dict(supported),
+                "support_q": {
+                    gripper: np.asarray(q, dtype=float).copy()
+                    for gripper, q in support_q.items()
+                },
+            }
+        )
 
         expected_supports_after = dict(step.supports_after)
 
@@ -222,6 +255,10 @@ def validate_structural_plan_with_rai(
         "failed_index": None,
         "failed_step": None,
         "stop_reason": "complete",
+        "q_final": q_current.copy(),
+        "supported": dict(supported),
+        "support_q": support_q,
+        "state_trace": state_trace,
     }
 
 

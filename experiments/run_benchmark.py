@@ -66,6 +66,8 @@ def validate_with_rai(
     use_ssik_initialization,
     support_fractions,
     deadline,
+    initial_supported=None,
+    initial_support_q=None,
 ):
     from main import validate_structural_plan_with_rai
 
@@ -80,6 +82,8 @@ def validate_with_rai(
         use_ssik_initialization=use_ssik_initialization,
         support_fractions=support_fractions,
         deadline=deadline,
+        initial_supported=initial_supported,
+        initial_support_q=initial_support_q,
     )
 
 
@@ -255,6 +259,8 @@ def run_structural_round(
     shuffle_ties,
     capture_key,
     support_target_order,
+    initial_supported=None,
+    initial_support_q=None,
 ):
     searcher = AssemblyPlanner(
         truss=truss,
@@ -272,14 +278,27 @@ def run_structural_round(
     sequence = searcher.backward_search(
         capture_key=capture_key,
         max_runtime=max_runtime,
+        initial_supported=initial_supported,
+        initial_support_q=initial_support_q,
     )
     elapsed = perf_counter() - start
 
     return searcher, sequence, elapsed
 
 
-def run_strategy(args, strategy_name, repeat_index):
-    truss = Truss.from_json(args.truss)
+def run_strategy(
+    args,
+    strategy_name,
+    repeat_index,
+    *,
+    truss=None,
+    seed=None,
+    initial_supported=None,
+    initial_support_q=None,
+    initial_q=None,
+    return_artifacts=False,
+):
+    truss = truss if truss is not None else Truss.from_json(args.truss)
     support_grippers = tuple(args.support_grippers.split(","))
     support_fractions = tuple(
         float(value)
@@ -289,7 +308,12 @@ def run_strategy(args, strategy_name, repeat_index):
     if not support_fractions:
         raise ValueError("--support-fractions must not be empty")
 
-    seed = args.seed + repeat_index
+    seed = args.seed + repeat_index if seed is None else seed
+    initial_supported = dict(initial_supported or {})
+    initial_support_q = {
+        gripper: np.asarray(q, dtype=float).copy()
+        for gripper, q in (initial_support_q or {}).items()
+    }
     metrics = CounterMetrics()
 
     total_start = perf_counter()
@@ -311,6 +335,7 @@ def run_strategy(args, strategy_name, repeat_index):
     benchmark_stop_reason = "max_replans"
     first_structural_sequence = None
     first_structural_support_summary = None
+    accepted_state_trace = []
 
     cumulative = {
         "structural_time_s": 0.0,
@@ -335,7 +360,11 @@ def run_strategy(args, strategy_name, repeat_index):
             metrics=metrics,
             random_seed=seed,
         )
-        rai_initial_q = rai_builder.C.getJointState().copy()
+        rai_initial_q = (
+            rai_builder.C.getJointState().copy()
+            if initial_q is None
+            else np.asarray(initial_q, dtype=float).copy()
+        )
 
     for _replan_index in range(args.max_replans):
         remaining = remaining_runtime(deadline)
@@ -358,6 +387,8 @@ def run_strategy(args, strategy_name, repeat_index):
             shuffle_ties=args.shuffle_ties,
             capture_key=args.capture_key,
             support_target_order=args.support_target_order,
+            initial_supported=initial_supported,
+            initial_support_q=initial_support_q,
         )
         final_searcher = searcher
         cumulative["structural_time_s"] += structural_time
@@ -437,6 +468,8 @@ def run_strategy(args, strategy_name, repeat_index):
             use_ssik_initialization=not args.no_ssik_initialization,
             support_fractions=support_fractions,
             deadline=deadline,
+            initial_supported=initial_supported,
+            initial_support_q=initial_support_q,
         )
         validation_time = perf_counter() - pose_start
         pose_validation_time_s += validation_time
@@ -457,6 +490,7 @@ def run_strategy(args, strategy_name, repeat_index):
             accepted_structural_steps = list(
                 searcher.final_node.structural_steps
             )
+            accepted_state_trace = list(validation["state_trace"])
             plan_trace["outcome"] = "pose_feasible"
             replan_trace.append(plan_trace)
             benchmark_stop_reason = "complete"
@@ -659,7 +693,21 @@ def run_strategy(args, strategy_name, repeat_index):
         rai_builder=rai_builder,
     )
 
-    return row, pose_replay
+    if not return_artifacts:
+        return row, pose_replay
+
+    artifacts = {
+        "accepted_sequence": list(accepted_sequence or []),
+        "accepted_records": list(accepted_records),
+        "accepted_structural_steps": list(accepted_structural_steps),
+        "state_trace": accepted_state_trace,
+        "joint_names": (
+            list(rai_builder.C.getJointNames())
+            if rai_builder is not None
+            else []
+        ),
+    }
+    return row, pose_replay, artifacts
 
 
 def write_results(rows, output_dir):

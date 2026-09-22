@@ -33,6 +33,10 @@ DEFAULT_RUNS_CSV = OUTPUT_DIR / "one_arm_pose_runs.csv"
 DEFAULT_MARKDOWN = OUTPUT_DIR / "one_arm_pose_table.md"
 DEFAULT_PNG = OUTPUT_DIR / "one_arm_pose_table.png"
 
+IGNORED_STRATEGIES = {
+    "fast_reduce_support_moves",
+}
+
 REQUIRED_COLUMNS = {
     "strategy",
     "repeat",
@@ -111,7 +115,6 @@ STRATEGY_ORDER = {
         (
             "fast_reduce_support",
             "baseline",
-            "fast_reduce_support_moves",
             "fewest_mandatory_supports",
             "highest_first",
             "default",
@@ -491,7 +494,7 @@ def run_analysis(
         expected_main_arm_count,
     )
     rows = load_rows(args.input_dir)
-    excluded = set(args.exclude_strategy)
+    excluded = IGNORED_STRATEGIES | set(args.exclude_strategy)
     rows = [row for row in rows if row["strategy"] not in excluded]
     if not rows:
         raise ValueError("No benchmark rows remain after filtering.")
