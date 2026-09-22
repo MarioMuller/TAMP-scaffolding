@@ -1,5 +1,5 @@
 ** compiled at:     Nov 26 2024 16:46:14
-** execution start: 2026-09-22 17:24:20:972641
+** execution start: 2026-09-22 19:41:54:1554
 graph.cpp:initParameters:1512(3) opening config file 'rai.cfg'
 graph.cpp:initParameters:1519(3)  - failed
 graph.cpp:initParameters:1525(3) opening base config file '/root/local/rai/../local.cfg'
@@ -246,853 +246,12 @@ kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
@@ -1103,58 +262,42 @@ kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
+kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
+kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1167,6 +310,7 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
+kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1187,56 +331,35 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
+kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
@@ -1244,8 +367,6 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1262,44 +383,24 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1308,7 +409,6 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1317,7 +417,6 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1326,28 +425,16 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1356,29 +443,15 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
+pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
+pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1387,47 +460,23 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1438,169 +487,52 @@ pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersec
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
+kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
 pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
 pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
@@ -1609,13 +541,3 @@ kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
 kin.cpp:getFrame:415(-1) cannot find frame named 'a2_ur_gripper_center'
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection
-pairCollision.cpp:libccd:354(0) WARNING: called MPR penetration for non intersecting meshes...
-pairCollision.cpp:libccd:359(0) WARNING: but GJK says intersection

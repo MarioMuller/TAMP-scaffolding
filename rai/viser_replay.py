@@ -7,9 +7,9 @@ import robotic as ry
 
 class ViserPlanReplayer:
     ROD_COLORS = {
-        "free": (128, 255, 0),
-        "robot": (220, 40, 40),
-        "support": (255, 105, 180),
+        "free": (90, 90, 90),
+        "robot": (255, 106, 0),
+        "support": (255, 0, 255),
     }
 
     def __init__(self, C, rod_manager):
@@ -316,7 +316,8 @@ class ViserPlanReplayer:
                 f"**Segment:** {step['segment_id']}  \n"
                 f"**Visible rods:** {sorted(visible_rods)}  \n"
                 f"**Support required:** {support_rods if support_rods else 'none'}  \n"
-                "**Colors:** green = free/placed, red = attached to robot, pink = support required"
+                "**Colors:** grey = free/placed, orange = attached "
+                "to robot, magenta = support required"
             )
 
     def display_recorded_plan_viser(
@@ -397,6 +398,8 @@ class ViserPlanReplayer:
                         color=rod_color,
                         flat_shading=False,
                         opacity=opacity,
+                        cast_shadow=True,
+                        receive_shadow=True,
                     )
             else:
                 handles[frame.name] = server.scene.add_mesh_simple(
@@ -406,6 +409,8 @@ class ViserPlanReplayer:
                     color=color_rgb,
                     flat_shading=False,
                     opacity=opacity,
+                    cast_shadow=True,
+                    receive_shadow=True,
                 )
 
         step_slider = server.gui.add_slider(

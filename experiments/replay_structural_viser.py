@@ -19,19 +19,12 @@ from experiments.structural_experiment_utils import load_filtered_truss
 COLORS = {
     # The unused-rod color includes Matplotlib's 0.18 alpha over white.
     "not_installed": (244, 244, 244),
-    "installed": (102, 204, 0),
+    "installed": (90, 90, 90),
     "added": (255, 106, 0),
     "supported": (255, 0, 255),
-    "grounded": (40, 110, 255),
+    "grounded": (90, 90, 90),
 }
-
-LINE_WIDTHS = {
-    "not_installed": 1.0,
-    "installed": 3.25,
-    "added": 5.0,
-    "supported": 5.0,
-    "grounded": 4.0,
-}
+DEFAULT_ROD_RADIUS = 0.012
 
 
 def parse_args():
@@ -51,6 +44,12 @@ def parse_args():
     )
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--pause-time", type=float, default=0.8)
+    parser.add_argument(
+        "--rod-radius",
+        type=float,
+        default=DEFAULT_ROD_RADIUS,
+        help="Display-only cylinder radius in metres.",
+    )
     parser.add_argument(
         "--show-not-placed-rods",
         action="store_true",
@@ -205,8 +204,21 @@ def rod_visual_state(frame, rod_id, grounded_rods):
     return "installed"
 
 
-def line_colors(color):
-    return np.asarray([[color, color]], dtype=np.uint8)
+def quaternion_from_z_to_vector(direction):
+    direction = np.asarray(direction, dtype=float)
+    direction /= np.linalg.norm(direction)
+    z_axis = np.array([0.0, 0.0, 1.0])
+    dot = float(np.dot(z_axis, direction))
+
+    if dot > 1.0 - 1e-8:
+        return np.array([1.0, 0.0, 0.0, 0.0])
+    if dot < -1.0 + 1e-8:
+        return np.array([0.0, 1.0, 0.0, 0.0])
+
+    quaternion = np.concatenate(
+        ([1.0 + dot], np.cross(z_axis, direction))
+    )
+    return quaternion / np.linalg.norm(quaternion)
 
 
 def add_ground_plane(server, segments):
@@ -230,6 +242,7 @@ def add_ground_plane(server, segments):
             float(minimum[2]) - 0.002 - 0.5 * plane_thickness,
         ),
         cast_shadow=False,
+        receive_shadow=0.55,
     )
 
 
@@ -257,21 +270,35 @@ def display_replay(metadata, run, args):
     rod_handles = {}
 
     for rod_id, segment in zip(rod_ids, segments):
-        state = rod_visual_state(
+        initial_state = rod_visual_state(
             frames[0],
             rod_id,
             truss.grounded_rods,
         )
-        rod_handles[rod_id] = server.scene.add_line_segments(
-            f"scaffold/rods/rod_{rod_id}",
-            points=segment[np.newaxis, :, :],
-            colors=line_colors(COLORS[state]),
-            line_width=LINE_WIDTHS[state],
-            visible=(
-                args.show_not_placed_rods
-                or state != "not_installed"
-            ),
-        )
+        start, end = segment
+        direction = end - start
+        rod_handles[rod_id] = {}
+
+        for variant_state, color in COLORS.items():
+            rod_handles[rod_id][variant_state] = server.scene.add_cylinder(
+                f"scaffold/rods/rod_{rod_id}/{variant_state}",
+                radius=args.rod_radius,
+                height=float(np.linalg.norm(direction)),
+                color=color,
+                radial_segments=16,
+                material="standard",
+                cast_shadow=True,
+                receive_shadow=True,
+                wxyz=quaternion_from_z_to_vector(direction),
+                position=0.5 * (start + end),
+                visible=(
+                    variant_state == initial_state
+                    and (
+                        args.show_not_placed_rods
+                        or initial_state != "not_installed"
+                    )
+                ),
+            )
 
     step_slider = server.gui.add_slider(
         "Assembly step",
@@ -299,18 +326,20 @@ def display_replay(metadata, run, args):
         frame = frames[frame_index]
 
         with server.atomic():
-            for rod_id, handle in rod_handles.items():
+            for rod_id, variants in rod_handles.items():
                 state = rod_visual_state(
                     frame,
                     rod_id,
                     truss.grounded_rods,
                 )
-                handle.colors = line_colors(COLORS[state])
-                handle.line_width = LINE_WIDTHS[state]
-                handle.visible = (
-                    args.show_not_placed_rods
-                    or state != "not_installed"
-                )
+                for variant_state, handle in variants.items():
+                    handle.visible = (
+                        variant_state == state
+                        and (
+                            args.show_not_placed_rods
+                            or state != "not_installed"
+                        )
+                    )
 
         supports = ", ".join(
             f"{support}: rod {rod_id}"
@@ -329,9 +358,8 @@ def display_replay(metadata, run, args):
             f"**Added rod:** {added_rod if added_rod is not None else 'none'}  \n"
             f"**Active rods:** {len(frame['active'])}  \n"
             f"**Supports:** {supports}  \n"
-            "**Colors:** green installed, orange added, "
-            "magenta supported, "
-            f"blue grounded{unused_description}"
+            "**Colors:** grey installed/grounded, orange added, "
+            f"magenta supported{unused_description}"
         )
 
     @previous_button.on_click
@@ -383,6 +411,9 @@ def display_replay(metadata, run, args):
 
 def main():
     args = parse_args()
+    if args.rod_radius <= 0:
+        raise ValueError("--rod-radius must be positive.")
+
     metadata, runs = load_replay_file(args.replay_jsonl)
 
     if args.list:

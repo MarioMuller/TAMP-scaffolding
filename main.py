@@ -12,7 +12,7 @@ from truss import Truss
 def create_rai_builder(truss, main_robot_arm_count=1, metrics=None):
     builder = RaiTrussBuilder(
         truss=truss,
-        radius=0.005,
+        radius=0.012,
         scale=0.001,
         main_robot_arm_count=main_robot_arm_count,
         metrics=metrics,

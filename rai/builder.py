@@ -16,7 +16,7 @@ class RaiTrussBuilder:
 
     _robot_scene_templates = {}
 
-    def __init__(self, truss, radius=0.005, scale=0.001, main_robot_arm_count=2, metrics=None, random_seed=0):
+    def __init__(self, truss, radius=0.012, scale=0.001, main_robot_arm_count=2, metrics=None, random_seed=0):
         
         self.truss = truss
         self.radius = radius
@@ -763,4 +763,4 @@ if __name__ == "__main__":
 
     truss = Truss.from_json("JSON/long_beam_test.json")
 
-    builder = RaiTrussBuilder(truss, radius=0.0015)
+    builder = RaiTrussBuilder(truss, radius=0.012)

@@ -277,6 +277,9 @@ def patch_for_rrt(main_module, args):
 
 
 def frame_color(frame):
+    if frame.name.startswith("rod_"):
+        return (90, 90, 90)
+
     info = frame.info()
     raw_color = info.get("color", [0.7, 0.7, 0.7])
     return tuple(int(max(0.0, min(1.0, c)) * 255) for c in raw_color[:3])
@@ -307,6 +310,8 @@ def add_config_meshes(server, config, prefix):
             color=frame_color(frame),
             flat_shading=False,
             opacity=opacity,
+            cast_shadow=True,
+            receive_shadow=True,
         )
         handle.visible = False
         handles[frame.name] = handle
