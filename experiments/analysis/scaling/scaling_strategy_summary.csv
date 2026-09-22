@@ -1,0 +1,5 @@
+removal_strategy,source_file,repetitions,scaffold_sizes,expected_runs,recorded_runs,successful_runs,failed_runs,missing_not_attempted_runs,runtime_limit_failures,open_list_exhausted_failures,other_failures,runtime_successful_mean_s,runtime_successful_median_s,runtime_successful_std_s,runtime_successful_min_s,runtime_successful_max_s
+default,default_lowest_first_all_steps_5reps.csv,5,75,375,375,375,0,0,0,0,0,1.1610876292506667,1.034392821,0.9913442764470796,0.000727406,3.301922069
+highest_first,highest_first_lowest_first_all_steps_5reps.csv,5,75,375,375,375,0,0,0,0,0,2.785534311869333,2.317077757,2.4310063035887666,0.000703958,7.354091917
+fewest_mandatory_supports,fewest_mandatory_supports_lowest_first_all_steps_5reps.csv,5,75,375,375,375,0,0,0,0,0,6.077386895930666,6.125236732,5.024533366987236,0.000661373,13.646565641
+fast_reduce_support,fast_reduce_support_lowest_first_all_steps_5reps.csv,5,75,375,375,375,0,0,0,0,0,12.111457452616,9.863474463,11.265199899014327,0.000695819,58.954682066
