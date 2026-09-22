@@ -71,7 +71,7 @@ def validate_structural_plan_with_rai(
     do_shortcut=True,
     view_last_komo_attempt=False,
     use_ssik_initialization=True,
-    support_fractions=(0.25, 0.5, 0.75),
+    support_fractions=(0.4, 0.5, 0.6),
     deadline=None,
 ):
     """Validate one complete structural removal plan sequentially in RAI.
@@ -260,7 +260,7 @@ def main():
     MAIN_ROBOT_ARM_COUNT = 1
     VIEW_LAST_KOMO_ATTEMPT = True
     USE_SSIK_INITIALIZATION = True
-    SUPPORT_FRACTIONS = (0.35, 0.5, 0.65)
+    SUPPORT_FRACTIONS = (0.4, 0.5, 0.6)
     STRATEGY_NAME = "highest_first"
 
     support_grippers = (

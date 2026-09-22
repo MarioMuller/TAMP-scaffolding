@@ -1190,7 +1190,7 @@ class KeyframePlanner:
         releasable_supports=None,
         new_support_assignments=None,
         support_fraction=0.25,
-        support_fractions=None,
+        support_fractions=(0.4, 0.5, 0.6),
         support_grippers=None,
         support_home_q=None,
         accept_keyframes=None,

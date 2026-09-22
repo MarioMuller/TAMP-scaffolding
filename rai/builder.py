@@ -308,7 +308,7 @@ class RaiTrussBuilder:
         do_shortcut=False,
         view_last_komo_attempt=False,
         use_ssik_initialization=True,
-        support_fractions=(0.25, 0.5, 0.75),
+        support_fractions=(0.4, 0.5, 0.6),
     ):
         """
         Backward-search motion test.
