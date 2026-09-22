@@ -64,6 +64,7 @@ def validate_with_rai(
     do_shortcut,
     view_last_komo_attempt,
     use_ssik_initialization,
+    max_komo_attempts,
     support_fractions,
     deadline,
     initial_supported=None,
@@ -80,6 +81,7 @@ def validate_with_rai(
         do_shortcut=do_shortcut,
         view_last_komo_attempt=view_last_komo_attempt,
         use_ssik_initialization=use_ssik_initialization,
+        max_komo_attempts=max_komo_attempts,
         support_fractions=support_fractions,
         deadline=deadline,
         initial_supported=initial_supported,
@@ -466,6 +468,7 @@ def run_strategy(
             do_shortcut=args.shortcut,
             view_last_komo_attempt=args.view_last_komo_attempt,
             use_ssik_initialization=not args.no_ssik_initialization,
+            max_komo_attempts=args.max_komo_attempts,
             support_fractions=support_fractions,
             deadline=deadline,
             initial_supported=initial_supported,
@@ -751,6 +754,7 @@ def benchmark_config(args):
         "max_runtime": args.max_runtime,
         "max_total_runtime": args.max_total_runtime,
         "max_replans": args.max_replans,
+        "max_komo_attempts": args.max_komo_attempts,
         "support_target_order": args.support_target_order,
         "require_connected_supports": True,
         "use_rai": args.rai,
@@ -905,6 +909,15 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--max-komo-attempts",
+        type=int,
+        default=100,
+        help=(
+            "Maximum analytical SSIK/KOMO candidate combinations tested "
+            "for one RAI transition."
+        ),
+    )
+    parser.add_argument(
         "--capture-key",
         default="v",
         help=(
@@ -984,6 +997,8 @@ def main():
         raise ValueError("--max-total-runtime must be positive.")
     if args.max_replans <= 0:
         raise ValueError("--max-replans must be positive.")
+    if args.max_komo_attempts <= 0:
+        raise ValueError("--max-komo-attempts must be positive.")
 
     args.capture_key = None if args.no_capture else args.capture_key.strip()
     if not args.capture_key:

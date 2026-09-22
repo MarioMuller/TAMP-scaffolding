@@ -126,7 +126,10 @@ def parse_args() -> argparse.Namespace:
         "--separate",
         dest="separate_repetitions",
         action="store_true",
-        help="Plot every repetition separately instead of averaging them.",
+        help=(
+            "Plot every repetition separately and overlay the mean of "
+            "successful runs."
+        ),
     )
     parser.add_argument(
         "--show",
@@ -345,6 +348,14 @@ def plot_scaling(
 
     fig, ax = plt.subplots(figsize=(12, 6.8), constrained_layout=True)
     if separate_repetitions:
+        summaries_by_strategy: dict[str, list[dict[str, object]]] = (
+            defaultdict(list)
+        )
+        for summary in prefix_summaries:
+            summaries_by_strategy[
+                str(summary["removal_strategy"])
+            ].append(summary)
+
         for result in sorted(
             results, key=lambda item: strategy_sort_key(item.strategy)
         ):
@@ -356,7 +367,6 @@ def plot_scaling(
                 scaffold_size = int(row["included_rod_count"])
                 rows_by_repetition[repetition][scaffold_size] = row
 
-            needs_legend_label = True
             for repetition in sorted(result.repetitions):
                 repetition_rows = rows_by_repetition[repetition]
                 runtimes = []
@@ -374,15 +384,31 @@ def plot_scaling(
                     scaffold_sizes,
                     runtimes,
                     color=STRATEGY_COLORS.get(result.strategy),
-                    linewidth=1.35,
-                    alpha=0.42,
-                    label=(
-                        strategy_label(result.strategy)
-                        if needs_legend_label
-                        else None
-                    ),
+                    linewidth=1.0,
+                    alpha=0.25,
                 )
-                needs_legend_label = False
+
+            strategy_summaries = sorted(
+                summaries_by_strategy[result.strategy],
+                key=lambda row: int(row["included_rod_count"]),
+            )
+            mean_scaffold_sizes = [
+                int(row["included_rod_count"])
+                for row in strategy_summaries
+            ]
+            mean_runtimes = [
+                float(row["runtime_successful_mean_s"])
+                for row in strategy_summaries
+            ]
+            if any(math.isfinite(runtime) for runtime in mean_runtimes):
+                ax.plot(
+                    mean_scaffold_sizes,
+                    mean_runtimes,
+                    color=STRATEGY_COLORS.get(result.strategy),
+                    linewidth=2.6,
+                    label=f"{strategy_label(result.strategy)} mean",
+                    zorder=3,
+                )
     else:
         runtime_metric = (
             "runtime_successful_mean_s"
@@ -420,7 +446,8 @@ def plot_scaling(
     if separate_repetitions:
         runtime_label = "Successful runtime"
         plot_note = (
-            "Each line is one repetition; failed and skipped points are gaps."
+            "Thin lines are individual repetitions; bold lines are means "
+            "of successful runs. Failed and skipped points are gaps."
         )
     elif use_mean:
         runtime_label = "Mean successful runtime"
@@ -437,7 +464,7 @@ def plot_scaling(
     scale_label = ", log scale" if log_scale else ""
     ax.set_ylabel(f"{runtime_label} (seconds{scale_label})")
     ax.set_title(
-        "Individual rigidity scaling runs by removal strategy"
+        "Individual rigidity scaling runs and means by removal strategy"
         if separate_repetitions
         else "Rigidity search scaling by removal strategy"
     )

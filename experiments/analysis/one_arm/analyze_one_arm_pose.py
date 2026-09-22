@@ -92,6 +92,9 @@ RUN_COLUMNS = (
     "total_time_s",
     "pose_validation_time_s",
     "structural_time_s",
+    "rai_runtime_percent",
+    "backward_search_runtime_percent",
+    "other_runtime_percent",
     "structural_plans_generated",
     "structural_replans",
     "rai_transition_attempts",
@@ -196,6 +199,19 @@ def distribution(values: Iterable[float]) -> dict[str, float]:
 
 def ratio(numerator: float, denominator: float) -> float:
     return numerator / denominator if denominator else math.nan
+
+
+def runtime_percent(row: dict[str, str], column: str) -> float:
+    return 100.0 * ratio(number(row, column), number(row, "total_time_s"))
+
+
+def other_runtime_percent(row: dict[str, str]) -> float:
+    total = number(row, "total_time_s")
+    measured = (
+        number(row, "pose_validation_time_s")
+        + number(row, "structural_time_s")
+    )
+    return 100.0 * ratio(max(0.0, total - measured), total)
 
 
 def strategy_sort_key(strategy: str) -> tuple[int, str]:
@@ -332,8 +348,56 @@ def summarize_strategy(
         len(successful),
     )
 
+    successful_total_time = sum(
+        number(row, "total_time_s") for row in successful
+    )
+    successful_rai_time = sum(
+        number(row, "pose_validation_time_s") for row in successful
+    )
+    successful_backward_search_time = sum(
+        number(row, "structural_time_s") for row in successful
+    )
+    summary["rai_runtime_share_successful_percent"] = 100.0 * ratio(
+        successful_rai_time,
+        successful_total_time,
+    )
+    summary["backward_search_runtime_share_successful_percent"] = (
+        100.0
+        * ratio(
+            successful_backward_search_time,
+            successful_total_time,
+        )
+    )
+    summary["other_runtime_share_successful_percent"] = 100.0 * ratio(
+        max(
+            0.0,
+            successful_total_time
+            - successful_rai_time
+            - successful_backward_search_time,
+        ),
+        successful_total_time,
+    )
+
     for metric in SUCCESS_METRICS:
         stats = distribution(number(row, metric) for row in successful)
+        for statistic_name, value in stats.items():
+            summary[f"{metric}_successful_{statistic_name}"] = value
+
+    derived_runtime_metrics = {
+        "rai_runtime_percent": (
+            runtime_percent(row, "pose_validation_time_s")
+            for row in successful
+        ),
+        "backward_search_runtime_percent": (
+            runtime_percent(row, "structural_time_s")
+            for row in successful
+        ),
+        "other_runtime_percent": (
+            other_runtime_percent(row) for row in successful
+        ),
+    }
+    for metric, values in derived_runtime_metrics.items():
+        stats = distribution(values)
         for statistic_name, value in stats.items():
             summary[f"{metric}_successful_{statistic_name}"] = value
 
@@ -371,6 +435,9 @@ def compact_table_rows(
         "Strategy",
         "Success",
         "Runtime median [s]",
+        "Backward search [%]",
+        "RAI validation [%]",
+        "Other [%]",
         "Replans median",
         "Support moves median",
         "Support steps median",
@@ -385,6 +452,18 @@ def compact_table_rows(
                 f"({100.0 * float(summary['success_rate']):.0f}%)"
             ),
             format_number(summary["total_time_s_successful_median"]),
+            format_number(
+                summary["backward_search_runtime_share_successful_percent"],
+                2,
+            ),
+            format_number(
+                summary["rai_runtime_share_successful_percent"],
+                2,
+            ),
+            format_number(
+                summary["other_runtime_share_successful_percent"],
+                2,
+            ),
             format_number(
                 summary["structural_replans_successful_median"],
                 1,
@@ -440,7 +519,7 @@ def write_png(
 
     headers, table_rows = compact_table_rows(summaries)
     figure_height = max(2.8, 1.25 + 0.48 * len(table_rows))
-    figure, axis = plt.subplots(figsize=(13.5, figure_height))
+    figure, axis = plt.subplots(figsize=(17.5, figure_height))
     axis.axis("off")
     axis.set_title(
         f"{benchmark_title} (support fractions {support_fractions})",
@@ -454,7 +533,7 @@ def write_png(
         cellLoc="center",
         colLoc="center",
         loc="center",
-        colWidths=[0.27, 0.13, 0.17, 0.14, 0.16, 0.16],
+        colWidths=[0.20, 0.10, 0.13, 0.12, 0.12, 0.09, 0.10, 0.12, 0.12],
     )
     table.auto_set_font_size(False)
     table.set_fontsize(9.5)
@@ -473,7 +552,10 @@ def write_png(
     figure.text(
         0.5,
         0.03,
-        "Runtime, replans, and support metrics include successful runs only.",
+        (
+            "Runtime shares, replans, and support metrics include "
+            "successful runs only."
+        ),
         ha="center",
         fontsize=9,
         color="#4F5B66",
@@ -509,17 +591,30 @@ def run_analysis(
     ]
     write_csv(args.summary_csv, summaries)
 
-    run_rows = [
-        {column: row.get(column, "") for column in RUN_COLUMNS}
-        for row in sorted(
-            rows,
-            key=lambda row: (
-                strategy_sort_key(row["strategy"]),
-                int(row["seed"]),
-                int(row["repeat"]),
-            ),
+    run_rows = []
+    for row in sorted(
+        rows,
+        key=lambda row: (
+            strategy_sort_key(row["strategy"]),
+            int(row["seed"]),
+            int(row["repeat"]),
+        ),
+    ):
+        run_row = {column: row.get(column, "") for column in RUN_COLUMNS}
+        run_row.update(
+            {
+                "rai_runtime_percent": runtime_percent(
+                    row,
+                    "pose_validation_time_s",
+                ),
+                "backward_search_runtime_percent": runtime_percent(
+                    row,
+                    "structural_time_s",
+                ),
+                "other_runtime_percent": other_runtime_percent(row),
+            }
         )
-    ]
+        run_rows.append(run_row)
     write_csv(args.runs_csv, run_rows, RUN_COLUMNS)
 
     support_fractions = str(configs[0].get("support_fractions", "unknown"))

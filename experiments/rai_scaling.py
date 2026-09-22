@@ -59,6 +59,7 @@ def parse_args():
     parser.add_argument("--max-runtime", type=float, default=400.0)
     parser.add_argument("--max-total-runtime", type=float, default=7200.0)
     parser.add_argument("--max-replans", type=int, default=50)
+    parser.add_argument("--max-komo-attempts", type=int, default=100)
     parser.add_argument("--main-robot-arm-count", type=int, default=1)
     parser.add_argument(
         "--support-grippers",
@@ -101,6 +102,8 @@ def validate_args(args):
         raise ValueError("--max-total-runtime must be positive.")
     if args.max_replans <= 0:
         raise ValueError("--max-replans must be positive.")
+    if args.max_komo_attempts <= 0:
+        raise ValueError("--max-komo-attempts must be positive.")
     if args.main_robot_arm_count not in (1, 2):
         raise ValueError("--main-robot-arm-count must be 1 or 2.")
 
@@ -119,6 +122,7 @@ def config_for(args):
         "max_runtime": args.max_runtime,
         "max_total_runtime": args.max_total_runtime,
         "max_replans": args.max_replans,
+        "max_komo_attempts": args.max_komo_attempts,
         "main_robot_arm_count": args.main_robot_arm_count,
         "support_grippers": args.support_grippers,
         "support_fractions": args.support_fractions,

@@ -1196,6 +1196,7 @@ class KeyframePlanner:
         accept_keyframes=None,
         view_last_komo_attempt=False,
         use_ssik_initialization=True,
+        max_komo_attempts=100,
     ):
         """
         Backward removal of rod_id.
@@ -2095,6 +2096,7 @@ class KeyframePlanner:
             accept_keyframes=keyframe_acceptor,
             view_last_attempt=view_last_komo_attempt,
             use_ssik_initialization=use_ssik_initialization,
+            max_combinations=max_komo_attempts,
             initialization_variants=initialization_variants,
         )
 

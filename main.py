@@ -71,6 +71,7 @@ def validate_structural_plan_with_rai(
     do_shortcut=True,
     view_last_komo_attempt=False,
     use_ssik_initialization=True,
+    max_komo_attempts=100,
     support_fractions=(0.4, 0.5, 0.6),
     deadline=None,
     initial_supported=None,
@@ -188,6 +189,7 @@ def validate_structural_plan_with_rai(
                 do_shortcut=do_shortcut,
                 view_last_komo_attempt=view_last_komo_attempt,
                 use_ssik_initialization=use_ssik_initialization,
+                max_komo_attempts=max_komo_attempts,
                 support_fractions=support_fractions,
             )
 

@@ -1,0 +1,5 @@
+strategy,method,successful_runs,distinct_seeds,unique_removal_paths,seeds,source_file,support_steps_min,support_steps_max,support_moves_min,support_moves_max,peak_supports_min,peak_supports_max,runtime_s_min,runtime_s_max
+fast_reduce_support,Fast reduce support,10,10,8,"200452,210452,220452,230452,240452,250452,260452,270452,280452,290452",fast_reduce_support_20rods_10reps.csv,19.0,19.0,5.0,5.0,2.0,2.0,0.188543795,0.200859103
+baseline_random,Random removal + random supports,10,10,10,"200452,210452,220452,230452,240452,250452,260452,270452,280452,290452",baseline_random_20rods_10reps.csv,21.0,31.0,5.0,9.0,2.0,2.0,0.081597475,0.16293628
+reduced_overall_support_steps,Reduced overall support steps,1,1,1,200452,reduced_overall_support_steps_20rods_1rep.csv,11.0,11.0,6.0,6.0,1.0,1.0,850.557099203,850.557099203
+reduced_overall_supports,Reduced overall supports,1,1,1,200452,reduced_overall_supports_20rods_1rep.csv,19.0,19.0,4.0,4.0,2.0,2.0,839.766412008,839.766412008

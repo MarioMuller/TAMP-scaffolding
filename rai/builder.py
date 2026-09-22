@@ -308,6 +308,7 @@ class RaiTrussBuilder:
         do_shortcut=False,
         view_last_komo_attempt=False,
         use_ssik_initialization=True,
+        max_komo_attempts=100,
         support_fractions=(0.4, 0.5, 0.6),
     ):
         """
@@ -587,6 +588,7 @@ class RaiTrussBuilder:
             accept_keyframes=accept_keyframes_with_rrt,
             view_last_komo_attempt=view_last_komo_attempt,
             use_ssik_initialization=use_ssik_initialization,
+            max_komo_attempts=max_komo_attempts,
         )
 
         if keyframes is None:
