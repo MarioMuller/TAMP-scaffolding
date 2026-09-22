@@ -106,15 +106,6 @@ def parse_args():
             "modes use Euclidean distance between rod centers."
         ),
     )
-    parser.add_argument(
-        "--require-connected-supports",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Require every supported rod to remain coupled to at least one "
-            "other active rod (default: enabled)."
-        ),
-    )
     parser.add_argument("--max-runtime", type=float, default=200.0)
     parser.add_argument(
         "--full-only",
@@ -235,7 +226,6 @@ def run_backward_search(args, included_rods, seed, initial_supported=None):
         random_seed=seed,
         shuffle_ties=args.shuffle_ties,
         support_target_order=args.support_target_order,
-        require_connected_supports=args.require_connected_supports,
     )
 
     start_ns = time.perf_counter_ns()
@@ -292,9 +282,7 @@ def make_row(
             success and removal_sequence == expected_sequence
         ),
         "support_target_order": searcher.support_target_order,
-        "require_connected_supports": (
-            searcher.require_connected_supports
-        ),
+        "require_connected_supports": True,
     }
     row.update(structural_summary(searcher))
     return row
@@ -402,9 +390,7 @@ def main():
                     "scale": args.visualization_scale,
                     "strategy_name": args.strategy_name,
                     "support_target_order": args.support_target_order,
-                    "require_connected_supports": (
-                        args.require_connected_supports
-                    ),
+                    "require_connected_supports": True,
                 },
                 sort_keys=True,
             )

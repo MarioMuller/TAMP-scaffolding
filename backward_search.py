@@ -127,7 +127,6 @@ class AssemblyPlanner:
         random_seed=0,
         shuffle_ties=False,
         support_target_order="lowest_first",
-        require_connected_supports=True,
     ):
         self.truss = truss
         self.builder = builder
@@ -151,9 +150,6 @@ class AssemblyPlanner:
                 "'furthest_from_removed'."
             )
         self.support_target_order = support_target_order
-        self.require_connected_supports = bool(
-            require_connected_supports
-        )
 
         self.rigidity = TrussRigidityChecker(
             truss,
@@ -319,9 +315,6 @@ class AssemblyPlanner:
             another rod continues to be active, so its rod must retain at least one
             connection to another rod in the remaining scaffold."""
             
-        if not self.require_connected_supports:
-            return True
-
         remaining_rods = node.state - {candidate_rod}
 
         return all(
@@ -569,28 +562,27 @@ class AssemblyPlanner:
                 supported_rods=support_context.continuing_supported_rods,
             )
 
-        if self.require_connected_supports:
-            disconnected_supports = {
-                support: rod_id
-                for support, rod_id in (
-                    support_context.continuing_supports.items()
-                )
-                if not self.support_has_active_connection(
-                    rod_id,
-                    support_context.new_state,
-                )
-            }
-            if disconnected_supports:
-                result = SupportEvaluation(
-                    feasible=False,
-                    rigidity_result=rigidity_result,
-                    supports_after=dict(
-                        support_context.continuing_supports
-                    ),
-                    added_supports={},
-                )
-                self.support_evaluations[cache_key] = result
-                return result
+        disconnected_supports = {
+            support: rod_id
+            for support, rod_id in (
+                support_context.continuing_supports.items()
+            )
+            if not self.support_has_active_connection(
+                rod_id,
+                support_context.new_state,
+            )
+        }
+        if disconnected_supports:
+            result = SupportEvaluation(
+                feasible=False,
+                rigidity_result=rigidity_result,
+                supports_after=dict(
+                    support_context.continuing_supports
+                ),
+                added_supports={},
+            )
+            self.support_evaluations[cache_key] = result
+            return result
 
         mandatory_support_rods = sorted(
             self.mandatory_degree_one_supports(
@@ -652,9 +644,7 @@ class AssemblyPlanner:
                             rod_id,
                             support_context.new_state,
                         )
-                    )
-                    if self.require_connected_supports
-                    else None,
+                    ),
                     initial_result=rigidity_result,
                     return_result=True,
                 )
