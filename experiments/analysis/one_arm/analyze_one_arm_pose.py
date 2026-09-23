@@ -13,10 +13,15 @@ import csv
 import json
 import math
 import statistics
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Iterable
 
+
+# Replan traces can make an individual benchmark CSV field much larger than
+# the csv module's conservative 128 KiB default.
+csv.field_size_limit(sys.maxsize)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT_DIR = (
@@ -67,6 +72,8 @@ SUCCESS_METRICS = (
     "total_time_s",
     "pose_validation_time_s",
     "structural_time_s",
+    "rai_robot_import_time_s",
+    "rai_robot_template_restore_time_s",
     "structural_plans_generated",
     "structural_replans",
     "rai_transition_attempts",
@@ -92,6 +99,10 @@ RUN_COLUMNS = (
     "total_time_s",
     "pose_validation_time_s",
     "structural_time_s",
+    "rai_robot_import_time_s",
+    "rai_robot_template_restore_time_s",
+    "rai_builder_setup_time_s",
+    "rai_runtime_time_s",
     "rai_runtime_percent",
     "backward_search_runtime_percent",
     "other_runtime_percent",
@@ -205,10 +216,30 @@ def runtime_percent(row: dict[str, str], column: str) -> float:
     return 100.0 * ratio(number(row, column), number(row, "total_time_s"))
 
 
+def optional_number(row: dict[str, str], column: str) -> float:
+    value = number(row, column)
+    return value if math.isfinite(value) else 0.0
+
+
+def rai_builder_setup_time(row: dict[str, str]) -> float:
+    return (
+        optional_number(row, "rai_robot_import_time_s")
+        + optional_number(row, "rai_robot_template_restore_time_s")
+    )
+
+
+def rai_runtime_time(row: dict[str, str]) -> float:
+    return number(row, "pose_validation_time_s") + rai_builder_setup_time(row)
+
+
+def value_runtime_percent(row: dict[str, str], value: float) -> float:
+    return 100.0 * ratio(value, number(row, "total_time_s"))
+
+
 def other_runtime_percent(row: dict[str, str]) -> float:
     total = number(row, "total_time_s")
     measured = (
-        number(row, "pose_validation_time_s")
+        rai_runtime_time(row)
         + number(row, "structural_time_s")
     )
     return 100.0 * ratio(max(0.0, total - measured), total)
@@ -351,9 +382,7 @@ def summarize_strategy(
     successful_total_time = sum(
         number(row, "total_time_s") for row in successful
     )
-    successful_rai_time = sum(
-        number(row, "pose_validation_time_s") for row in successful
-    )
+    successful_rai_time = sum(rai_runtime_time(row) for row in successful)
     successful_backward_search_time = sum(
         number(row, "structural_time_s") for row in successful
     )
@@ -385,7 +414,7 @@ def summarize_strategy(
 
     derived_runtime_metrics = {
         "rai_runtime_percent": (
-            runtime_percent(row, "pose_validation_time_s")
+            value_runtime_percent(row, rai_runtime_time(row))
             for row in successful
         ),
         "backward_search_runtime_percent": (
@@ -434,10 +463,12 @@ def compact_table_rows(
     headers = [
         "Strategy",
         "Success",
+        "Runtime mean [s]",
         "Runtime median [s]",
+        "RAI total [%]",
         "Backward search [%]",
-        "RAI validation [%]",
-        "Other [%]",
+        "Unclassified [%]",
+        "Replans mean",
         "Replans median",
         "Support moves median",
         "Support steps median",
@@ -451,18 +482,23 @@ def compact_table_rows(
                 f"{summary['runs_total']} "
                 f"({100.0 * float(summary['success_rate']):.0f}%)"
             ),
+            format_number(summary["total_time_s_successful_mean"]),
             format_number(summary["total_time_s_successful_median"]),
             format_number(
-                summary["backward_search_runtime_share_successful_percent"],
+                summary["rai_runtime_percent_successful_mean"],
                 2,
             ),
             format_number(
-                summary["rai_runtime_share_successful_percent"],
+                summary["backward_search_runtime_percent_successful_mean"],
                 2,
             ),
             format_number(
-                summary["other_runtime_share_successful_percent"],
+                summary["other_runtime_percent_successful_mean"],
                 2,
+            ),
+            format_number(
+                summary["structural_replans_successful_mean"],
+                1,
             ),
             format_number(
                 summary["structural_replans_successful_median"],
@@ -518,8 +554,14 @@ def write_png(
     import matplotlib.pyplot as plt
 
     headers, table_rows = compact_table_rows(summaries)
+    png_headers = [
+        header.replace(" ", "\n", 1)
+        if header not in {"Strategy", "Success"}
+        else header
+        for header in headers
+    ]
     figure_height = max(2.8, 1.25 + 0.48 * len(table_rows))
-    figure, axis = plt.subplots(figsize=(17.5, figure_height))
+    figure, axis = plt.subplots(figsize=(22.0, figure_height))
     axis.axis("off")
     axis.set_title(
         f"{benchmark_title} (support fractions {support_fractions})",
@@ -529,15 +571,18 @@ def write_png(
     )
     table = axis.table(
         cellText=table_rows,
-        colLabels=headers,
+        colLabels=png_headers,
         cellLoc="center",
         colLoc="center",
         loc="center",
-        colWidths=[0.20, 0.10, 0.13, 0.12, 0.12, 0.09, 0.10, 0.12, 0.12],
+        colWidths=[
+            0.18, 0.08, 0.10, 0.10, 0.09,
+            0.10, 0.08, 0.08, 0.08, 0.10, 0.10,
+        ],
     )
     table.auto_set_font_size(False)
     table.set_fontsize(9.5)
-    table.scale(1.0, 1.45)
+    table.scale(1.0, 1.65)
 
     for (row_index, _), cell in table.get_celld().items():
         cell.set_edgecolor("#B8BEC7")
@@ -553,8 +598,8 @@ def write_png(
         0.5,
         0.03,
         (
-            "Runtime shares, replans, and support metrics include "
-            "successful runs only."
+            "Means and runtime shares give each successful run equal weight. "
+            "RAI total includes builder setup and pose validation."
         ),
         ha="center",
         fontsize=9,
@@ -603,9 +648,11 @@ def run_analysis(
         run_row = {column: row.get(column, "") for column in RUN_COLUMNS}
         run_row.update(
             {
-                "rai_runtime_percent": runtime_percent(
+                "rai_builder_setup_time_s": rai_builder_setup_time(row),
+                "rai_runtime_time_s": rai_runtime_time(row),
+                "rai_runtime_percent": value_runtime_percent(
                     row,
-                    "pose_validation_time_s",
+                    rai_runtime_time(row),
                 ),
                 "backward_search_runtime_percent": runtime_percent(
                     row,
