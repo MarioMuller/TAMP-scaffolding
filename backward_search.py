@@ -788,11 +788,13 @@ class AssemblyPlanner:
                     "support outcome."
                 )
 
-            # Each active support contributes one support-step after this
-            # removal. Rank by the projected cumulative support-steps.
+            # Minimize cumulative support steps first and support additions
+            # second. Remaining entries only break ties between equal costs.
             return (
                 node.support_steps_so_far
                 + actual_support_result.support_count,
+                node.support_additions_so_far
+                + actual_support_result.new_support_count,
                 len(node.state),
                 actual_support_result.support_count,
                 actual_support_result.new_support_count,
@@ -807,11 +809,13 @@ class AssemblyPlanner:
                     "support outcome."
                 )
 
-            # reduce the total number of supports used in the entire assembly sequence
-            # secondary tie-breakers: maximize the number of rods removed, minimize the number of current supports
+            # Minimize support additions first and cumulative support steps
+            # second. Remaining entries only break ties between equal costs.
             return (
                 node.support_additions_so_far
                 + actual_support_result.new_support_count,
+                node.support_steps_so_far
+                + actual_support_result.support_count,
                 len(node.state),
                 actual_support_result.support_count,
                 tie_breaker,
@@ -1159,11 +1163,11 @@ class AssemblyPlanner:
         visited = {
             self.search_state_key(initial_node)
         }
-        best_state_support_additions = {
-            self.search_state_key(initial_node): 0
+        best_state_support_costs = {
+            self.search_state_key(initial_node): (0, 0)
         }
-        best_state_support_steps = {
-            self.search_state_key(initial_node): 0
+        best_state_support_step_costs = {
+            self.search_state_key(initial_node): (0, 0)
         }
         
         attempted_transitions = set()
@@ -1243,8 +1247,11 @@ class AssemblyPlanner:
                     node_state_key = self.search_state_key(node)
 
                     if (
-                        node.support_additions_so_far
-                        != best_state_support_additions.get(node_state_key)
+                        (
+                            node.support_additions_so_far,
+                            node.support_steps_so_far,
+                        )
+                        != best_state_support_costs.get(node_state_key)
                     ):
                         continue
 
@@ -1252,8 +1259,11 @@ class AssemblyPlanner:
                     node_state_key = self.search_state_key(node)
 
                     if (
-                        node.support_steps_so_far
-                        != best_state_support_steps.get(node_state_key)
+                        (
+                            node.support_steps_so_far,
+                            node.support_additions_so_far,
+                        )
+                        != best_state_support_step_costs.get(node_state_key)
                     ):
                         continue
 
@@ -1450,32 +1460,34 @@ class AssemblyPlanner:
                 )
 
                 if self.strategy_name == "reduced_overall_supports":
-                    previous_cost = best_state_support_additions.get(
+                    new_cost = (
+                        new_node.support_additions_so_far,
+                        new_node.support_steps_so_far,
+                    )
+                    previous_cost = best_state_support_costs.get(state_key)
+
+                    if (
+                        previous_cost is not None
+                        and previous_cost <= new_cost
+                    ):
+                        continue
+
+                    best_state_support_costs[state_key] = new_cost
+                elif self.strategy_name == "reduced_overall_support_steps":
+                    new_cost = (
+                        new_node.support_steps_so_far,
+                        new_node.support_additions_so_far,
+                    )
+                    previous_cost = best_state_support_step_costs.get(
                         state_key
                     )
 
                     if (
-                        previous_cost is not None
-                        and previous_cost
-                        <= new_node.support_additions_so_far
+                        previous_cost is not None and previous_cost <= new_cost
                     ):
                         continue
 
-                    best_state_support_additions[state_key] = (
-                        new_node.support_additions_so_far
-                    )
-                elif self.strategy_name == "reduced_overall_support_steps":
-                    previous_cost = best_state_support_steps.get(state_key)
-
-                    if (
-                        previous_cost is not None
-                        and previous_cost <= new_node.support_steps_so_far
-                    ):
-                        continue
-
-                    best_state_support_steps[state_key] = (
-                        new_node.support_steps_so_far
-                    )
+                    best_state_support_step_costs[state_key] = new_cost
                 else:
                     if state_key in visited:
                         continue
