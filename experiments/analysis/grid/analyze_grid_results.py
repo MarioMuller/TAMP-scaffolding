@@ -20,22 +20,22 @@ from typing import Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_INPUT_DIR = (
+REPORT_RESULT_DIR = (
     PROJECT_ROOT
     / "experiments"
     / "results"
-    / "evaluation"
-    / "current"
+    / "report"
     / "rigidity_target_grid_5reps"
 )
-DEFAULT_OUTPUT_CSV = Path(__file__).with_name(
-    "grid_comparison_metrics.csv"
+DEFAULT_INPUT_DIR = REPORT_RESULT_DIR
+DEFAULT_OUTPUT_CSV = REPORT_RESULT_DIR / "analysis" / "grid_comparison_metrics.csv"
+DEFAULT_OUTPUT_MARKDOWN = REPORT_RESULT_DIR / "analysis" / "grid_comparison_table.md"
+DEFAULT_OUTPUT_PNG = REPORT_RESULT_DIR / "analysis" / "grid_comparison_table.png"
+DEFAULT_SCATTER_PNG = (
+    REPORT_RESULT_DIR / "analysis" / "support_tradeoff.png"
 )
-DEFAULT_OUTPUT_MARKDOWN = Path(__file__).with_name(
-    "grid_comparison_table.md"
-)
-DEFAULT_OUTPUT_PNG = Path(__file__).with_name(
-    "grid_comparison_table.png"
+DEFAULT_SCATTER_PDF = (
+    REPORT_RESULT_DIR / "analysis" / "support_tradeoff.pdf"
 )
 
 REQUIRED_COLUMNS = {
@@ -148,6 +148,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_OUTPUT_PNG,
         help="PNG rendering of the compact comparison table.",
+    )
+    parser.add_argument(
+        "--scatter-png",
+        type=Path,
+        default=DEFAULT_SCATTER_PNG,
+        help="PNG rendering of the support-move/support-step trade-off.",
+    )
+    parser.add_argument(
+        "--scatter-pdf",
+        type=Path,
+        default=DEFAULT_SCATTER_PDF,
+        help="Vector PDF of the support-move/support-step trade-off.",
     )
     return parser.parse_args()
 
@@ -492,7 +504,7 @@ def write_png(summaries: list[dict[str, object]], output_path: Path) -> None:
         0.03,
         0.965,
         "Rigidity search grid comparison",
-        fontsize=19,
+        fontsize=21,
         fontweight="bold",
         color="#202124",
         ha="left",
@@ -505,7 +517,7 @@ def write_png(summaries: list[dict[str, object]], output_path: Path) -> None:
             "All calculated metrics use successful runs only; success reports "
             "completed runs out of all attempts."
         ),
-        fontsize=10,
+        fontsize=12,
         color="#5f6368",
         ha="left",
         va="top",
@@ -530,7 +542,7 @@ def write_png(summaries: list[dict[str, object]], output_path: Path) -> None:
         bbox=(0.015, 0.015, 0.97, 0.88),
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(8.5)
+    table.set_fontsize(10.5)
 
     for (row_index, column_index), cell in table.get_celld().items():
         cell.set_edgecolor("#d7dadd")
@@ -558,6 +570,126 @@ def write_png(summaries: list[dict[str, object]], output_path: Path) -> None:
     plt.close(fig)
 
 
+def write_support_tradeoff(
+    summaries: list[dict[str, object]],
+    png_path: Path,
+    pdf_path: Path,
+) -> None:
+    mpl_config_dir = Path("/tmp/tamp_scaffolding_matplotlib")
+    mpl_config_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir))
+
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    strategy_styles = {
+        "default": ("Default", "#0072B2"),
+        "highest_first": ("Highest first", "#E69F00"),
+        "fewest_mandatory_supports": ("Fewest mandatory", "#009E73"),
+        "fast_reduce_support": ("Fast reduce support", "#D55E00"),
+        "baseline": ("Baseline", "#CC79A7"),
+    }
+    target_styles = {
+        "random": ("Random", "o"),
+        "lowest_first": ("Lowest first", "s"),
+        "least_connected": ("Least connected", "^"),
+        "furthest_from_removed": ("Furthest", "D"),
+    }
+
+    fig, ax = plt.subplots(figsize=(7.1, 4.1), constrained_layout=True)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    plotted_by_strategy: dict[str, list[tuple[float, float]]] = {
+        strategy: [] for strategy in strategy_styles
+    }
+    for summary in summaries:
+        strategy = str(summary["removal_strategy"])
+        target = str(summary["support_target_order"])
+        moves = float(summary["support_moves_successful_runs_mean"])
+        steps = float(summary["support_steps_successful_runs_mean"])
+        if not (math.isfinite(moves) and math.isfinite(steps)):
+            continue
+
+        _, color = strategy_styles[strategy]
+        _, marker = target_styles[target]
+        ax.scatter(
+            moves,
+            steps,
+            s=68,
+            marker=marker,
+            facecolor="white",
+            edgecolor=color,
+            linewidth=1.6,
+            zorder=3,
+        )
+        plotted_by_strategy[strategy].append((moves, steps))
+
+    label_offsets = {
+        "default": (8, -2),
+        "highest_first": (8, 0),
+        "fewest_mandatory_supports": (8, 0),
+        "fast_reduce_support": (8, -2),
+        "baseline": (8, 0),
+    }
+    for strategy, points in plotted_by_strategy.items():
+        if not points:
+            continue
+        label, color = strategy_styles[strategy]
+        rightmost = max(points, key=lambda point: point[0])
+        ax.annotate(
+            label,
+            xy=rightmost,
+            xytext=label_offsets[strategy],
+            textcoords="offset points",
+            color=color,
+            fontsize=12,
+            fontweight="semibold",
+            va="center",
+        )
+
+    target_handles = [
+        Line2D(
+            [0],
+            [0],
+            marker=marker,
+            linestyle="none",
+            markerfacecolor="white",
+            markeredgecolor="#4d4d4d",
+            markeredgewidth=1.4,
+            markersize=8.5,
+            label=label,
+        )
+        for label, marker in target_styles.values()
+    ]
+    target_legend = ax.legend(
+        handles=target_handles,
+        loc="upper right",
+        ncol=1,
+        frameon=False,
+        fontsize=12,
+        handletextpad=0.4,
+        columnspacing=1.2,
+    )
+    ax.add_artist(target_legend)
+
+    ax.set_xlabel("Mean support moves", fontsize=13)
+    ax.set_ylabel("Mean support steps", fontsize=13)
+    ax.tick_params(labelsize=11)
+    ax.grid(True, color="#d9dde1", linewidth=0.6, alpha=0.8)
+    ax.set_axisbelow(True)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0, 80)
+    ax.set_ylim(0, 300)
+
+    png_path.parent.mkdir(parents=True, exist_ok=True)
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(png_path, dpi=300, facecolor="white")
+    fig.savefig(pdf_path, facecolor="white")
+    plt.close(fig)
+
+
 def main() -> None:
     args = parse_args()
     csv_paths = sorted(args.input_dir.glob("grid_*.csv"))
@@ -573,11 +705,18 @@ def main() -> None:
     write_csv(summaries, args.output_csv)
     write_markdown(summaries, args.output_markdown)
     write_png(summaries, args.output_png)
+    write_support_tradeoff(
+        summaries,
+        args.scatter_png,
+        args.scatter_pdf,
+    )
 
     print(f"Analyzed {len(csv_paths)} grid result files.")
     print(f"Detailed metrics: {args.output_csv}")
     print(f"Compact table:   {args.output_markdown}")
     print(f"PNG table:       {args.output_png}")
+    print(f"Trade-off PNG:   {args.scatter_png}")
+    print(f"Trade-off PDF:   {args.scatter_pdf}")
 
 
 if __name__ == "__main__":

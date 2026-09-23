@@ -5,33 +5,43 @@ from __future__ import annotations
 
 import argparse
 import csv
+import statistics
 from pathlib import Path
 from typing import Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_INPUT_DIR = (
+REPORT_RESULT_DIR = (
     PROJECT_ROOT
     / "experiments"
     / "results"
-    / "evaluation"
-    / "current"
+    / "report"
     / "near_optimal_20_rods"
 )
+DEFAULT_INPUT_DIR = REPORT_RESULT_DIR
 DEFAULT_FAST_FILE = "fast_reduce_support_20rods_10reps.csv"
+DEFAULT_FAST_FURTHEST_FILE = (
+    "fast_reduce_support_furthest_from_removed_20rods_10reps.csv"
+)
+DEFAULT_DEFAULT_LOWEST_FILE = "default_lowest_first_20rods_10reps.csv"
+DEFAULT_DEFAULT_FURTHEST_FILE = (
+    "default_furthest_from_removed_20rods_10reps.csv"
+)
+DEFAULT_RANDOM_FILE = "baseline_random_20rods_10reps.csv"
+DEFAULT_BASELINE_LOWEST_FILE = "baseline_lowest_first_20rods_10reps.csv"
 DEFAULT_STEP_FILE = "reduced_overall_support_steps_20rods_1rep.csv"
 DEFAULT_MOVE_FILE = "reduced_overall_supports_20rods_1rep.csv"
-DEFAULT_RUN_OUTPUT = Path(__file__).with_name(
-    "fast_reduce_vs_reference_minima_runs.csv"
+DEFAULT_RUN_OUTPUT = (
+    REPORT_RESULT_DIR / "analysis" / "fast_reduce_vs_reference_minima_runs.csv"
 )
-DEFAULT_SUMMARY_OUTPUT = Path(__file__).with_name(
-    "fast_reduce_vs_reference_minima_summary.csv"
+DEFAULT_SUMMARY_OUTPUT = (
+    REPORT_RESULT_DIR / "analysis" / "fast_reduce_vs_reference_minima_summary.csv"
 )
-DEFAULT_MARKDOWN_OUTPUT = Path(__file__).with_name(
-    "fast_reduce_vs_reference_minima.md"
+DEFAULT_MARKDOWN_OUTPUT = (
+    REPORT_RESULT_DIR / "analysis" / "fast_reduce_vs_reference_minima.md"
 )
-DEFAULT_PNG_OUTPUT = Path(__file__).with_name(
-    "fast_reduce_vs_reference_minima.png"
+DEFAULT_PNG_OUTPUT = (
+    REPORT_RESULT_DIR / "analysis" / "fast_reduce_vs_reference_minima.png"
 )
 
 REQUIRED_COLUMNS = {
@@ -68,11 +78,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--step-reference-file", default=DEFAULT_STEP_FILE)
     parser.add_argument("--move-reference-file", default=DEFAULT_MOVE_FILE)
     parser.add_argument(
+        "--fast-furthest-file",
+        default=DEFAULT_FAST_FURTHEST_FILE,
+    )
+    parser.add_argument(
+        "--default-lowest-file",
+        default=DEFAULT_DEFAULT_LOWEST_FILE,
+    )
+    parser.add_argument(
+        "--default-furthest-file",
+        default=DEFAULT_DEFAULT_FURTHEST_FILE,
+    )
+    parser.add_argument(
         "--random-comparison-file",
+        default=DEFAULT_RANDOM_FILE,
         help=(
             "Optional baseline-removal/random-support CSV filename relative "
             "to --input-dir."
         ),
+    )
+    parser.add_argument(
+        "--baseline-lowest-file",
+        default=DEFAULT_BASELINE_LOWEST_FILE,
     )
     parser.add_argument("--output-runs", type=Path, default=DEFAULT_RUN_OUTPUT)
     parser.add_argument(
@@ -160,6 +187,8 @@ def summarize_method(
         values = floats(rows, column)
         summary[f"{output_name}_min"] = min(values)
         summary[f"{output_name}_max"] = max(values)
+        summary[f"{output_name}_average"] = statistics.mean(values)
+        summary[f"{output_name}_median"] = statistics.median(values)
     return summary
 
 
@@ -171,6 +200,22 @@ def format_range(
     minimum = float(summary[f"{metric}_min"])
     maximum = float(summary[f"{metric}_max"])
     return f"{minimum:.{digits}f}-{maximum:.{digits}f}"
+
+
+def format_distribution(
+    summary: dict[str, object],
+    metric: str,
+    digits: int,
+) -> str:
+    if int(summary["successful_runs"]) == 1:
+        return f"{float(summary[f'{metric}_average']):.{digits}f}"
+    return " / ".join(
+        (
+            format_range(summary, metric, digits),
+            f"{float(summary[f'{metric}_average']):.{digits}f}",
+            f"{float(summary[f'{metric}_median']):.{digits}f}",
+        )
+    )
 
 
 def abbreviated_seeds(summary: dict[str, object]) -> str:
@@ -193,32 +238,26 @@ def write_png(
     headers = [
         "Method",
         "Successful\nruns",
-        "Distinct\nseeds",
-        "Unique removal\npaths",
-        "Support steps\nmin-max",
-        "Support moves\nmin-max",
-        "Peak supports\nmin-max",
-        "Runtime [s]\nmin-max",
+        "Support steps\nrange / avg. / median",
+        "Support moves\nrange / avg. / median",
+        "Runtime [s]\nrange / avg. / median",
     ]
     table_rows = [
         [
-            str(summary["method"]),
+            str(summary["method"]).replace(" + ", "\n+ ", 1),
             str(summary["successful_runs"]),
-            str(summary["distinct_seeds"]),
-            str(summary["unique_removal_paths"]),
-            format_range(summary, "support_steps", 0),
-            format_range(summary, "support_moves", 0),
-            format_range(summary, "peak_supports", 0),
-            format_range(summary, "runtime_s", 3),
+            format_distribution(summary, "support_steps", 1),
+            format_distribution(summary, "support_moves", 1),
+            format_distribution(summary, "runtime_s", 3),
         ]
         for summary in summaries
     ]
 
-    figure, axis = plt.subplots(figsize=(15.5, 4.4))
+    figure, axis = plt.subplots(figsize=(15.5, 6.2))
     axis.axis("off")
     axis.set_title(
         "20-Rod Support Search Comparison",
-        fontsize=16,
+        fontsize=18,
         fontweight="bold",
         pad=18,
     )
@@ -228,11 +267,11 @@ def write_png(
         cellLoc="center",
         colLoc="center",
         loc="center",
-        colWidths=[0.24, 0.09, 0.09, 0.11, 0.12, 0.12, 0.11, 0.14],
+        colWidths=[0.31, 0.09, 0.20, 0.20, 0.20],
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1.0, 1.55)
+    table.set_fontsize(12)
+    table.scale(1.0, 2.35)
 
     for (row_index, column_index), cell in table.get_celld().items():
         cell.set_edgecolor("#B8BEC7")
@@ -246,17 +285,15 @@ def write_png(
         if row_index > 0 and column_index == 0:
             cell.set_text_props(ha="left")
 
-    fast_summary = summaries[0]
     figure.text(
         0.5,
         0.06,
         (
-            "Cells report the minimum and maximum over successful runs; "
-            f"the {fast_summary['successful_runs']} fast runs use "
-            f"{fast_summary['distinct_seeds']} distinct seeds."
+            "Cells report range / average / median over successful runs; "
+            "the expensive reference methods contain one run each."
         ),
         ha="center",
-        fontsize=9,
+        fontsize=11,
         color="#4F5B66",
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -272,6 +309,10 @@ def main() -> None:
     ]
     step_path = args.input_dir / args.step_reference_file
     move_path = args.input_dir / args.move_reference_file
+    fast_furthest_path = args.input_dir / args.fast_furthest_file
+    default_lowest_path = args.input_dir / args.default_lowest_file
+    default_furthest_path = args.input_dir / args.default_furthest_file
+    baseline_lowest_path = args.input_dir / args.baseline_lowest_file
     random_path = (
         args.input_dir / args.random_comparison_file
         if args.random_comparison_file
@@ -286,6 +327,10 @@ def main() -> None:
     fast_seeds = [int(row["seed"]) for row in fast_rows]
     if len(fast_seeds) != len(set(fast_seeds)):
         raise ValueError("The selected fast-run files contain duplicate seeds.")
+    fast_furthest_rows = load_successful_rows(fast_furthest_path)
+    default_lowest_rows = load_successful_rows(default_lowest_path)
+    default_furthest_rows = load_successful_rows(default_furthest_path)
+    baseline_lowest_rows = load_successful_rows(baseline_lowest_path)
     step_reference_rows = load_successful_rows(step_path)
     move_reference_rows = load_successful_rows(move_path)
     random_rows = (
@@ -294,23 +339,69 @@ def main() -> None:
         else None
     )
 
-    comparison_rows = [
-        {
-            "repetition": int(row["repetition"]),
-            "seed": int(row["seed"]),
-            "runtime_s": float(row["elapsed_s"]),
-            "support_steps": int(row["support_steps"]),
-            "support_moves": int(row["support_moves"]),
-            "peak_supports": int(row["peak_supports"]),
-        }
-        for row in fast_rows
-    ]
+    comparison_rows = []
+    for method, rows in (
+        ("baseline_lowest", baseline_lowest_rows),
+        ("default_lowest", default_lowest_rows),
+        ("default_furthest", default_furthest_rows),
+        ("fast_reduce_support_lowest", fast_rows),
+        ("fast_reduce_support_furthest", fast_furthest_rows),
+    ):
+        comparison_rows.extend(
+            {
+                "method": method,
+                "repetition": int(row["repetition"]),
+                "seed": int(row["seed"]),
+                "runtime_s": float(row["elapsed_s"]),
+                "support_steps": int(row["support_steps"]),
+                "support_moves": int(row["support_moves"]),
+                "peak_supports": int(row["peak_supports"]),
+            }
+            for row in rows
+        )
+    if random_rows is not None:
+        comparison_rows.extend(
+            {
+                "method": "baseline_random",
+                "repetition": int(row["repetition"]),
+                "seed": int(row["seed"]),
+                "runtime_s": float(row["elapsed_s"]),
+                "support_steps": int(row["support_steps"]),
+                "support_moves": int(row["support_moves"]),
+                "peak_supports": int(row["peak_supports"]),
+            }
+            for row in random_rows
+        )
     summary_rows = [
         summarize_method(
+            "baseline_lowest",
+            "Uninformed baseline + lowest",
+            baseline_lowest_rows,
+            baseline_lowest_path.name,
+        ),
+        summarize_method(
+            "default_lowest",
+            "Default + lowest",
+            default_lowest_rows,
+            default_lowest_path.name,
+        ),
+        summarize_method(
+            "default_furthest",
+            "Default + furthest",
+            default_furthest_rows,
+            default_furthest_path.name,
+        ),
+        summarize_method(
             "fast_reduce_support",
-            "Fast reduce support",
+            "Fast reduce support + lowest",
             fast_rows,
             ",".join(path.name for path in fast_paths),
+        ),
+        summarize_method(
+            "fast_reduce_support_furthest",
+            "Fast reduce support + furthest",
+            fast_furthest_rows,
+            fast_furthest_path.name,
         ),
         summarize_method(
             "reduced_overall_support_steps",
@@ -327,10 +418,10 @@ def main() -> None:
     ]
     if random_rows is not None:
         summary_rows.insert(
-            1,
+            0,
             summarize_method(
                 "baseline_random",
-                "Random removal + random supports",
+                "Uninformed baseline + random supports",
                 random_rows,
                 random_path.name,
             ),
@@ -345,12 +436,9 @@ def main() -> None:
             (
                 str(summary["method"]),
                 str(summary["successful_runs"]),
-                str(summary["distinct_seeds"]),
-                str(summary["unique_removal_paths"]),
-                format_range(summary, "support_steps", 0),
-                format_range(summary, "support_moves", 0),
-                format_range(summary, "peak_supports", 0),
-                format_range(summary, "runtime_s", 3),
+                format_distribution(summary, "support_steps", 1),
+                format_distribution(summary, "support_moves", 1),
+                format_distribution(summary, "runtime_s", 3),
             )
         )
         + " |"
@@ -360,11 +448,13 @@ def main() -> None:
 
 Only successful runs are included.
 
-| Method | Successful runs | Distinct seeds | Unique removal paths | Support steps min-max | Support moves min-max | Peak supports min-max | Runtime [s] min-max |
-|---|---:|---:|---:|---:|---:|---:|---:|
+| Method | Successful runs | Support steps (range / avg. / median) | Support moves (range / avg. / median) | Runtime [s] (range / avg. / median) |
+|---|---:|---:|---:|---:|
 {markdown_rows}
 
-Fast-reduction seeds: `{abbreviated_seeds(summary_rows[0])}`.
+Cells report range / average / median over successful runs.
+
+Heuristic-run seeds: `{abbreviated_seeds(summary_rows[0])}`.
 
 The reference values are the best results in the supplied expensive-search files. They are exact for the transition choices explored by those searches, but they do not prove a global physical optimum over every possible support-target assignment.
 """

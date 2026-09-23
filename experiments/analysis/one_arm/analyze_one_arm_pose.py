@@ -560,12 +560,12 @@ def write_png(
         else header
         for header in headers
     ]
-    figure_height = max(2.8, 1.25 + 0.48 * len(table_rows))
+    figure_height = max(3.2, 1.5 + 0.55 * len(table_rows))
     figure, axis = plt.subplots(figsize=(22.0, figure_height))
     axis.axis("off")
     axis.set_title(
         f"{benchmark_title} (support fractions {support_fractions})",
-        fontsize=15,
+        fontsize=18,
         fontweight="bold",
         pad=16,
     )
@@ -581,7 +581,7 @@ def write_png(
         ],
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(9.5)
+    table.set_fontsize(11)
     table.scale(1.0, 1.65)
 
     for (row_index, _), cell in table.get_celld().items():
@@ -602,7 +602,7 @@ def write_png(
             "RAI total includes builder setup and pose validation."
         ),
         ha="center",
-        fontsize=9,
+        fontsize=11,
         color="#4F5B66",
     )
     path.parent.mkdir(parents=True, exist_ok=True)

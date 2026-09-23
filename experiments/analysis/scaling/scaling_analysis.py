@@ -16,28 +16,30 @@ from typing import Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_INPUT_DIR = (
+REPORT_RESULT_DIR = (
     PROJECT_ROOT
     / "experiments"
     / "results"
-    / "evaluation"
-    / "current"
+    / "report"
     / "scaling_strategy_comparison_lowest_first_5reps"
 )
-DEFAULT_OUTPUT_PLOT = Path(__file__).with_name(
-    "scaling_runtime_by_scaffold_size.png"
+DEFAULT_INPUT_DIR = REPORT_RESULT_DIR
+ANALYSIS_DIR = REPORT_RESULT_DIR / "analysis"
+DEFAULT_OUTPUT_PLOT = (
+    ANALYSIS_DIR / "scaling_runtime_by_scaffold_size.png"
 )
-DEFAULT_MEAN_OUTPUT_PLOT = Path(__file__).with_name(
-    "scaling_runtime_by_scaffold_size_mean.png"
+DEFAULT_MEAN_OUTPUT_PLOT = (
+    ANALYSIS_DIR / "scaling_runtime_by_scaffold_size_mean.png"
 )
-DEFAULT_SEPARATE_OUTPUT_PLOT = Path(__file__).with_name(
-    "scaling_runtime_by_scaffold_size_separate_repetitions.png"
+DEFAULT_SEPARATE_OUTPUT_PLOT = (
+    ANALYSIS_DIR
+    / "scaling_runtime_by_scaffold_size_separate_repetitions.png"
 )
-DEFAULT_PREFIX_CSV = Path(__file__).with_name(
-    "scaling_prefix_runtime_summary.csv"
+DEFAULT_PREFIX_CSV = (
+    ANALYSIS_DIR / "scaling_prefix_runtime_summary.csv"
 )
-DEFAULT_STRATEGY_CSV = Path(__file__).with_name(
-    "scaling_strategy_summary.csv"
+DEFAULT_STRATEGY_CSV = (
+    ANALYSIS_DIR / "scaling_strategy_summary.csv"
 )
 
 REQUIRED_COLUMNS = {
@@ -285,9 +287,11 @@ def build_prefix_summaries(
 
 def build_strategy_summaries(
     results: list[StrategyResults],
-    scaffold_size_count: int,
+    scaffold_sizes: list[int],
 ) -> list[dict[str, object]]:
     summaries = []
+    expected_scaffold_sizes = set(scaffold_sizes)
+    scaffold_size_count = len(scaffold_sizes)
     for result in sorted(results, key=lambda item: strategy_sort_key(item.strategy)):
         successful = [
             row for row in result.rows if parse_bool(row["success"])
@@ -297,6 +301,21 @@ def build_strategy_summaries(
         ]
         stop_reasons = Counter(row["search_stop_reason"] for row in failed)
         expected_runs = len(result.repetitions) * scaffold_size_count
+        rows_by_repetition: dict[int, list[dict[str, str]]] = defaultdict(list)
+        for row in result.rows:
+            rows_by_repetition[int(row["repetition"])].append(row)
+
+        full_grid_runtimes = []
+        for repetition in result.repetitions:
+            repetition_rows = rows_by_repetition[repetition]
+            recorded_scaffold_sizes = {
+                int(row["included_rod_count"]) for row in repetition_rows
+            }
+            if recorded_scaffold_sizes == expected_scaffold_sizes:
+                full_grid_runtimes.append(
+                    sum(float(row["elapsed_s"]) for row in repetition_rows)
+                )
+
         summary: dict[str, object] = {
             "removal_strategy": result.strategy,
             "source_file": result.source_file.name,
@@ -314,6 +333,8 @@ def build_strategy_summaries(
             "other_failures": len(failed)
             - stop_reasons.get("runtime_limit", 0)
             - stop_reasons.get("open_list_exhausted", 0),
+            "complete_full_grid_repetitions": len(full_grid_runtimes),
+            "runtime_full_grid_mean_s": mean(full_grid_runtimes),
         }
         summary.update(runtime_distribution(successful))
         summaries.append(summary)
@@ -346,7 +367,7 @@ def plot_scaling(
 
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(figsize=(12, 6.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(7.1, 4.1), constrained_layout=True)
     if separate_repetitions:
         summaries_by_strategy: dict[str, list[dict[str, object]]] = (
             defaultdict(list)
@@ -442,58 +463,52 @@ def plot_scaling(
     if log_scale:
         ax.set_yscale("log")
 
-    ax.set_xlabel("Rods in scaffold")
+    ax.set_xlabel("Rods in scaffold", fontsize=13)
     if separate_repetitions:
         runtime_label = "Successful runtime"
-        plot_note = (
-            "Thin lines are individual repetitions; bold lines are means "
-            "of successful runs. Failed and skipped points are gaps."
-        )
     elif use_mean:
         runtime_label = "Mean successful runtime"
-        plot_note = (
-            "Each point is the mean of successful runs; failed and skipped "
-            "runs are excluded."
-        )
     else:
         runtime_label = "Median successful runtime"
-        plot_note = (
-            "Each point is the median of successful runs; failed and skipped "
-            "runs are excluded."
-        )
-    scale_label = ", log scale" if log_scale else ""
-    ax.set_ylabel(f"{runtime_label} (seconds{scale_label})")
+    ax.set_ylabel(
+        f"{runtime_label} [s]",
+        fontsize=13,
+    )
     ax.set_title(
-        "Individual rigidity scaling runs and means by removal strategy"
+        "Individual scaling runs by removal strategy"
         if separate_repetitions
-        else "Rigidity search scaling by removal strategy"
+        else "Rigidity search scaling by removal strategy",
+        fontsize=15,
     )
+    ax.tick_params(labelsize=11)
     ax.grid(True, which="both", linewidth=0.6, alpha=0.28)
-    ax.legend(frameon=False, ncol=2)
-    ax.text(
-        0.0,
-        -0.14,
-        plot_note,
-        transform=ax.transAxes,
-        fontsize=9,
-        color="#5f6368",
-    )
-
+    ax.legend(frameon=False, ncol=1, fontsize=12)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=200, facecolor="white")
+    fig.savefig(output_path, dpi=300, facecolor="white")
+    pdf_path = output_path.with_suffix(".pdf")
+    fig.savefig(pdf_path, facecolor="white")
     if show:
         plt.show()
     plt.close(fig)
 
 
 def print_strategy_summary(summaries: list[dict[str, object]]) -> None:
-    print("\nStrategy summary (runtime uses successful runs only):")
+    print("\nStrategy summary:")
     for summary in summaries:
         average = float(summary["runtime_successful_mean_s"])
         average_text = "n.a." if not math.isfinite(average) else f"{average:.3f}s"
+        full_grid_average = float(summary["runtime_full_grid_mean_s"])
+        full_grid_average_text = (
+            "n.a."
+            if not math.isfinite(full_grid_average)
+            else f"{full_grid_average:.3f}s"
+        )
         print(
             f"  {strategy_label(str(summary['removal_strategy']))}: "
-            f"average={average_text}, "
+            f"successful-run average={average_text}, "
+            f"full-grid average={full_grid_average_text} "
+            f"({summary['complete_full_grid_repetitions']}/"
+            f"{summary['repetitions']} complete), "
             f"successful={summary['successful_runs']}, "
             f"failed={summary['failed_runs']}, "
             f"skipped/not recorded={summary['missing_not_attempted_runs']}"
@@ -537,7 +552,7 @@ def main() -> None:
     )
     prefix_summaries = build_prefix_summaries(results, scaffold_sizes)
     strategy_summaries = build_strategy_summaries(
-        results, len(scaffold_sizes)
+        results, scaffold_sizes
     )
 
     write_csv(prefix_summaries, args.output_prefix_csv)
@@ -550,6 +565,10 @@ def main() -> None:
         output_plot = DEFAULT_MEAN_OUTPUT_PLOT
     else:
         output_plot = DEFAULT_OUTPUT_PLOT
+    if args.linear and args.output_plot is None:
+        output_plot = output_plot.with_name(
+            f"{output_plot.stem}_linear{output_plot.suffix}"
+        )
     plot_scaling(
         prefix_summaries,
         results,
@@ -564,6 +583,7 @@ def main() -> None:
     print(f"\nPrefix summary:   {args.output_prefix_csv}")
     print(f"Strategy summary: {args.output_strategy_csv}")
     print(f"Scaling plot:     {output_plot}")
+    print(f"Vector plot:      {output_plot.with_suffix('.pdf')}")
 
 
 if __name__ == "__main__":
