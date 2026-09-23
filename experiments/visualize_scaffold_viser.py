@@ -23,7 +23,7 @@ SCAFFOLDS = {
 ROD_COLOR = (90, 90, 90)
 GROUND_COLOR = (235, 235, 235)
 SCALE = 0.001
-DEFAULT_ROD_RADIUS = 0.012
+DEFAULT_ROD_RADIUS = 0.010
 DEFAULT_GAP = 0.8
 
 
@@ -43,7 +43,7 @@ def parse_args():
         "--radius",
         type=float,
         default=DEFAULT_ROD_RADIUS,
-        help="Display cylinder radius in metres (default: 0.012).",
+        help="Display cylinder radius in metres (default: 0.010).",
     )
     parser.add_argument(
         "--gap",

@@ -1696,12 +1696,14 @@ class KeyframePlanner:
             [1e1],
         )
 
+        # Match the installed rod axis while leaving roll about that axis free.
         komo.addObjective(
             [t_grasp, last_installed_phase],
-            ry.FS.quaternionDiff,
+            ry.FS.scalarProductZZ,
             [rod, candidate_hold_target],
             ry.OT.eq,
             [1e1],
+            [1.0],
         )
 
         # ------------------------------------------------------------

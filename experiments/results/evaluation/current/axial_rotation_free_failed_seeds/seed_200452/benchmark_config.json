@@ -1,0 +1,19 @@
+{
+  "do_shortcut": false,
+  "format_version": 2,
+  "main_robot_arm_count": 1,
+  "max_komo_attempts": 100,
+  "max_replans": 50,
+  "max_runtime": 400.0,
+  "max_total_runtime": 3600.0,
+  "require_connected_supports": true,
+  "seed": 200452,
+  "shuffle_ties": true,
+  "support_fractions": "0.4,0.5,0.6",
+  "support_grippers": "h1_a1_ur_gripper_center,h2_a1_ur_gripper_center",
+  "support_target_order": "lowest_first",
+  "truss": "/home/mario/TAMP-scaffolding/JSON/own_examples/260804_RobArchDemo_ini.json",
+  "use_rai": true,
+  "use_rrt": false,
+  "use_ssik_initialization": true
+}

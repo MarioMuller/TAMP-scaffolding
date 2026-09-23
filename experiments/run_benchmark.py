@@ -45,7 +45,7 @@ def create_rai_builder(truss, main_robot_arm_count, metrics, random_seed=0):
 
     builder = RaiTrussBuilder(
         truss=truss,
-        radius=0.012,
+        radius=0.010,
         scale=0.001,
         main_robot_arm_count=main_robot_arm_count,
         metrics=metrics,

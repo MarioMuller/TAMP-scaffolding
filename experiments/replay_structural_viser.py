@@ -24,7 +24,7 @@ COLORS = {
     "supported": (255, 0, 255),
     "grounded": (90, 90, 90),
 }
-DEFAULT_ROD_RADIUS = 0.012
+DEFAULT_ROD_RADIUS = 0.010
 
 
 def parse_args():
