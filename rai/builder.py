@@ -79,8 +79,16 @@ class RaiTrussBuilder:
             
         else:
             self.import_main_husky()
-            self.import_support_husky(name="h1", color=[0.15, 0.35, 0.95], base_q=(-8.0, 0.0, 0.0))
-            self.import_support_husky(name="h2", color=[0.95, 0.35, 0.15], base_q=(0.0, 3.0, 0.0))
+            self.import_support_husky(
+                name="h1",
+                color=[0.10, 0.35, 0.80],
+                base_q=(-8.0, 0.0, 0.0),
+            )
+            self.import_support_husky(
+                name="h2",
+                color=[0.10, 0.35, 0.80],
+                base_q=(0.0, 3.0, 0.0),
+            )
 
         self._detect_support_grippers()
 

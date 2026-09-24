@@ -11,6 +11,8 @@ class ViserPlanReplayer:
         "robot": (255, 106, 0),
         "support": (255, 0, 255),
     }
+    MAIN_BASE_COLOR = (217, 51, 51)
+    SUPPORT_BASE_COLOR = (26, 89, 204)
 
     def __init__(self, C, rod_manager):
         self.C = C
@@ -29,6 +31,19 @@ class ViserPlanReplayer:
     def _is_primary_rod_frame(self, frame_name):
         rod_id = self._rod_id_from_name(frame_name)
         return rod_id is not None and frame_name == f"rod_{rod_id}"
+
+    @classmethod
+    def _robot_base_color(cls, frame_name, frame_info):
+        if not frame_info.get("contact", 0):
+            return None
+
+        if frame_name.startswith("husky_coll_"):
+            return cls.MAIN_BASE_COLOR
+
+        if frame_name.startswith(("h1_husky_", "h2_husky_")):
+            return cls.SUPPORT_BASE_COLOR
+
+        return None
 
     def _event_rod_id(self, event):
         return self._rod_id_from_name(event.child)
@@ -386,6 +401,11 @@ class ViserPlanReplayer:
             opacity = None
             if len(raw_color) > 3 and raw_color[3] < 1.0:
                 opacity = float(raw_color[3])
+
+            robot_base_color = self._robot_base_color(frame.name, info)
+            if robot_base_color is not None:
+                color_rgb = robot_base_color
+                opacity = 0.35
 
             if self._is_primary_rod_frame(frame.name):
                 handles[frame.name] = {}

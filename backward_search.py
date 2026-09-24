@@ -797,7 +797,6 @@ class AssemblyPlanner:
                 + actual_support_result.new_support_count,
                 len(node.state),
                 actual_support_result.support_count,
-                actual_support_result.new_support_count,
                 tie_breaker,
             )
 

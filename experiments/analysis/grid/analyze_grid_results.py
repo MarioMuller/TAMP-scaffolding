@@ -25,7 +25,7 @@ REPORT_RESULT_DIR = (
     / "experiments"
     / "results"
     / "report"
-    / "rigidity_target_grid_5reps"
+    / "rigidity_target_grid_10reps"
 )
 DEFAULT_INPUT_DIR = REPORT_RESULT_DIR
 DEFAULT_OUTPUT_CSV = REPORT_RESULT_DIR / "analysis" / "grid_comparison_metrics.csv"

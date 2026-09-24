@@ -1,0 +1,1 @@
+{"format": "tamp-scaffolding-structural-replay", "record_type": "metadata", "require_connected_supports": true, "scale": 0.001, "strategy_name": "baseline", "support_target_order": "least_connected", "truss": "/home/mario/TAMP-scaffolding/JSON/own_examples/260804_FoC_demo.json", "version": 1}
